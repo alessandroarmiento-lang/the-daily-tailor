@@ -361,13 +361,13 @@ export function EditionSheet({ edition }: Props) {
 
         <div className="area-reminders">
           {remindersResult.status === "error" && !remindersResult.data ? (
-            <SectionError title="Reminders" message={remindersResult.message} />
+            <SectionError title="Promemoria" message={remindersResult.message} />
           ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
             (() => {
               const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
               return (
                 <SectionShell
-                  title="Reminders"
+                  title="Promemoria"
                   kicker="Oggi / aperti"
                   tone={remindersResult.status === "error" ? "error" : "ok"}
                 >
@@ -398,7 +398,7 @@ export function EditionSheet({ edition }: Props) {
             })()
           ) : (
             <SectionEmpty
-              title="Reminders"
+              title="Promemoria"
               message="Nessun reminder aperto per oggi."
             />
           )}

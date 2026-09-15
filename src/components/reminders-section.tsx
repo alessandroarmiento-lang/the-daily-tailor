@@ -32,14 +32,14 @@ export async function RemindersSection() {
   const result = await getReminders();
 
   if (result.status === "error" && !result.data) {
-    return <SectionError title="Reminders" message={result.message} />;
+    return <SectionError title="Promemoria" message={result.message} />;
   }
 
   const briefing = result.data!;
   if (briefing.items.length === 0) {
     return (
       <SectionEmpty
-        title="Reminders"
+        title="Promemoria"
         message="Nessun reminder aperto per oggi."
       />
     );
@@ -49,7 +49,7 @@ export async function RemindersSection() {
 
   return (
     <SectionShell
-      title="Reminders"
+      title="Promemoria"
       kicker="Oggi / aperti"
       tone={result.status === "error" ? "error" : "ok"}
     >
@@ -78,6 +78,6 @@ export async function RemindersSection() {
 
 export function RemindersSectionFallback() {
   return (
-    <SectionEmpty title="Reminders" message="Caricamento Reminders…" />
+    <SectionEmpty title="Promemoria" message="Caricamento promemoria…" />
   );
 }

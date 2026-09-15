@@ -8,10 +8,33 @@ export function ServiceWorkerRegister() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return;
     }
+
     const url = "/sw.js";
-    navigator.serviceWorker.register(url).catch(() => {
-      // Silent: SW is best-effort on iOS.
-    });
+    navigator.serviceWorker
+      .register(url, { updateViaCache: "none" })
+      .then((reg) => {
+        void reg.update();
+      })
+      .catch(() => {
+        // Silent: SW is best-effort on iOS.
+      });
+
+    // Drop obsolete shell/data caches from earlier SW versions that could
+    // serve a stuck “Caricamento…” document or broken chunks.
+    if ("caches" in window) {
+      void caches.keys().then((keys) =>
+        Promise.all(
+          keys
+            .filter(
+              (k) =>
+                k.startsWith("daily-tailor-") &&
+                k !== "daily-tailor-shell-v3" &&
+                k !== "daily-tailor-data-v2",
+            )
+            .map((k) => caches.delete(k)),
+        ),
+      );
+    }
   }, []);
 
   return null;

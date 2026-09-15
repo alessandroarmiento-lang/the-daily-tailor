@@ -13,29 +13,44 @@ type Props = {
   dateKey: "today" | string;
   timezone: string;
   showHistoryLink?: boolean;
+  /** Server-rendered edition so Safari never sticks on loading if client fetch stalls. */
+  initialEdition?: NewspaperEdition | null;
 };
 
 export function DailyPaperApp({
   dateKey,
   timezone,
   showHistoryLink = true,
+  initialEdition = null,
 }: Props) {
-  const [edition, setEdition] = useState<NewspaperEdition | null>(null);
+  const [edition, setEdition] = useState<NewspaperEdition | null>(
+    initialEdition,
+  );
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialEdition);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await loadEditionForClient(dateKey);
-    setEdition(result.edition);
-    setError(result.error ?? null);
-    setLoading(false);
+    try {
+      const result = await loadEditionForClient(dateKey);
+      // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
+      setEdition((prev) => result.edition ?? prev);
+      setError(result.edition ? null : (result.error ?? null));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Caricamento edizione fallito",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [dateKey]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const showLoading = loading && !edition;
 
   return (
     <>
@@ -44,7 +59,7 @@ export function DailyPaperApp({
         historyHref={showHistoryLink ? "/storia" : undefined}
         canPrint={Boolean(edition)}
       />
-      {loading && !edition ? (
+      {showLoading ? (
         <main className="sheet-page">
           <p className="state-line">Caricamento The Daily Tailor…</p>
         </main>

@@ -2,9 +2,13 @@
  * iOS Safari / Add to Home Screen: SW runs, but there is NO silent
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
+ *
+ * v3: never cache-first Next.js bundles (stale chunks caused hang/errors);
+ * edition API uses network-first with a hard timeout.
  */
-const SHELL_CACHE = "daily-tailor-shell-v2";
-const DATA_CACHE = "daily-tailor-data-v1";
+const SHELL_CACHE = "daily-tailor-shell-v3";
+const DATA_CACHE = "daily-tailor-data-v2";
+const NETWORK_TIMEOUT_MS = 8000;
 
 const SHELL_URLS = [
   "/",
@@ -47,6 +51,21 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  // Never intercept Next.js runtime / HMR / chunk assets — stale cache
+  // of broken JS left Safari on “Caricamento…”.
+  if (
+    url.pathname.startsWith("/_next/") ||
+    url.pathname.startsWith("/__nextjs")
+  ) {
+    return;
+  }
+
+  // Cache-bust query (?v=…) → network only for navigations/shell.
+  if (url.searchParams.has("v")) {
+    event.respondWith(networkOnly(req));
+    return;
+  }
+
   const isEditionApi =
     url.pathname === "/api/edition/today" ||
     url.pathname === "/api/editions" ||
@@ -64,10 +83,34 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(cacheFirstShell(req));
 });
 
+function fetchWithTimeout(req, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(req, { signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
+
+async function networkOnly(req) {
+  try {
+    return await fetchWithTimeout(req, NETWORK_TIMEOUT_MS);
+  } catch {
+    const cache = await caches.open(SHELL_CACHE);
+    const cached = await cache.match(req, { ignoreSearch: true });
+    return (
+      cached ??
+      new Response("Offline", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      })
+    );
+  }
+}
+
 async function networkFirstData(req) {
   const cache = await caches.open(DATA_CACHE);
   try {
-    const fresh = await fetch(req);
+    const fresh = await fetchWithTimeout(req, NETWORK_TIMEOUT_MS);
     if (fresh.ok) {
       cache.put(req, fresh.clone());
     }
@@ -94,7 +137,7 @@ async function cacheFirstShell(req) {
     return cached;
   }
   try {
-    const fresh = await fetch(req);
+    const fresh = await fetchWithTimeout(req, NETWORK_TIMEOUT_MS);
     if (fresh.ok) cache.put(req, fresh.clone());
     return fresh;
   } catch {

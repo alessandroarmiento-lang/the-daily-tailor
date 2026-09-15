@@ -4,6 +4,33 @@ import { preserveNewsUrls } from "@/lib/news-links";
 const DB_NAME = "daily-tailor-editions";
 const DB_VERSION = 1;
 const STORE = "editions";
+/** Network fetch must not leave Safari on “Caricamento…” forever. */
+const FETCH_TIMEOUT_MS = 8_000;
+/** IndexedDB open/read/write — Safari can hang; never block the UI on it. */
+const IDB_TIMEOUT_MS = 2_000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -27,6 +54,26 @@ function idbReq<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
+async function withDbTimeout<T>(
+  run: (db: IDBDatabase) => Promise<T>,
+): Promise<T> {
+  if (typeof indexedDB === "undefined") {
+    throw new Error("IndexedDB unavailable");
+  }
+  return withTimeout(
+    (async () => {
+      const db = await openDb();
+      try {
+        return await run(db);
+      } finally {
+        db.close();
+      }
+    })(),
+    IDB_TIMEOUT_MS,
+    "IndexedDB",
+  );
+}
+
 function withPreservedNews(edition: NewspaperEdition): NewspaperEdition {
   return { ...edition, news: preserveNewsUrls(edition.news) };
 }
@@ -34,59 +81,85 @@ function withPreservedNews(edition: NewspaperEdition): NewspaperEdition {
 export async function cacheEditionLocally(
   edition: NewspaperEdition,
 ): Promise<void> {
-  if (typeof indexedDB === "undefined") return;
-  const db = await openDb();
   try {
-    const tx = db.transaction(STORE, "readwrite");
-    await idbReq(tx.objectStore(STORE).put(withPreservedNews(edition)));
-  } finally {
-    db.close();
+    await withDbTimeout(async (db) => {
+      const tx = db.transaction(STORE, "readwrite");
+      await idbReq(tx.objectStore(STORE).put(withPreservedNews(edition)));
+    });
+  } catch {
+    // Best-effort cache only — never fail the reader path.
   }
 }
 
 export async function readLocalEdition(
   dateKey: string,
 ): Promise<NewspaperEdition | null> {
-  if (typeof indexedDB === "undefined") return null;
-  const db = await openDb();
   try {
-    const tx = db.transaction(STORE, "readonly");
-    const value = await idbReq(
-      tx.objectStore(STORE).get(dateKey) as IDBRequest<
-        NewspaperEdition | undefined
-      >,
-    );
-    return value ? withPreservedNews(value) : null;
-  } finally {
-    db.close();
+    return await withDbTimeout(async (db) => {
+      const tx = db.transaction(STORE, "readonly");
+      const value = await idbReq(
+        tx.objectStore(STORE).get(dateKey) as IDBRequest<
+          NewspaperEdition | undefined
+        >,
+      );
+      return value ? withPreservedNews(value) : null;
+    });
+  } catch {
+    return null;
   }
 }
 
 export async function listLocalEditions(): Promise<EditionListItem[]> {
-  if (typeof indexedDB === "undefined") return [];
-  const db = await openDb();
   try {
-    const tx = db.transaction(STORE, "readonly");
-    const all = await idbReq(
-      tx.objectStore(STORE).getAll() as IDBRequest<NewspaperEdition[]>,
-    );
-    return (all ?? [])
-      .map((e) => ({
-        dateKey: e.dateKey,
-        generatedAt: e.generatedAt,
-        productName: e.productName,
-      }))
-      .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
-  } finally {
-    db.close();
+    return await withDbTimeout(async (db) => {
+      const tx = db.transaction(STORE, "readonly");
+      const all = await idbReq(
+        tx.objectStore(STORE).getAll() as IDBRequest<NewspaperEdition[]>,
+      );
+      return (all ?? [])
+        .map((e) => ({
+          dateKey: e.dateKey,
+          generatedAt: e.generatedAt,
+          productName: e.productName,
+        }))
+        .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
+    });
+  } catch {
+    return [];
   }
 }
 
 export type EditionLoadSource = "network" | "local" | "none";
 
+async function fetchEditionJson(
+  path: string,
+): Promise<{ edition: NewspaperEdition } | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(path, {
+      cache: "no-store",
+      signal: controller.signal,
+      headers: { "Cache-Control": "no-cache" },
+    });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const body = (await res.json()) as { edition?: NewspaperEdition };
+    if (body.edition?.schemaVersion === 1) {
+      return { edition: withPreservedNews(body.edition) };
+    }
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Prefer network; on failure or offline, use IndexedDB.
- * When online succeeds, always refresh the local cache.
+ * When online succeeds, refresh the local cache in the background
+ * (never await IDB before returning the edition).
  */
 export async function loadEditionForClient(
   dateKey: "today" | string,
@@ -100,27 +173,20 @@ export async function loadEditionForClient(
       ? "/api/edition/today"
       : `/api/edition/${encodeURIComponent(dateKey)}`;
 
+  let networkError: string | undefined;
+
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
     try {
-      const res = await fetch(path, { cache: "no-store" });
-      if (res.ok) {
-        const body = (await res.json()) as { edition: NewspaperEdition };
-        if (body.edition?.schemaVersion === 1) {
-          const edition = withPreservedNews(body.edition);
-          await cacheEditionLocally(edition);
-          return { edition, source: "network" };
-        }
-      } else if (res.status === 404 && dateKey !== "today") {
-        const localOnly = await readLocalEdition(dateKey);
-        if (localOnly) return { edition: localOnly, source: "local" };
-        return {
-          edition: null,
-          source: "none",
-          error: "Edizione non trovata",
-        };
+      const body = await fetchEditionJson(path);
+      if (body?.edition) {
+        void cacheEditionLocally(body.edition);
+        return { edition: body.edition, source: "network" };
       }
-    } catch {
-      // fall through to local
+    } catch (err) {
+      networkError =
+        err instanceof Error && err.name === "AbortError"
+          ? "Timeout rete"
+          : "Rete non disponibile";
     }
   }
 
@@ -146,7 +212,7 @@ export async function loadEditionForClient(
   return {
     edition: null,
     source: "none",
-    error: "Nessuna edizione in cache locale",
+    error: networkError ?? "Nessuna edizione in cache locale",
   };
 }
 

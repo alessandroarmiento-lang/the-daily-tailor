@@ -115,6 +115,14 @@ function formatReceived(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
+function formatUpdatedAt(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(iso));
+}
+
 function priorityLabel(priority: string): string | null {
   switch (priority) {
     case "high":
@@ -151,15 +159,13 @@ function HeadlineTitle({ item }: { item: NewsItem }) {
 
 type Props = {
   edition: NewspaperEdition;
-  /** Shown in footer when served from device storage. */
-  sourceNote?: string;
 };
 
 /**
  * Full A4 newspaper sheet from a frozen edition snapshot.
  * Same DOM is captured for the PDF button and optional browser print.
  */
-export function EditionSheet({ edition, sourceNote }: Props) {
+export function EditionSheet({ edition }: Props) {
   const tz = edition.timezone;
   const weatherResult = edition.weather;
   const newsResult = edition.news;
@@ -454,9 +460,8 @@ export function EditionSheet({ edition, sourceNote }: Props) {
       </div>
 
       <footer className="sheet-footer">
-        <span>{edition.productName}</span>
-        <span>
-          {sourceNote ?? "Web · iPhone · stampa A4"} · {edition.dateKey}
+        <span className="sheet-footer__updated">
+          {formatUpdatedAt(edition.generatedAt, tz)}
         </span>
       </footer>
     </main>

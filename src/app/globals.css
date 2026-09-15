@@ -733,13 +733,18 @@ a.headline-list__title:hover {
   padding-top: 0.4rem;
   border-top: 2px solid var(--rule);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
   font-family: var(--font-sans);
   font-size: 0.65rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-muted);
+}
+
+.sheet-footer__updated {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 640px) {

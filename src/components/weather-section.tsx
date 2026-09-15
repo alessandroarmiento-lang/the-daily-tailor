@@ -4,6 +4,7 @@ import {
   SectionShell,
 } from "@/components/section-shell";
 import { getWeather } from "@/lib/weather";
+import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 
 function providerLabel(source: string): string {
@@ -24,7 +25,7 @@ function providerLabel(source: string): string {
 const PRECIP_ROW_SIZE = 8;
 
 function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
-  const hasToday = precip.todayChancePercent != null;
+  const hasToday = precip.todayAmountMm != null;
   const hours = precip.nextHours;
   if (!hasToday && hours.length === 0) return null;
 
@@ -38,10 +39,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
       <p className="weather__precip-title">Precipitazioni</p>
       {hasToday ? (
         <p className="weather__precip-today">
-          Oggi {precip.todayChancePercent}%
-          {precip.todayAmountMm != null && precip.todayAmountMm > 0
-            ? ` · ${precip.todayAmountMm} mm`
-            : ""}
+          {formatOggiPrecipMm(precip.todayAmountMm!)}
         </p>
       ) : null}
       {rows.length > 0 ? (

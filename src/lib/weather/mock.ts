@@ -203,3 +203,26 @@ export function buildDaytimePrecipHours(
   }
   return nextHours;
 }
+
+/** Sum hourly mm over the 07–22 strip; null if no hour reported an amount. */
+export function sumDaytimeAmountMm(hours: PrecipHour[]): number | null {
+  let sum = 0;
+  let any = false;
+  for (const h of hours) {
+    if (h.amountMm == null) continue;
+    any = true;
+    sum += h.amountMm;
+  }
+  if (!any) return null;
+  return Math.round(sum * 10) / 10;
+}
+
+/** Italian label for the daily precip summary, e.g. "Oggi 2,4 mm". */
+export function formatOggiPrecipMm(mm: number): string {
+  const rounded = Math.round(mm * 10) / 10;
+  const body =
+    Math.abs(rounded - Math.trunc(rounded)) < 1e-9
+      ? String(Math.trunc(rounded))
+      : rounded.toFixed(1).replace(".", ",");
+  return `Oggi ${body} mm`;
+}

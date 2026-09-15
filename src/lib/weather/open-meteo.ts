@@ -5,6 +5,7 @@ import {
   conditionFromWmo,
   emptyPrecipitation,
   labelForCondition,
+  sumDaytimeAmountMm,
 } from "./mock";
 import type {
   PrecipitationForecast,
@@ -49,7 +50,7 @@ function buildPrecipitation(
     json.daily?.precipitation_probability_max?.[dayIndex] != null
       ? Math.round(json.daily.precipitation_probability_max[dayIndex]!)
       : null;
-  const todayAmount =
+  const dailySum =
     json.daily?.precipitation_sum?.[dayIndex] != null
       ? Math.round(json.daily.precipitation_sum[dayIndex]! * 10) / 10
       : null;
@@ -64,10 +65,14 @@ function buildPrecipitation(
       amounts[i] != null ? Math.round(Number(amounts[i]) * 10) / 10 : null,
   }));
 
+  const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
+  // Prefer sum of the visible 07–22 strip; fall back to full-day daily sum.
+  const todayAmount = sumDaytimeAmountMm(nextHours) ?? dailySum;
+
   return {
     todayChancePercent: todayChance,
     todayAmountMm: todayAmount,
-    nextHours: buildDaytimePrecipHours(samples, timezone, dayKey),
+    nextHours,
   };
 }
 
@@ -140,7 +145,7 @@ export const openMeteoProvider: WeatherProvider = {
           : null,
       precipitation:
         precipitation.nextHours.length > 0 ||
-        precipitation.todayChancePercent != null
+        precipitation.todayAmountMm != null
           ? precipitation
           : emptyPrecipitation(),
       source: "open-meteo",

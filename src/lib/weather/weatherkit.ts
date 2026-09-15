@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import { getEditionDateKey } from "@/lib/edition";
 import {
   buildDaytimePrecipHours,
+  sumDaytimeAmountMm,
   conditionFromWeatherKit,
   emptyPrecipitation,
   labelForCondition,
@@ -126,7 +127,7 @@ function buildPrecipitation(
     day?.precipitationChance != null
       ? Math.round(day.precipitationChance * 100)
       : null;
-  const todayAmount =
+  const dailyAmount =
     day?.precipitationAmount != null
       ? Math.round(day.precipitationAmount * 10) / 10
       : null;
@@ -147,10 +148,13 @@ function buildPrecipitation(
             : null,
     }));
 
+  const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
+  const todayAmount = sumDaytimeAmountMm(nextHours) ?? dailyAmount;
+
   return {
     todayChancePercent: todayChance,
     todayAmountMm: todayAmount,
-    nextHours: buildDaytimePrecipHours(samples, timezone, dayKey),
+    nextHours,
   };
 }
 
@@ -223,7 +227,7 @@ export const weatherKitProvider: WeatherProvider = {
         day?.temperatureMin != null ? Math.round(day.temperatureMin) : null,
       precipitation:
         precipitation.nextHours.length > 0 ||
-        precipitation.todayChancePercent != null
+        precipitation.todayAmountMm != null
           ? precipitation
           : emptyPrecipitation(),
       source: "weatherkit",

@@ -26,11 +26,14 @@ export type PrecipHour = {
 };
 
 export type PrecipitationForecast = {
-  /** Peak / representative chance for the calendar day (0–100). */
+  /** Peak / representative chance for the calendar day (0–100). Kept for adapters; UI uses mm for “Oggi”. */
   todayChancePercent: number | null;
-  /** Expected liquid total for today in mm, when known. */
+  /**
+   * Expected liquid total in mm for the daytime strip (07–22) when hourly
+   * amounts exist; otherwise full-day sum from the provider.
+   */
   todayAmountMm: number | null;
-  /** Next few hours — keep short for one A4. */
+  /** Fixed 07–22 strip — percent chance under each hour. */
   nextHours: PrecipHour[];
 };
 

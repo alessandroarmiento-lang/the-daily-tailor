@@ -3,6 +3,7 @@ export type NewsItem = {
   title: string;
   summary: string | null;
   source: string;
+  /** Original article URL (Il Post). Required in edition snapshots for offline links. */
   url: string;
   publishedAt: string | null;
 };

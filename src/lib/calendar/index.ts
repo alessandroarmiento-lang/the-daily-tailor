@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { EventKitCalendarAdapter } from "./eventkit";
 import { MockCalendarAdapter } from "./mock";
 import type {
   CalendarAdapter,
@@ -10,6 +11,8 @@ import type {
 
 function resolveAdapter(): CalendarAdapter {
   switch (config.calendar.source) {
+    case "eventkit":
+      return new EventKitCalendarAdapter();
     case "mock":
     default:
       return new MockCalendarAdapter();

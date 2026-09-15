@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { AppleMailActionEmailAdapter } from "./applemail";
+import { ImapActionEmailAdapter } from "./imap-stub";
 import { MockActionEmailAdapter } from "./mock";
 import type {
   ActionEmailAdapter,
@@ -8,7 +10,12 @@ import type {
 
 function resolveAdapter(): ActionEmailAdapter {
   switch (config.actionEmails.source) {
+    case "applemail":
+      return new AppleMailActionEmailAdapter();
+    case "imap":
+      return new ImapActionEmailAdapter();
     case "mock":
+      return new MockActionEmailAdapter();
     default:
       return new MockActionEmailAdapter();
   }

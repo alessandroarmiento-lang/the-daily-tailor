@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { editionDayIndex, getEditionDateKey } from "@/lib/edition";
 
 export type Aphorism = {
   text: string;
@@ -132,25 +133,16 @@ const APHORISMS: Aphorism[] = [
   },
 ];
 
-function dateKeyInTimezone(timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-/** Stable day index from YYYY-MM-DD (UTC noon of that civil date). */
-function dayIndexFromKey(dateKey: string): number {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const utc = Date.UTC(y, m - 1, d);
-  return Math.floor(utc / 86_400_000);
-}
-
-export function getAphorismOfTheDay(): Aphorism & { dateKey: string } {
-  const dateKey = dateKeyInTimezone(config.timezone);
-  const index = dayIndexFromKey(dateKey) % APHORISMS.length;
+/** Aphorism for a given edition date key (YYYY-MM-DD after 06:00 rollover). */
+export function getAphorismForDateKey(
+  dateKey: string,
+): Aphorism & { dateKey: string } {
+  const index = editionDayIndex(dateKey) % APHORISMS.length;
   const picked = APHORISMS[index]!;
   return { ...picked, dateKey };
+}
+
+/** Today's edition aphorism (rolls with the 06:00 Europe/Rome sheet). */
+export function getAphorismOfTheDay(): Aphorism & { dateKey: string } {
+  return getAphorismForDateKey(getEditionDateKey(new Date(), config.timezone));
 }

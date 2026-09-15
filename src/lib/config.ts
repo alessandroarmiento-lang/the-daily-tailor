@@ -2,6 +2,16 @@
  * The Daily Tailor runtime config.
  * Override via env without code changes.
  */
+
+function defaultAppleSource<T extends string>(
+  envValue: string | undefined,
+  macDefault: T,
+  otherDefault: T,
+): T {
+  if (envValue) return envValue as T;
+  return process.platform === "darwin" ? macDefault : otherDefault;
+}
+
 export const config = {
   productName: process.env.NEXT_PUBLIC_PRODUCT_NAME ?? "The Daily Tailor",
   tagline:
@@ -15,53 +25,50 @@ export const config = {
     longitude: Number(process.env.WEATHER_LON ?? "12.4964"),
     /**
      * Provider preference: auto | weatherkit | open-meteo | mock.
-     * auto → WeatherKit when Apple keys are set, else Open-Meteo (with precip).
+     * Default open-meteo (Apple Weather / WeatherKit not pursued).
      */
-    provider: (process.env.WEATHER_PROVIDER ?? "auto") as
+    provider: (process.env.WEATHER_PROVIDER ?? "open-meteo") as
       | "auto"
       | "weatherkit"
       | "open-meteo"
       | "mock",
-    /** Optional legacy key; unused when WeatherKit / Open-Meteo are active. */
     openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? "",
     weatherKit: {
       teamId: process.env.WEATHERKIT_TEAM_ID ?? "",
       keyId: process.env.WEATHERKIT_KEY_ID ?? "",
       serviceId: process.env.WEATHERKIT_SERVICE_ID ?? "",
-      /** PEM contents (use \n for newlines) or leave empty and set path. */
       privateKey: process.env.WEATHERKIT_PRIVATE_KEY ?? "",
       privateKeyPath: process.env.WEATHERKIT_PRIVATE_KEY_PATH ?? "",
     },
   },
   news: {
-    /** Il Post — sezione Mondo (world/international). Trailing slash required. */
+    /** Il Post — sezione Mondo (trailing slash required). */
     feedUrl:
       process.env.NEWS_FEED_URL ?? "https://www.ilpost.it/mondo/feed/",
-    /** Cap for one-A4 print budget (screen can still feel dense). */
     maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "4"),
   },
   reminders: {
-    /**
-     * Active adapter: "mock" on this cloud VM.
-     * Later: "eventkit" | "shortcuts" | "applescript" on Mac.
-     */
-    source: (process.env.REMINDERS_SOURCE ?? "mock") as "mock",
+    source: defaultAppleSource(
+      process.env.REMINDERS_SOURCE,
+      "eventkit",
+      "mock",
+    ) as "mock" | "eventkit",
     maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
   },
   actionEmails: {
-    /**
-     * Active adapter: "mock" on this cloud VM.
-     * Later: "imap" | "gmail" | "applemail" with real mailbox access.
-     */
-    source: (process.env.ACTION_EMAIL_SOURCE ?? "mock") as "mock",
+    source: defaultAppleSource(
+      process.env.ACTION_EMAIL_SOURCE,
+      "applemail",
+      "mock",
+    ) as "mock" | "applemail" | "imap",
     maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "3"),
   },
   calendar: {
-    /**
-     * Active adapter: "mock" on this cloud VM.
-     * Later: "eventkit" | "caldav" on Mac.
-     */
-    source: (process.env.CALENDAR_SOURCE ?? "mock") as "mock",
+    source: defaultAppleSource(
+      process.env.CALENDAR_SOURCE,
+      "eventkit",
+      "mock",
+    ) as "mock" | "eventkit",
     horizonDays: Number(process.env.CALENDAR_HORIZON_DAYS ?? "4"),
     maxEventsPerDay: Number(process.env.CALENDAR_MAX_EVENTS_PER_DAY ?? "2"),
   },

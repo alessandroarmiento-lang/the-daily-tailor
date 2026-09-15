@@ -66,35 +66,61 @@ a:hover {
   max-width: 210mm;
   margin: 0 auto;
   padding: calc(0.75rem + var(--safe-top)) 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #ffffff;
+}
+
+.toolbar__copy {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .toolbar__hint {
   margin: 0;
-  flex: 1 1 12rem;
   font-family: var(--font-sans);
   font-size: 0.85rem;
   line-height: 1.35;
   color: var(--ink-muted);
 }
 
+.toolbar__status {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
 .toolbar__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-decoration: none;
   color: var(--paper-pure);
   background: var(--ink);
   border: 1px solid var(--ink);
   padding: 0.7rem 1.05rem;
   min-height: 44px;
+  min-width: 44px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .toolbar__btn--ghost {
@@ -107,6 +133,74 @@ a:hover {
   border-color: #000000;
   color: #ffffff;
   opacity: 0.85;
+}
+
+.toolbar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.history-page {
+  max-width: 210mm;
+  margin: 0 auto 2rem;
+  padding: 1rem 1rem 2rem;
+}
+
+.history-page__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-masthead);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.history-page__lead {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #000;
+}
+
+.history-list__item {
+  border-bottom: 1px solid #000;
+}
+
+.history-list__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 0.15rem;
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+}
+
+.history-list__date {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+
+.history-list__meta {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.history-back {
+  max-width: 210mm;
+  margin: 0 auto 2rem;
+  padding: 0 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
 }
 
 .sheet-page {
@@ -509,15 +603,20 @@ a:hover {
   font-size: 1.02rem;
   font-weight: 700;
   line-height: 1.22;
-  text-decoration: none;
+  /* Visible as links on screen (Il Post); print keeps ink-light. */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.headline-list__title:hover {
-  text-decoration: underline;
+a.headline-list__title:hover {
+  text-decoration-thickness: 2px;
 }
 
 .headline-list__summary {

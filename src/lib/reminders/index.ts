@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
 import type {
   RemindersAdapter,
@@ -8,6 +9,8 @@ import type {
 
 function resolveAdapter(): RemindersAdapter {
   switch (config.reminders.source) {
+    case "eventkit":
+      return new EventKitRemindersAdapter();
     case "mock":
     default:
       return new MockRemindersAdapter();

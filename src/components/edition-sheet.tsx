@@ -450,7 +450,7 @@ export function EditionSheet({ edition }: Props) {
 
       <footer className="sheet-footer">
         <span className="sheet-footer__updated">
-          {formatUpdatedAt(edition.generatedAt, tz)}
+          Aggiornamento {formatUpdatedAt(edition.generatedAt, tz)}
         </span>
       </footer>
     </main>

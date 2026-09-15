@@ -157,7 +157,7 @@ type Props = {
 
 /**
  * Full A4 newspaper sheet from a frozen edition snapshot.
- * Same DOM is what window.print() uses — including offline on iPhone.
+ * Same DOM is captured for the PDF button and optional browser print.
  */
 export function EditionSheet({ edition, sourceNote }: Props) {
   const tz = edition.timezone;

@@ -57,7 +57,12 @@ export function DailyPaperApp({
       <PrintToolbar
         onRefresh={() => void refresh()}
         historyHref={showHistoryLink ? "/storia" : undefined}
-        canPrint={Boolean(edition)}
+        canExportPdf={Boolean(edition)}
+        pdfFileStem={
+          edition
+            ? `the-daily-tailor-${edition.dateKey}`
+            : "the-daily-tailor"
+        }
       />
       {showLoading ? (
         <main className="sheet-page">

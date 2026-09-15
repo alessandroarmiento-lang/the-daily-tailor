@@ -23,11 +23,12 @@ Sections:
 
 ## Morning edition model (locked)
 
-1. Every morning at **06:00 Europe/Rome**, the Mac job builds that day’s full newspaper **snapshot**.
-2. The **iPhone downloads** the edition (on open / after generation) and keeps it **offline all day**.
-3. When consulting on iPhone, content is served from **device local storage** (IndexedDB + Cache API), not live network fetches for the day’s paper.
-4. The web app has an **edition history** (`/storia`) — past days browseable.
-5. Weather stays **Open-Meteo**; email remains fundamental (real account when available).
+1. Prefer **IMAP/CalDAV credentials** so the day’s edition can be **generated with the Mac powered off** (always-on host or cloud job).
+2. At **06:00 Europe/Rome**, a warmer (`launchd` on Mac and/or remote cron) builds that day’s full newspaper **snapshot** into `data/editions/`.
+3. The **iPhone downloads** the edition (on open / after generation) and keeps it **offline all day**.
+4. When consulting on iPhone, content is served from **device local storage** (IndexedDB + Cache API), not live Mail/Calendar fetches.
+5. The web app has an **edition history** (`/storia`) — past days browseable.
+6. Weather stays **Open-Meteo**; email remains fundamental (IMAP iCloud+Gmail or Mail.app fallback).
 
 ### Server APIs
 

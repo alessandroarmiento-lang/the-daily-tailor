@@ -6,6 +6,7 @@ import {
 } from "./caldav";
 import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
+import { rankAndCapReminders } from "./rank";
 import type {
   RemindersAdapter,
   RemindersBriefing,
@@ -41,11 +42,16 @@ export async function getReminders(): Promise<
   const useMock = adapter.id === "mock";
 
   try {
-    const items = await adapter.getTodaysOpenReminders();
+    const pool = await adapter.getTodaysOpenReminders();
+    const { items, hiddenCount } = rankAndCapReminders(
+      pool,
+      config.reminders.maxItems,
+    );
     return {
       status: "ok",
       data: {
         items,
+        hiddenCount,
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
         isMock: useMock,
@@ -61,6 +67,7 @@ export async function getReminders(): Promise<
       message,
       data: {
         items: [],
+        hiddenCount: 0,
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
         isMock: useMock,

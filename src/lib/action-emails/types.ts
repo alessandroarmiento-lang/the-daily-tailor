@@ -19,6 +19,8 @@ export type ActionEmailItem = {
 
 export type ActionEmailBriefing = {
   items: ActionEmailItem[];
+  /** Important actionable emails not shown (A4 budget). */
+  hiddenCount: number;
   fetchedAt: string;
   sourceLabel: string;
   windowLabel: string;

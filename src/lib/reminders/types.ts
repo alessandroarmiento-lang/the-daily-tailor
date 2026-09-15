@@ -20,6 +20,8 @@ export type ReminderItem = {
 
 export type RemindersBriefing = {
   items: ReminderItem[];
+  /** Important open reminders not shown (A4 budget). */
+  hiddenCount: number;
   fetchedAt: string;
   sourceLabel: string;
   isMock: boolean;

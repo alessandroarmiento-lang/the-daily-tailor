@@ -11,7 +11,8 @@ import {
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
 import {
-  toActionEmailItems,
+  actionEmailFetchPool,
+  toActionEmailItemsWithOverflow,
   type MailRawMessage,
 } from "./actionable";
 import { loadContactEmails } from "@/lib/contacts/carddav";
@@ -189,10 +190,11 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
   readonly label = "IMAP (iCloud + Gmail)";
 
   async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
+    const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
     const cached =
       await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
     if (cached?.data) {
-      return cached.data.slice(0, config.actionEmails.maxItems);
+      return cached.data.slice(0, poolSize);
     }
 
     const accounts = configuredImapAccounts();
@@ -203,7 +205,7 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
     }
 
     const { since, before } = yesterdayWindow(config.timezone);
-    const scanCap = Math.max(30, config.actionEmails.maxItems * 12);
+    const scanCap = Math.max(30, poolSize);
     const all: MailRawMessage[] = [];
     const errors: string[] = [];
     const foundLabels: string[] = [];
@@ -225,11 +227,10 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
     }
 
     const contacts = await loadContactEmails();
-    const items = toActionEmailItems(all, config.actionEmails.maxItems, {
+    const { items } = toActionEmailItemsWithOverflow(all, poolSize, {
       contactEmails: contacts,
     });
 
-    // Stamp account discovery into cache metadata via source label on adapter.
     (this as { label: string }).label =
       foundLabels.length > 0
         ? `IMAP (${foundLabels.join(" + ")})`

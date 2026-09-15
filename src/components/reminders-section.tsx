@@ -5,6 +5,7 @@ import {
 } from "@/components/section-shell";
 import { config } from "@/lib/config";
 import { getReminders } from "@/lib/reminders";
+import { remindersOverflowLabel } from "@/lib/section-overflow";
 
 function formatDue(iso: string | null): string {
   if (!iso) return "Senza scadenza";
@@ -54,6 +55,9 @@ export async function RemindersSection() {
   }
 
   const items = briefing.items.slice(0, config.reminders.maxItems);
+  const hidden =
+    typeof briefing.hiddenCount === "number" ? briefing.hiddenCount : 0;
+  const overflow = remindersOverflowLabel(hidden);
 
   return (
     <SectionShell
@@ -61,7 +65,7 @@ export async function RemindersSection() {
       kicker="Oggi / aperti"
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
-        result.status === "error" ? result.message : briefing.sourceLabel
+        result.status === "error" ? result.message : undefined
       }
     >
       <ul className="reminder-list">
@@ -83,6 +87,9 @@ export async function RemindersSection() {
           );
         })}
       </ul>
+      {overflow ? (
+        <p className="section-overflow">{overflow}</p>
+      ) : null}
     </SectionShell>
   );
 }

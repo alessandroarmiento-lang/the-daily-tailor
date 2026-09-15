@@ -9,6 +9,7 @@ import {
   readEditionCacheEnvelope,
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
+import { rankReminders, remindersFetchPool } from "./rank";
 import type { ReminderItem, RemindersAdapter } from "./types";
 
 function env(name: string): string {
@@ -127,9 +128,10 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
   label = "CalDAV (iCloud Reminders)";
 
   async getTodaysOpenReminders(): Promise<ReminderItem[]> {
+    const poolSize = remindersFetchPool(config.reminders.maxItems);
     const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
     if (cached?.data) {
-      return cached.data.slice(0, config.reminders.maxItems);
+      return rankReminders(cached.data).slice(0, poolSize);
     }
 
     const account = icloudAccount();
@@ -176,8 +178,8 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
       }
     }
 
-    const capped = items.slice(0, config.reminders.maxItems);
-    await writeEditionCache("reminders", capped);
-    return capped;
+    const ranked = rankReminders(items).slice(0, poolSize);
+    await writeEditionCache("reminders", ranked);
+    return ranked;
   }
 }

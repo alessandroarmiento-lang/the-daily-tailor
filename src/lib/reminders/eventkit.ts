@@ -1,5 +1,6 @@
 /**
  * Apple Reminders via AppleScript (EventKit-backed Reminders.app).
+ * Returns a pool (may exceed A4 max); getReminders ranks/caps + hiddenCount.
  */
 import { config } from "@/lib/config";
 import {
@@ -7,6 +8,7 @@ import {
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
 import { runOsascriptJson } from "@/lib/apple/run-osascript";
+import { rankReminders, remindersFetchPool } from "./rank";
 import type { ReminderItem, RemindersAdapter } from "./types";
 
 type ScriptResult = {
@@ -27,14 +29,15 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
   readonly label = "Apple Reminders";
 
   async getTodaysOpenReminders(): Promise<ReminderItem[]> {
+    const poolSize = remindersFetchPool(config.reminders.maxItems);
     const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
     if (cached?.data) {
-      return cached.data.slice(0, config.reminders.maxItems);
+      return rankReminders(cached.data).slice(0, poolSize);
     }
 
     const result = await runOsascriptJson<ScriptResult>(
       "fetch-reminders.applescript",
-      [String(config.reminders.maxItems)],
+      [String(poolSize)],
       60_000,
     );
 
@@ -52,8 +55,8 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
       priority: r.priority ?? "none",
     }));
 
-    const capped = items.slice(0, config.reminders.maxItems);
-    await writeEditionCache("reminders", capped);
-    return capped;
+    const ranked = rankReminders(items).slice(0, poolSize);
+    await writeEditionCache("reminders", ranked);
+    return ranked;
   }
 }

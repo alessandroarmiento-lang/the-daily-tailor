@@ -168,13 +168,60 @@ export function messageUrlFromId(messageId: string): string | undefined {
   return `message://%3C${encodeURIComponent(bare)}%3E`;
 }
 
+/** Higher = more important for the A4 Email slot. */
+export function emailImportanceScore(
+  msg: MailRawMessage,
+  ctx: ActionClassifyContext = {},
+): number {
+  const sender = msg.sender || "";
+  const subject = msg.subject || "";
+  const preview = msg.preview || "";
+  const blob = `${subject}\n${preview}`;
+  const { address } = parseSender(sender);
+  let score = 0;
+
+  if (msg.flagged) score += 500;
+  if (isAllowDomain(address, sender)) score += 300;
+  if (isContact(address, ctx.contactEmails)) score += 220;
+  if (SHIPPING_ACTION.test(blob)) score += 180;
+  if (BANK_ACTION.test(blob)) score += 180;
+  if (PA_ACTION.test(blob)) score += 160;
+  if (ACTION_HINT.test(blob)) score += 120;
+  if (msg.unread) score += 60;
+  // Prefer more recent within yesterday.
+  const t = Date.parse(msg.receivedAt);
+  if (!Number.isNaN(t)) score += Math.min(40, Math.floor(t / 100_000) % 40);
+
+  return score;
+}
+
+export function rankActionableMail(
+  messages: MailRawMessage[],
+  ctx: ActionClassifyContext = {},
+): MailRawMessage[] {
+  return messages
+    .filter((m) => isActionableMail(m, ctx))
+    .sort((a, b) => emailImportanceScore(b, ctx) - emailImportanceScore(a, ctx));
+}
+
 export function toActionEmailItems(
   messages: MailRawMessage[],
   maxItems: number,
   ctx: ActionClassifyContext = {},
 ): ActionEmailItem[] {
-  const picked = messages.filter((m) => isActionableMail(m, ctx)).slice(0, maxItems);
-  return picked.map((msg, i) => {
+  const { items } = toActionEmailItemsWithOverflow(messages, maxItems, ctx);
+  return items;
+}
+
+export function toActionEmailItemsWithOverflow(
+  messages: MailRawMessage[],
+  maxItems: number,
+  ctx: ActionClassifyContext = {},
+): { items: ActionEmailItem[]; hiddenCount: number } {
+  const ranked = rankActionableMail(messages, ctx);
+  const hiddenCount = Math.max(0, ranked.length - maxItems);
+  const picked = ranked.slice(0, maxItems);
+  const items = picked.map((msg, i) => {
     const { name, address } = parseSender(msg.sender);
     const messageUrl =
       msg.messageUrl || messageUrlFromId(msg.id) || undefined;
@@ -189,4 +236,10 @@ export function toActionEmailItems(
       account: msg.account,
     };
   });
+  return { items, hiddenCount };
+}
+
+/** Pool of actionable candidates to keep before A4 cap (for +N altre email). */
+export function actionEmailFetchPool(maxVisible: number): number {
+  return Math.max(24, maxVisible * 8);
 }

@@ -7,6 +7,10 @@ import {
 } from "@/components/section-shell";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
+import {
+  emailsOverflowLabel,
+  remindersOverflowLabel,
+} from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
@@ -363,6 +367,11 @@ export function EditionSheet({ edition }: Props) {
           ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
             (() => {
               const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
+              const hidden =
+                typeof remindersResult.data.hiddenCount === "number"
+                  ? remindersResult.data.hiddenCount
+                  : 0;
+              const overflow = remindersOverflowLabel(hidden);
               return (
                 <SectionShell
                   title="Promemoria"
@@ -391,6 +400,9 @@ export function EditionSheet({ edition }: Props) {
                       );
                     })}
                   </ul>
+                  {overflow ? (
+                    <p className="section-overflow">{overflow}</p>
+                  ) : null}
                 </SectionShell>
               );
             })()
@@ -411,6 +423,11 @@ export function EditionSheet({ edition }: Props) {
           ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
             (() => {
               const items = emailsResult.data.items.slice(0, EMAILS_MAX);
+              const hidden =
+                typeof emailsResult.data.hiddenCount === "number"
+                  ? emailsResult.data.hiddenCount
+                  : 0;
+              const overflow = emailsOverflowLabel(hidden);
               return (
                 <SectionShell
                   title="Email"
@@ -421,10 +438,20 @@ export function EditionSheet({ edition }: Props) {
                     {items.map((item) => (
                       <li key={item.id} className="action-mail-list__item">
                         <p className="action-mail-list__subject">
-                          {item.subject}
+                          {item.messageUrl ? (
+                            <a
+                              href={item.messageUrl}
+                              className="action-mail-list__link"
+                            >
+                              {item.subject}
+                            </a>
+                          ) : (
+                            item.subject
+                          )}
                         </p>
                         <p className="action-mail-list__from">
                           {item.senderName}
+                          {item.account ? ` · ${item.account}` : ""}
                           <span className="action-mail-list__when">
                             {" · "}
                             {formatReceived(item.receivedAt, tz)}
@@ -434,6 +461,9 @@ export function EditionSheet({ edition }: Props) {
                       </li>
                     ))}
                   </ul>
+                  {overflow ? (
+                    <p className="section-overflow">{overflow}</p>
+                  ) : null}
                 </SectionShell>
               );
             })()

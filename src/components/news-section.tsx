@@ -26,22 +26,12 @@ export async function NewsSection() {
   }
 
   const items = briefing.items.slice(0, config.news.maxItems);
-  const hidden = Math.max(0, briefing.items.length - items.length);
-  const noteParts: string[] = [briefing.feedLabel];
-  if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-  if (result.status === "error") {
-    noteParts.push(`Fallback: ${result.message}`);
-  }
-  if (briefing.isMock) {
-    noteParts.push("Sorgente mock");
-  }
 
   return (
     <SectionShell
       title="Notizie dal mondo"
       kicker="Il Post"
       tone={result.status === "error" ? "error" : "ok"}
-      footerNote={noteParts.join(" · ")}
     >
       <ol className="headline-list">
         {items.map((item, i) => (

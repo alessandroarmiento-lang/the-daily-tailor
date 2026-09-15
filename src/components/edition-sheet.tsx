@@ -327,22 +327,11 @@ export function EditionSheet({ edition }: Props) {
           ) : newsResult.data && newsResult.data.items.length > 0 ? (
             (() => {
               const items = newsResult.data.items.slice(0, NEWS_MAX);
-              const hidden = Math.max(
-                0,
-                newsResult.data.items.length - items.length,
-              );
-              const noteParts = [newsResult.data.feedLabel];
-              if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-              if (newsResult.status === "error") {
-                noteParts.push(`Fallback: ${newsResult.message}`);
-              }
-              if (newsResult.data.isMock) noteParts.push("Sorgente mock");
               return (
                 <SectionShell
                   title="Notizie dal mondo"
                   kicker="Il Post"
                   tone={newsResult.status === "error" ? "error" : "ok"}
-                  footerNote={noteParts.join(" · ")}
                 >
                   <ol className="headline-list">
                     {items.map((item, i) => (

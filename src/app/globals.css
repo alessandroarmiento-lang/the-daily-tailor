@@ -768,9 +768,9 @@ a.headline-list__title:hover {
 }
 
 /* ——— Print: HARD CAP — exactly one A4 page, never page 2 ———
-   Safari: @page margins + fixed 281mm height + break-inside:avoid on
-   sections pushes leftover blocks onto page 2. Own the full A4 box,
-   clip overflow, and allow sections to clip instead of paginating. */
+   Match on-screen newspaper hierarchy/columns/spacing as closely as
+   the single-page budget allows. Own the full A4 box, clip overflow,
+   never break-inside:avoid (that creates Safari page 2). */
 @page {
   size: A4 portrait;
   margin: 0;
@@ -818,7 +818,8 @@ a.headline-list__title:hover {
     height: 296mm !important;
     max-height: 296mm !important;
     margin: 0 !important;
-    padding: 5.5mm 6mm 5mm !important;
+    /* Screen uses 12mm; print keeps near-parity inside the clipped A4 box. */
+    padding: 9mm 10mm 8mm !important;
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
@@ -833,6 +834,7 @@ a.headline-list__title:hover {
   }
 
   .history-back,
+  .history-page,
   .state-line {
     display: none !important;
   }
@@ -840,30 +842,34 @@ a.headline-list__title:hover {
   .masthead {
     flex: 0 0 auto;
     margin-bottom: 0 !important;
+    text-align: center;
   }
 
   .masthead__edition {
-    font-size: 6.5pt;
-    margin-bottom: 0.05rem;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.25rem;
   }
 
   .masthead__brand {
-    font-size: 20pt;
-    line-height: 0.9;
+    font-size: 28pt;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
   }
 
   .masthead__tagline {
-    font-size: 7.5pt;
-    margin: 0.1rem 0 0.2rem;
+    font-size: 9pt;
+    font-style: italic;
+    margin: 0.35rem 0 0.5rem;
   }
 
   .masthead__rule {
-    height: 1.5px;
+    height: 3px;
     background: #000000 !important;
     border-color: #000000 !important;
   }
 
-  /* Quote only — equal padding between masthead rule and thin rule. */
+  /* Quote-only band — same structure as screen, slightly tighter. */
   .aphorism {
     flex: 0 0 auto;
     box-sizing: border-box !important;
@@ -872,9 +878,9 @@ a.headline-list__title:hover {
     align-items: center !important;
     justify-content: center !important;
     margin: 0 !important;
-    padding: 0.35rem 0.35rem !important;
-    min-height: 1.85rem;
-    border-bottom-color: #000000 !important;
+    padding: 0.65rem 0.55rem !important;
+    min-height: 2.75rem;
+    border-bottom: 1px solid #000000 !important;
     text-align: center;
   }
 
@@ -888,6 +894,7 @@ a.headline-list__title:hover {
     padding: 0 !important;
     border: 0 !important;
     width: 100%;
+    max-width: 42rem;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -896,32 +903,47 @@ a.headline-list__title:hover {
   .aphorism__text {
     margin: 0 !important;
     padding: 0 !important;
-    font-size: 8.5pt;
-    line-height: 1.15;
+    font-size: 10.5pt;
+    line-height: 1.2;
+    font-style: italic;
     text-align: center;
     max-width: 100%;
   }
 
+  /* Same column map as desktop screen — do not invent a print layout. */
   .sheet-grid {
     flex: 1 1 auto;
     min-height: 0 !important;
     display: grid !important;
-    grid-template-columns: 0.9fr 1fr 1.15fr !important;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 0.7fr) !important;
+    grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
+    grid-template-rows: minmax(0, auto) minmax(0, auto) minmax(0, auto) !important;
     grid-template-areas:
       "weather calendar news"
       "reminders reminders news"
       "emails emails emails" !important;
-    gap: 0.25rem 0.45rem !important;
-    margin-top: 0.25rem !important;
+    gap: 0.55rem 0.75rem !important;
+    margin-top: 0.55rem !important;
     overflow: hidden !important;
-    align-content: stretch;
+    align-content: start;
   }
 
   .area-weather {
     grid-area: weather;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     overflow: hidden;
+  }
+  .area-weather > .sheet-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .area-weather .sheet-section__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
   }
   .area-calendar {
     grid-area: calendar;
@@ -975,170 +997,212 @@ a.headline-list__title:hover {
   }
 
   .sheet-section__kicker {
-    font-size: 5.5pt;
+    font-size: 6.5pt;
+    letter-spacing: 0.14em;
   }
 
   .sheet-section__title {
-    font-size: 9pt;
+    font-size: 11.5pt;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
   }
 
   .sheet-section__head {
-    margin-bottom: 0.12rem;
-    padding-bottom: 0.05rem;
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.12rem;
     border-bottom-color: #000000 !important;
   }
 
   .sheet-section__note {
-    font-size: 5pt;
-    margin-top: 0.08rem;
+    font-size: 5.5pt;
+    margin-top: 0.25rem;
+  }
+
+  .weather {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-height: 100%;
+  }
+
+  .weather__top {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
   }
 
   .weather__deg {
-    font-size: 18pt;
+    font-size: 26pt;
+    letter-spacing: -0.04em;
+  }
+
+  .weather__unit {
+    font-size: 7pt;
+    margin-top: 0.25rem;
   }
 
   .weather__condition {
-    font-size: 8pt;
-    margin-bottom: 0.1rem;
+    font-size: 9.5pt;
+    margin-bottom: 0.2rem;
   }
 
   .weather__facts {
-    font-size: 6.5pt;
-    line-height: 1.2;
+    font-size: 7.5pt;
+    line-height: 1.35;
   }
 
   .weather__precip {
-    padding-top: 0.12rem;
+    margin-top: auto;
+    padding-top: 0.25rem;
+    border-top: 1px solid #000000 !important;
   }
 
   .weather__precip-title {
-    font-size: 5pt;
+    font-size: 6pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.1rem;
   }
 
   .weather__precip-today {
-    font-size: 6.5pt;
-    margin-bottom: 0.08rem;
+    font-size: 7.5pt;
+    margin-bottom: 0.2rem;
   }
 
   .weather__precip-chart {
-    min-height: 1.1rem;
+    min-height: 1.9rem;
+    gap: 0.06rem;
   }
 
   .weather__precip-bar-wrap {
-    height: 0.95rem;
+    height: 1.45rem;
+  }
+
+  .weather__precip-bar {
+    background: #000000 !important;
+    max-width: 0.35rem;
   }
 
   .weather__precip-hour,
   .weather__precip-pct {
-    font-size: 4.5pt;
+    font-size: 5pt;
   }
 
   .cal-widget {
     grid-template-columns: 1fr 1fr;
-    gap: 0.12rem 0.2rem;
+    gap: 0.25rem 0.4rem;
   }
 
   .cal-day {
-    padding: 0.1rem 0.15rem;
-    min-height: 0;
+    padding: 0.25rem 0.3rem;
+    min-height: 2.6rem;
     border: 1px solid #000000 !important;
     background: transparent !important;
   }
 
   .cal-day--today {
-    border-width: 1.5px !important;
+    border-width: 2px !important;
     background: transparent !important;
   }
 
   .cal-day__label {
-    font-size: 5pt;
-    margin-bottom: 0.06rem;
+    font-size: 6pt;
+    margin-bottom: 0.15rem;
+  }
+
+  .cal-day__empty {
+    font-size: 8pt;
   }
 
   .cal-event {
-    padding: 0.03rem 0;
+    padding: 0.08rem 0;
   }
 
   .cal-event__time {
-    font-size: 5pt;
-  }
-
-  .cal-event__title {
-    font-size: 6.5pt;
-    -webkit-line-clamp: 1;
-  }
-
-  .headline-list__item {
-    padding: 0.08rem 0;
-    border-bottom-color: #000000 !important;
-  }
-
-  .headline-list__index {
     font-size: 6pt;
   }
 
-  .headline-list__title {
+  .cal-event__title {
     font-size: 7.5pt;
     -webkit-line-clamp: 2;
   }
 
+  .headline-list__item {
+    grid-template-columns: 1.2rem 1fr;
+    padding: 0.28rem 0;
+    border-bottom-color: #000000 !important;
+  }
+
+  .headline-list__index {
+    font-size: 7pt;
+  }
+
+  .headline-list__title {
+    font-size: 9.5pt;
+    line-height: 1.22;
+    -webkit-line-clamp: 3;
+  }
+
   .headline-list__summary {
-    font-size: 6pt;
-    -webkit-line-clamp: 1;
+    font-size: 7.5pt;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
   }
 
   .reminder-list__item {
-    padding: 0.08rem 0;
+    grid-template-columns: 0.75rem 1fr;
+    gap: 0.35rem;
+    padding: 0.28rem 0;
     border-bottom-color: #000000 !important;
   }
 
   .reminder-list__title {
-    font-size: 7.5pt;
-    -webkit-line-clamp: 1;
+    font-size: 9pt;
+    -webkit-line-clamp: 2;
   }
 
   .reminder-list__meta {
-    font-size: 5.5pt;
+    font-size: 6.5pt;
   }
 
   .reminder-list__box {
-    width: 0.5rem;
-    height: 0.5rem;
-    margin-top: 0.1rem;
-    border-color: #000000 !important;
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-top: 0.2rem;
+    border: 1.5px solid #000000 !important;
     background: transparent !important;
   }
 
   .action-mail-list {
     grid-template-columns: 1fr 1fr !important;
-    gap: 0.08rem 0.4rem;
+    gap: 0.15rem 0.75rem;
   }
 
   .action-mail-list__item {
-    padding: 0.08rem 0;
+    padding: 0.28rem 0;
     border-bottom-color: #000000 !important;
   }
 
   .action-mail-list__subject {
-    font-size: 7.5pt;
-    -webkit-line-clamp: 1;
+    font-size: 9pt;
+    -webkit-line-clamp: 2;
   }
 
   .action-mail-list__from {
-    font-size: 5.5pt;
+    font-size: 6.5pt;
   }
 
   .action-mail-list__cue {
-    font-size: 6pt;
-    -webkit-line-clamp: 1;
+    font-size: 7.5pt;
+    -webkit-line-clamp: 2;
   }
 
   .sheet-footer {
     flex: 0 0 auto;
-    margin-top: 0.2rem;
-    padding-top: 0.12rem;
-    font-size: 5pt;
-    border-top-color: #000000 !important;
+    margin-top: 0.55rem;
+    padding-top: 0.3rem;
+    font-size: 6pt;
+    letter-spacing: 0.06em;
+    border-top: 2px solid #000000 !important;
   }
 
   a {

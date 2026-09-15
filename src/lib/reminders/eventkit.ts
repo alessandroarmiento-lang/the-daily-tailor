@@ -39,14 +39,14 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
     );
 
     if (!result.ok) {
-      throw new Error(result.error ?? "Reminders: fetch fallito");
+      throw new Error(result.error ?? "Promemoria: fetch fallito");
     }
 
     const items: ReminderItem[] = (result.items ?? []).map((r) => ({
       id: r.id || `rem-${r.title}`,
       title: r.title,
       notes: r.notes || null,
-      listName: r.listName || "Reminders",
+      listName: r.listName || "Promemoria",
       dueAt: r.dueAt,
       isCompleted: false,
       priority: r.priority ?? "none",

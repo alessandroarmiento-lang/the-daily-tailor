@@ -83,12 +83,12 @@ export function mockPrecipitation(): PrecipitationForecast {
     todayChancePercent: 35,
     todayAmountMm: 1.2,
     nextHours: [
-      { hourLabel: "09", chancePercent: 10, amountMm: 0 },
-      { hourLabel: "10", chancePercent: 20, amountMm: 0 },
-      { hourLabel: "11", chancePercent: 35, amountMm: 0.1 },
-      { hourLabel: "12", chancePercent: 45, amountMm: 0.3 },
-      { hourLabel: "13", chancePercent: 40, amountMm: 0.2 },
-      { hourLabel: "14", chancePercent: 25, amountMm: 0 },
+      { hourLabel: "07", chancePercent: 10, amountMm: 0 },
+      { hourLabel: "08", chancePercent: 20, amountMm: 0 },
+      { hourLabel: "09", chancePercent: 35, amountMm: 0.1 },
+      { hourLabel: "10", chancePercent: 45, amountMm: 0.3 },
+      { hourLabel: "11", chancePercent: 40, amountMm: 0.2 },
+      { hourLabel: "12", chancePercent: 25, amountMm: 0 },
     ],
   };
 }
@@ -125,4 +125,20 @@ export function hourLabelInZone(iso: string, timeZone: string): string {
     const d = new Date(iso);
     return String(d.getHours()).padStart(2, "0");
   }
+}
+
+/** Local hour-of-day (0–23) in the given IANA zone. */
+export function hourOfDayInZone(iso: string, timeZone: string): number {
+  const label = hourLabelInZone(iso, timeZone);
+  const n = Number.parseInt(label, 10);
+  return Number.isFinite(n) ? n : new Date(iso).getHours();
+}
+
+/**
+ * Hourly precip chart starts at 07:00 local — skip overnight / early morning.
+ */
+export const PRECIP_TIMELINE_START_HOUR = 7;
+
+export function isPrecipTimelineHour(iso: string, timeZone: string): boolean {
+  return hourOfDayInZone(iso, timeZone) >= PRECIP_TIMELINE_START_HOUR;
 }

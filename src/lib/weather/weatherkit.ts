@@ -5,6 +5,7 @@ import {
   conditionFromWeatherKit,
   emptyPrecipitation,
   hourLabelInZone,
+  isPrecipTimelineHour,
   labelForCondition,
 } from "./mock";
 import type {
@@ -137,6 +138,8 @@ function buildPrecipitation(
     if (!hour.forecastStart) continue;
     const t = Date.parse(hour.forecastStart);
     if (Number.isNaN(t) || t < now - 30 * 60 * 1000) continue;
+    // Timeline starts at 07:00 local — no overnight / pre-dawn slots.
+    if (!isPrecipTimelineHour(hour.forecastStart, timezone)) continue;
     nextHours.push({
       hourLabel: hourLabelInZone(hour.forecastStart, timezone),
       chancePercent:

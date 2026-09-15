@@ -3,6 +3,7 @@ import {
   conditionFromWmo,
   emptyPrecipitation,
   hourLabelInZone,
+  isPrecipTimelineHour,
   labelForCondition,
 } from "./mock";
 import type {
@@ -57,11 +58,14 @@ function buildPrecipitation(
   const nextHours: PrecipHour[] = [];
 
   for (let i = 0; i < times.length && nextHours.length < HOURLY_SLOTS; i++) {
-    const t = Date.parse(times[i]!);
+    const iso = times[i]!;
+    const t = Date.parse(iso);
     if (Number.isNaN(t) || t < now - 30 * 60 * 1000) continue;
+    // Timeline starts at 07:00 local — no overnight / pre-dawn slots.
+    if (!isPrecipTimelineHour(iso, timezone)) continue;
     const chance = chances[i];
     nextHours.push({
-      hourLabel: hourLabelInZone(times[i]!, timezone),
+      hourLabel: hourLabelInZone(iso, timezone),
       chancePercent: chance != null ? Math.round(chance) : 0,
       amountMm:
         amounts[i] != null ? Math.round(Number(amounts[i]) * 10) / 10 : null,

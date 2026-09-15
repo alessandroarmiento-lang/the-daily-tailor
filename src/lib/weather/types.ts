@@ -29,8 +29,8 @@ export type PrecipitationForecast = {
   /** Peak / representative chance for the calendar day (0–100). Kept for adapters; UI uses mm for “Oggi”. */
   todayChancePercent: number | null;
   /**
-   * Expected liquid total in mm for the daytime strip (07–22) when hourly
-   * amounts exist; otherwise full-day sum from the provider.
+   * Expected liquid total for today in mm (Open-Meteo `precipitation_sum`
+   * or provider equivalent). UI label: “Oggi previsti X mm”.
    */
   todayAmountMm: number | null;
   /** Fixed 07–22 strip — percent chance under each hour. */

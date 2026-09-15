@@ -66,8 +66,8 @@ function buildPrecipitation(
   }));
 
   const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
-  // Prefer sum of the visible 07–22 strip; fall back to full-day daily sum.
-  const todayAmount = sumDaytimeAmountMm(nextHours) ?? dailySum;
+  // Daily precipitation_sum for “Oggi previsti X mm”; hourly strip keeps %.
+  const todayAmount = dailySum ?? sumDaytimeAmountMm(nextHours);
 
   return {
     todayChancePercent: todayChance,

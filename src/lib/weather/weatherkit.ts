@@ -149,7 +149,7 @@ function buildPrecipitation(
     }));
 
   const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
-  const todayAmount = sumDaytimeAmountMm(nextHours) ?? dailyAmount;
+  const todayAmount = dailyAmount ?? sumDaytimeAmountMm(nextHours);
 
   return {
     todayChancePercent: todayChance,

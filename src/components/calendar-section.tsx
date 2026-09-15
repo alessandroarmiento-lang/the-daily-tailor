@@ -32,6 +32,7 @@ export async function CalendarSection() {
       return (
         <SectionError
           title="Agenda"
+          kicker="Prossimi giorni"
           message={
             result.message ||
             "Autorizza Calendario o configura CalDAV iCloud per generare a Mac spento."
@@ -56,6 +57,7 @@ export async function CalendarSection() {
     return (
       <SectionEmpty
         title="Agenda"
+        kicker="Prossimi giorni"
         message="Nessun evento nei prossimi giorni."
       />
     );
@@ -116,5 +118,11 @@ export async function CalendarSection() {
 }
 
 export function CalendarSectionFallback() {
-  return <SectionEmpty title="Agenda" message="Caricamento agenda…" />;
+  return (
+    <SectionEmpty
+      title="Agenda"
+      kicker="Prossimi giorni"
+      message="Caricamento agenda…"
+    />
+  );
 }

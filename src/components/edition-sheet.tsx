@@ -195,7 +195,11 @@ export function EditionSheet({ edition }: Props) {
       <div className="sheet-grid">
         <div className="area-weather">
           {weatherResult.status === "error" && !weatherResult.data ? (
-            <SectionError title="Meteo di oggi" message={weatherResult.message} />
+            <SectionError
+              title="Meteo di oggi"
+              kicker="—"
+              message={weatherResult.message}
+            />
           ) : weatherResult.data ? (
             <SectionShell
               title="Meteo di oggi"
@@ -250,7 +254,11 @@ export function EditionSheet({ edition }: Props) {
               </div>
             </SectionShell>
           ) : (
-            <SectionEmpty title="Meteo di oggi" message="Meteo non disponibile." />
+            <SectionEmpty
+              title="Meteo di oggi"
+              kicker="—"
+              message="Meteo non disponibile."
+            />
           )}
         </div>
 
@@ -259,6 +267,7 @@ export function EditionSheet({ edition }: Props) {
           !(calendarResult.data?.days.some((d) => d.events.length > 0)) ? (
             <SectionError
               title="Agenda"
+              kicker="Prossimi giorni"
               message={
                 calendarResult.message ||
                 "Autorizza Calendario o configura CalDAV iCloud."
@@ -275,6 +284,7 @@ export function EditionSheet({ edition }: Props) {
                 return (
                   <SectionEmpty
                     title="Agenda"
+                    kicker="Prossimi giorni"
                     message="Nessun evento nei prossimi giorni."
                   />
                 );
@@ -323,7 +333,11 @@ export function EditionSheet({ edition }: Props) {
               );
             })()
           ) : (
-            <SectionEmpty title="Agenda" message="Agenda non disponibile." />
+            <SectionEmpty
+              title="Agenda"
+              kicker="Prossimi giorni"
+              message="Agenda non disponibile."
+            />
           )}
         </div>
 
@@ -331,6 +345,7 @@ export function EditionSheet({ edition }: Props) {
           {newsResult.status === "error" && !newsResult.data ? (
             <SectionError
               title="Notizie dal mondo"
+              kicker="Il Post"
               message={newsResult.message}
             />
           ) : newsResult.data && newsResult.data.items.length > 0 ? (
@@ -363,6 +378,7 @@ export function EditionSheet({ edition }: Props) {
           ) : (
             <SectionEmpty
               title="Notizie dal mondo"
+              kicker="Il Post"
               message="Nessun titolo disponibile questa mattina."
             />
           )}

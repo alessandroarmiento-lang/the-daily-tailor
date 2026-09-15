@@ -16,7 +16,10 @@ export function SectionShell({
   return (
     <section className={`sheet-section sheet-section--${tone}`}>
       <header className="sheet-section__head">
-        {kicker ? <p className="sheet-section__kicker">{kicker}</p> : null}
+        {/* Always reserve kicker row so Meteo | Agenda | Notizie share one top edge. */}
+        <p className="sheet-section__kicker">
+          {kicker ? kicker : "\u00a0"}
+        </p>
         <h2 className="sheet-section__title">{title}</h2>
       </header>
       <div className="sheet-section__body">{children}</div>
@@ -27,9 +30,15 @@ export function SectionShell({
   );
 }
 
-export function SectionLoading({ title }: { title: string }) {
+export function SectionLoading({
+  title,
+  kicker,
+}: {
+  title: string;
+  kicker?: string;
+}) {
   return (
-    <SectionShell title={title} tone="empty">
+    <SectionShell title={title} kicker={kicker} tone="empty">
       <p className="state-line">Caricamento…</p>
     </SectionShell>
   );
@@ -38,12 +47,14 @@ export function SectionLoading({ title }: { title: string }) {
 export function SectionError({
   title,
   message,
+  kicker,
 }: {
   title: string;
   message: string;
+  kicker?: string;
 }) {
   return (
-    <SectionShell title={title} tone="error">
+    <SectionShell title={title} kicker={kicker} tone="error">
       <p className="state-line state-line--error">{message}</p>
     </SectionShell>
   );
@@ -52,12 +63,14 @@ export function SectionError({
 export function SectionEmpty({
   title,
   message,
+  kicker,
 }: {
   title: string;
   message: string;
+  kicker?: string;
 }) {
   return (
-    <SectionShell title={title} tone="empty">
+    <SectionShell title={title} kicker={kicker} tone="empty">
       <p className="state-line">{message}</p>
     </SectionShell>
   );

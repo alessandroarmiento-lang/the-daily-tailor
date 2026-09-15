@@ -11,7 +11,11 @@ export async function NewsSection() {
 
   if (result.status === "error" && !result.data) {
     return (
-      <SectionError title="Notizie dal mondo" message={result.message} />
+      <SectionError
+        title="Notizie dal mondo"
+        kicker="Il Post"
+        message={result.message}
+      />
     );
   }
 
@@ -20,6 +24,7 @@ export async function NewsSection() {
     return (
       <SectionEmpty
         title="Notizie dal mondo"
+        kicker="Il Post"
         message="Nessun titolo disponibile questa mattina."
       />
     );
@@ -61,6 +66,7 @@ export function NewsSectionFallback() {
   return (
     <SectionEmpty
       title="Notizie dal mondo"
+      kicker="Il Post"
       message="Caricamento titoli…"
     />
   );

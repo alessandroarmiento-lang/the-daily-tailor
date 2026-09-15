@@ -39,7 +39,7 @@ export async function NewsSection() {
   return (
     <SectionShell
       title="Notizie dal mondo"
-      kicker="Titoli principali"
+      kicker="Il Post"
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={noteParts.join(" · ")}
     >

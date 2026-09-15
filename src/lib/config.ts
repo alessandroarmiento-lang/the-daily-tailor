@@ -34,10 +34,9 @@ export const config = {
     },
   },
   news: {
-    /** BBC World RSS — free, no key. Override with NEWS_FEED_URL. */
+    /** Il Post — sezione Mondo (world/international). Trailing slash required. */
     feedUrl:
-      process.env.NEWS_FEED_URL ??
-      "https://feeds.bbci.co.uk/news/world/rss.xml",
+      process.env.NEWS_FEED_URL ?? "https://www.ilpost.it/mondo/feed/",
     /** Cap for one-A4 print budget (screen can still feel dense). */
     maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "4"),
   },

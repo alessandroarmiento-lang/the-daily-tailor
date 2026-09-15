@@ -17,7 +17,7 @@ Sections:
 1. **Today’s weather** — Apple WeatherKit when configured; otherwise Open-Meteo (with precipitation). Mock fallback on failure. Compact precip chart under meteo.
 2. **Aforisma del giorno** — one curated saying, picked deterministically by date.
 3. **Agenda** — compact upcoming-days widget. Mock calendar + EventKit adapter stub.
-4. **World news** — BBC World RSS by default. Mock fallback. Capped for one-page print.
+4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
 5. **Apple Reminders** — mock adapter (no EventKit on cloud). Swap later on Mac.
 6. **Action emails** — mock “yesterday” emails that imply a to-do. Swap later with IMAP/Gmail/Apple Mail.
 
@@ -60,7 +60,7 @@ Copy `.env.example` to `.env.local` for overrides:
 | `WEATHER_PROVIDER` | `auto` | `auto` \| `weatherkit` \| `open-meteo` \| `mock` |
 | `WEATHERKIT_TEAM_ID` / `KEY_ID` / `SERVICE_ID` | — | Apple WeatherKit |
 | `WEATHERKIT_PRIVATE_KEY` or `_PATH` | — | AuthKey `.p8` |
-| `NEWS_FEED_URL` | BBC World RSS | Any RSS URL |
+| `NEWS_FEED_URL` | Il Post Mondo RSS | `https://www.ilpost.it/mondo/feed/` (slash required) |
 | `NEWS_MAX_ITEMS` | `4` | Print budget |
 | `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `mock` / `4` | |
 | `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `mock` / `3` | |

@@ -38,7 +38,7 @@ function parseRssItems(xml: string, maxItems: number): NewsItem[] {
     const source =
       tagContent(block, "source") ??
       tagContent(block, "dc:creator") ??
-      "World news";
+      "Il Post";
 
     items.push({
       id: `rss-${index++}-${title.slice(0, 24)}`,
@@ -58,6 +58,7 @@ function parseRssItems(xml: string, maxItems: number): NewsItem[] {
 function feedLabelFromUrl(url: string): string {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
+    if (host.includes("ilpost")) return "Il Post";
     if (host.includes("bbc")) return "BBC World";
     if (host.includes("ansa")) return "ANSA";
     return host;
@@ -68,7 +69,11 @@ function feedLabelFromUrl(url: string): string {
 
 async function fetchRssNews(): Promise<NewsBriefing> {
   const res = await fetch(config.news.feedUrl, {
-    headers: { Accept: "application/rss+xml, application/xml, text/xml" },
+    headers: {
+      Accept: "application/rss+xml, application/xml, text/xml, */*",
+      // Some publishers block bare bots; identify the morning sheet.
+      "User-Agent": "TheDailyTailor/1.0 (+local; personal morning paper)",
+    },
     next: { revalidate: 900 },
   });
 

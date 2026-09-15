@@ -15,10 +15,11 @@ A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollabl
 Sections:
 
 1. **Today’s weather** — Open-Meteo for Roma (no API key). Mock fallback on failure.
-2. **Agenda** — compact upcoming-days widget. Mock calendar + EventKit adapter stub.
-3. **World news** — BBC World RSS by default. Mock fallback. Capped for one-page print.
-4. **Apple Reminders** — mock adapter (no EventKit on cloud). Swap later on Mac.
-5. **Action emails** — mock “yesterday” emails that imply a to-do. Swap later with IMAP/Gmail/Apple Mail.
+2. **Aforisma del giorno** — one curated saying, picked deterministically by date.
+3. **Agenda** — compact upcoming-days widget. Mock calendar + EventKit adapter stub.
+4. **World news** — BBC World RSS by default. Mock fallback. Capped for one-page print.
+5. **Apple Reminders** — mock adapter (no EventKit on cloud). Swap later on Mac.
+6. **Action emails** — mock “yesterday” emails that imply a to-do. Swap later with IMAP/Gmail/Apple Mail.
 
 ## Run locally
 
@@ -57,9 +58,9 @@ Copy `.env.example` to `.env.local` for overrides:
 | `NEXT_PUBLIC_PRODUCT_TAGLINE` | Italian tagline below | Optional |
 | `WEATHER_CITY` / `WEATHER_LAT` / `WEATHER_LON` | Roma | Open-Meteo |
 | `NEWS_FEED_URL` | BBC World RSS | Any RSS URL |
-| `NEWS_MAX_ITEMS` | `5` | Print budget |
-| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `mock` / `5` | |
-| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `mock` / `4` | |
+| `NEWS_MAX_ITEMS` | `4` | Print budget |
+| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `mock` / `4` | |
+| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `mock` / `3` | |
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `mock` / `4` / `2` | |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | |
 

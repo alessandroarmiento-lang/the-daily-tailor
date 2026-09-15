@@ -22,7 +22,7 @@ export const config = {
       process.env.NEWS_FEED_URL ??
       "https://feeds.bbci.co.uk/news/world/rss.xml",
     /** Cap for one-A4 print budget (screen can still feel dense). */
-    maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "5"),
+    maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "4"),
   },
   reminders: {
     /**
@@ -30,7 +30,7 @@ export const config = {
      * Later: "eventkit" | "shortcuts" | "applescript" on Mac.
      */
     source: (process.env.REMINDERS_SOURCE ?? "mock") as "mock",
-    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "5"),
+    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
   },
   actionEmails: {
     /**
@@ -38,7 +38,7 @@ export const config = {
      * Later: "imap" | "gmail" | "applemail" with real mailbox access.
      */
     source: (process.env.ACTION_EMAIL_SOURCE ?? "mock") as "mock",
-    maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "4"),
+    maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "3"),
   },
   calendar: {
     /**

@@ -158,6 +158,44 @@ a:hover {
   background-clip: padding-box;
 }
 
+.aphorism {
+  margin: 0.55rem 0 0.15rem;
+  padding: 0.35rem 0 0.45rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: center;
+}
+
+.aphorism__kicker {
+  margin: 0 0 0.2rem;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.aphorism__quote {
+  margin: 0;
+}
+
+.aphorism__text {
+  margin: 0;
+  font-family: var(--font-masthead);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.aphorism__attr {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
 .sheet-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -613,6 +651,27 @@ a:hover {
     height: 2px;
     background: #000000 !important;
     border-color: #000000 !important;
+  }
+
+  .aphorism {
+    margin: 0.2rem 0 0.1rem;
+    padding: 0.15rem 0 0.25rem;
+    border-bottom-color: #000000 !important;
+  }
+
+  .aphorism__kicker {
+    font-size: 5.5pt;
+    margin-bottom: 0.08rem;
+  }
+
+  .aphorism__text {
+    font-size: 9pt;
+    line-height: 1.2;
+  }
+
+  .aphorism__attr {
+    font-size: 6pt;
+    margin-top: 0.08rem;
   }
 
   .sheet-grid {

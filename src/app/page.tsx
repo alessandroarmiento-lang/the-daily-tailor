@@ -3,6 +3,7 @@ import {
   ActionEmailsSection,
   ActionEmailsSectionFallback,
 } from "@/components/action-emails-section";
+import { AphorismSection } from "@/components/aphorism-section";
 import {
   CalendarSection,
   CalendarSectionFallback,
@@ -31,6 +32,7 @@ export default function Home() {
       <PrintToolbar />
       <main className="sheet-page">
         <Masthead />
+        <AphorismSection />
         <div className="sheet-grid">
           <div className="area-weather">
             <Suspense fallback={<WeatherSectionFallback />}>

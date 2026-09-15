@@ -23,12 +23,11 @@ export function PrintToolbar({
 }: Props) {
   return (
     <div className="no-print toolbar">
-      <div className="toolbar__copy">
-        <p className="toolbar__hint">
-          The Daily Tailor — sul telefono o stampa su una pagina.
-        </p>
-        {statusLine ? <p className="toolbar__status">{statusLine}</p> : null}
-      </div>
+      {statusLine ? (
+        <p className="toolbar__status toolbar__status--solo">{statusLine}</p>
+      ) : (
+        <span className="toolbar__spacer" aria-hidden="true" />
+      )}
       <div className="toolbar__actions">
         {historyHref ? (
           <Link className="toolbar__btn toolbar__btn--ghost" href={historyHref}>

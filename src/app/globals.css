@@ -61,7 +61,7 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem 1rem;
   max-width: 210mm;
   margin: 0 auto;
@@ -72,25 +72,23 @@ a:hover {
   background: #ffffff;
 }
 
-.toolbar__copy {
-  flex: 1 1 12rem;
+.toolbar__spacer {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.toolbar__hint {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  line-height: 1.35;
-  color: var(--ink-muted);
-}
-
 .toolbar__status {
-  margin: 0.2rem 0 0;
+  margin: 0;
+  flex: 1 1 10rem;
+  min-width: 0;
   font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 1.3;
-  color: var(--ink);
+  color: var(--ink-muted);
+}
+
+.toolbar__status--solo {
+  text-align: left;
 }
 
 .toolbar__actions {
@@ -98,6 +96,7 @@ a:hover {
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+  margin-left: auto;
 }
 
 .toolbar__btn {

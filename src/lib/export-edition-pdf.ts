@@ -6,20 +6,27 @@
  * typography far more reliably than html2canvas. The desktop newspaper grid used
  * to live behind `@media (min-width: 860px)` while the sheet is only ~794px wide,
  * so narrow clones fell back to a single column; we force the same 3-column map
- * as the screen stylesheet and unwrap `-webkit-line-clamp` before snapshotting.
+ * as the screen stylesheet before snapshotting.
+ *
+ * `-webkit-box` + `-webkit-line-clamp` stretch glyphs in rasterizers. Fully
+ * unwrapping the clamp also expands long summaries to their full height while
+ * the SVG often still paints only the clamped lines — phantom empty space under
+ * those items. Instead, replace the webkit box with `display:block` and a
+ * line-height × N `max-height` so PDF spacing matches the on-screen clamp.
  */
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
 const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
 
-const LINE_CLAMP_SELECTORS = [
-  ".headline-list__title",
-  ".headline-list__summary",
-  ".reminder-list__title",
-  ".cal-event__title",
-  ".action-mail-list__subject",
-  ".action-mail-list__cue",
-].join(", ");
+/** Selectors → on-screen `-webkit-line-clamp` line counts. */
+const LINE_CLAMP_LINES: Array<[string, number]> = [
+  [".headline-list__title", 3],
+  [".headline-list__summary", 2],
+  [".reminder-list__title", 2],
+  [".cal-event__title", 2],
+  [".action-mail-list__subject", 2],
+  [".action-mail-list__cue", 2],
+];
 
 type StyleBackup = {
   el: HTMLElement;
@@ -42,6 +49,44 @@ function restoreStyles(backups: StyleBackup[]): void {
   }
 }
 
+function resolveLineHeightPx(node: HTMLElement): number {
+  const cs = getComputedStyle(node);
+  const lh = parseFloat(cs.lineHeight);
+  if (Number.isFinite(lh) && lh > 0) return lh;
+  const fs = parseFloat(cs.fontSize);
+  return Number.isFinite(fs) && fs > 0 ? fs * 1.25 : 16;
+}
+
+/**
+ * Drop `-webkit-box` clamp (bad for SVG raster) but keep the same visual cap
+ * via max-height so long items do not grow a phantom gap in the PDF.
+ */
+function replaceWebkitClampWithMaxHeight(
+  node: HTMLElement,
+  lines: number,
+): void {
+  const lineHeight = resolveLineHeightPx(node);
+  const maxH = lineHeight * lines;
+
+  node.style.setProperty("display", "block", "important");
+  node.style.setProperty("-webkit-box-orient", "unset", "important");
+  node.style.setProperty("-webkit-line-clamp", "none", "important");
+  node.style.setProperty("line-clamp", "none", "important");
+  node.style.setProperty("overflow", "hidden", "important");
+  node.style.setProperty("white-space", "normal", "important");
+  node.style.setProperty("transform", "none", "important");
+  node.style.setProperty("min-height", "0", "important");
+  node.style.setProperty("max-height", `${maxH}px`, "important");
+  node.style.setProperty("height", "auto", "important");
+
+  // Lock used height to the capped box so html-to-image does not bake a taller
+  // unclamped height into the SVG foreignObject clone.
+  void node.offsetHeight;
+  const used = Math.min(node.offsetHeight, maxH);
+  node.style.setProperty("height", `${used}px`, "important");
+  node.style.setProperty("max-height", `${used}px`, "important");
+}
+
 /** Apply screen newspaper layout on the live sheet for a faithful snapshot. */
 function prepareSheetForCapture(root: HTMLElement): () => void {
   const touched: HTMLElement[] = [root];
@@ -60,9 +105,11 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     if (el instanceof HTMLElement) touched.push(el);
   }
 
-  root.querySelectorAll(LINE_CLAMP_SELECTORS).forEach((node) => {
-    if (node instanceof HTMLElement) touched.push(node);
-  });
+  for (const [selector] of LINE_CLAMP_LINES) {
+    root.querySelectorAll(selector).forEach((node) => {
+      if (node instanceof HTMLElement) touched.push(node);
+    });
+  }
 
   const backups = backupStyles(touched);
 
@@ -90,17 +137,13 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     }
   }
 
-  root.querySelectorAll(LINE_CLAMP_SELECTORS).forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    // Replace -webkit-box clamp with plain block — avoids glyph stretch in rasterizers.
-    node.style.display = "block";
-    node.style.setProperty("-webkit-box-orient", "initial");
-    node.style.setProperty("-webkit-line-clamp", "unset");
-    node.style.overflow = "hidden";
-    node.style.maxHeight = "none";
-    node.style.transform = "none";
-    node.style.whiteSpace = "normal";
-  });
+  for (const [selector, lines] of LINE_CLAMP_LINES) {
+    root.querySelectorAll(selector).forEach((node) => {
+      if (node instanceof HTMLElement) {
+        replaceWebkitClampWithMaxHeight(node, lines);
+      }
+    });
+  }
 
   return () => restoreStyles(backups);
 }

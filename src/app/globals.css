@@ -382,6 +382,11 @@ a:hover {
   grid-area: emails !important;
 }
 
+/*
+ * PDF capture: drop -webkit-box (glyph stretch in SVG), keep visual clamp via
+ * inline max-height set in export-edition-pdf.ts (line-height × N). Do not force
+ * max-height:none — that reintroduces phantom gaps under long summaries.
+ */
 .sheet-page.is-pdf-capture .headline-list__title,
 .sheet-page.is-pdf-capture .headline-list__summary,
 .sheet-page.is-pdf-capture .reminder-list__title,
@@ -389,11 +394,13 @@ a:hover {
 .sheet-page.is-pdf-capture .action-mail-list__subject,
 .sheet-page.is-pdf-capture .action-mail-list__cue {
   display: block !important;
-  -webkit-line-clamp: unset !important;
-  -webkit-box-orient: initial !important;
+  -webkit-line-clamp: none !important;
+  line-clamp: none !important;
+  -webkit-box-orient: unset !important;
   overflow: hidden !important;
-  max-height: none !important;
+  min-height: 0 !important;
   transform: none !important;
+  white-space: normal !important;
 }
 
 .sheet-section {
@@ -763,6 +770,15 @@ a.headline-list__title:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.action-mail-list__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.action-mail-list__link:hover {
+  text-decoration: underline;
 }
 
 .action-mail-list__from {

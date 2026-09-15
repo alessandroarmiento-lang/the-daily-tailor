@@ -25,7 +25,7 @@ const sourceSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: config.productName,
   description:
-    "Personal one-page morning paper, tailored to you — meteo, agenda, notizie, Reminders, email da fare. Leggibile su iPhone, stampa una sola A4.",
+    "Personal one-page morning paper, tailored to you — meteo, agenda, notizie, promemoria, email da fare. Leggibile su iPhone, stampa una sola A4.",
   applicationName: "The Daily Tailor",
   appleWebApp: {
     capable: true,

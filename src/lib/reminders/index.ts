@@ -34,7 +34,7 @@ export async function getReminders(): Promise<
     };
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : "Reminders non disponibili";
+      err instanceof Error ? err.message : "Promemoria non disponibili";
     const fallback = new MockRemindersAdapter();
     const items = await fallback.getTodaysOpenReminders();
     return {

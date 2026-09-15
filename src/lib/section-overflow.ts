@@ -2,14 +2,14 @@
 
 export function remindersOverflowLabel(hiddenCount: number): string {
   if (hiddenCount <= 0) return "";
-  if (hiddenCount === 1) return "+1 altro promemoria";
-  return `+${hiddenCount} altri promemoria`;
+  if (hiddenCount === 1) return "+1 altro da controllare";
+  return `+${hiddenCount} altri da controllare`;
 }
 
 export function emailsOverflowLabel(hiddenCount: number): string {
   if (hiddenCount <= 0) return "";
-  if (hiddenCount === 1) return "+1 altra email";
-  return `+${hiddenCount} altre email`;
+  if (hiddenCount === 1) return "+1 altra da controllare";
+  return `+${hiddenCount} altre da controllare`;
 }
 
 export function capRanked<T>(

@@ -1,15 +1,19 @@
-/** Compact Italian overflow counters for A4 section budgets. */
+/** Compact overflow counters for A4 section budgets (+X only). */
 
-export function remindersOverflowLabel(hiddenCount: number): string {
+/** Returns `+X` when X > 0, else empty (no counter). */
+export function overflowPlusLabel(hiddenCount: number): string {
   if (hiddenCount <= 0) return "";
-  if (hiddenCount === 1) return "+1 altro da controllare";
-  return `+${hiddenCount} altri da controllare`;
+  return `+${hiddenCount}`;
 }
 
+/** @deprecated Prefer overflowPlusLabel — same for Promemoria and Email. */
+export function remindersOverflowLabel(hiddenCount: number): string {
+  return overflowPlusLabel(hiddenCount);
+}
+
+/** @deprecated Prefer overflowPlusLabel — same for Promemoria and Email. */
 export function emailsOverflowLabel(hiddenCount: number): string {
-  if (hiddenCount <= 0) return "";
-  if (hiddenCount === 1) return "+1 altra da controllare";
-  return `+${hiddenCount} altre da controllare`;
+  return overflowPlusLabel(hiddenCount);
 }
 
 export function capRanked<T>(

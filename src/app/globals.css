@@ -804,9 +804,10 @@ a.headline-list__title:hover {
   text-align: left;
   font-family: var(--font-sans);
   font-size: 0.68rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   color: var(--ink-muted);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .sheet-footer {

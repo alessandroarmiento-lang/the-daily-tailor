@@ -9,5 +9,5 @@ export const newspaperConfig = {
     latitude: 41.9028,
     longitude: 12.4964,
   },
-  newsLimit: 8,
+  newsLimit: 7,
 } as const;

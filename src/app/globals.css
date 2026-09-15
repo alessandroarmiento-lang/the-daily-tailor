@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #121212;
-  --ink-muted: #4a4a4a;
-  --rule: #1a1a1a;
-  --paper: #f7f4ef;
-  --paper-pure: #fffdf8;
-  --accent: #8b1e1e;
-  --error: #7a1f1f;
+  --ink: #000000;
+  --ink-muted: #333333;
+  --rule: #000000;
+  --paper: #ffffff;
+  --paper-pure: #ffffff;
+  --accent: #000000;
+  --error: #000000;
   --font-masthead: var(--font-playfair), "Times New Roman", Times, serif;
   --font-serif: var(--font-newsreader), "Georgia", "Times New Roman", serif;
   --font-sans: var(--font-source-sans), "Helvetica Neue", Helvetica, Arial,
@@ -28,7 +28,7 @@
 }
 
 html {
-  background: #e8e4dc;
+  background: #ffffff;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -37,7 +37,7 @@ body {
   margin: 0;
   min-height: 100%;
   color: var(--ink);
-  background: #e8e4dc;
+  background: #ffffff;
   font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   padding-bottom: var(--safe-bottom);
@@ -103,18 +103,20 @@ a:hover {
 }
 
 .toolbar__btn:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--paper-pure);
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+  opacity: 0.85;
 }
 
 .sheet-page {
   max-width: 210mm;
   margin: 0.75rem auto 2rem;
   padding: 12mm 12mm 10mm;
-  background: var(--paper-pure);
+  background: #ffffff;
   color: var(--ink);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 12px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid #000000;
+  box-shadow: none;
 }
 
 .masthead {
@@ -291,15 +293,16 @@ a:hover {
 }
 
 .cal-day {
-  border: 1px solid rgba(0, 0, 0, 0.22);
+  border: 1px solid #000000;
   padding: 0.35rem 0.4rem 0.4rem;
   min-height: 3.4rem;
+  background: transparent;
 }
 
 .cal-day--today {
-  border-width: 1.5px;
-  border-color: var(--ink);
-  background: rgba(0, 0, 0, 0.03);
+  border-width: 2px;
+  border-color: #000000;
+  background: transparent;
 }
 
 .cal-day__label {
@@ -542,14 +545,26 @@ a:hover {
 }
 
 @media print {
+  * {
+    color: #000000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
   html,
   body {
-    background: white !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
     width: auto;
     height: auto;
     overflow: hidden !important;
+    -webkit-print-color-adjust: economy;
+    print-color-adjust: economy;
+    color-adjust: economy;
   }
 
   .no-print {
@@ -564,8 +579,10 @@ a:hover {
     max-height: 281mm;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
     box-shadow: none !important;
-    background: white !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     overflow: hidden !important;
     page-break-after: avoid;
     page-break-inside: avoid;
@@ -594,6 +611,8 @@ a:hover {
 
   .masthead__rule {
     height: 2px;
+    background: #000000 !important;
+    border-color: #000000 !important;
   }
 
   .sheet-grid {
@@ -631,6 +650,7 @@ a:hover {
     break-inside: avoid;
     page-break-inside: avoid;
     overflow: hidden;
+    background: transparent !important;
   }
 
   .sheet-section__kicker {
@@ -644,6 +664,7 @@ a:hover {
   .sheet-section__head {
     margin-bottom: 0.2rem;
     padding-bottom: 0.08rem;
+    border-bottom-color: #000000 !important;
   }
 
   .sheet-section__note {
@@ -673,6 +694,13 @@ a:hover {
   .cal-day {
     padding: 0.15rem 0.2rem;
     min-height: 0;
+    border: 1px solid #000000 !important;
+    background: transparent !important;
+  }
+
+  .cal-day--today {
+    border-width: 2px !important;
+    background: transparent !important;
   }
 
   .cal-day__label {
@@ -695,6 +723,7 @@ a:hover {
 
   .headline-list__item {
     padding: 0.12rem 0;
+    border-bottom-color: #000000 !important;
   }
 
   .headline-list__index {
@@ -713,6 +742,7 @@ a:hover {
 
   .reminder-list__item {
     padding: 0.12rem 0;
+    border-bottom-color: #000000 !important;
   }
 
   .reminder-list__title {
@@ -728,6 +758,8 @@ a:hover {
     width: 0.55rem;
     height: 0.55rem;
     margin-top: 0.15rem;
+    border-color: #000000 !important;
+    background: transparent !important;
   }
 
   .action-mail-list {
@@ -737,6 +769,7 @@ a:hover {
 
   .action-mail-list__item {
     padding: 0.12rem 0;
+    border-bottom-color: #000000 !important;
   }
 
   .action-mail-list__subject {
@@ -757,16 +790,10 @@ a:hover {
     margin-top: 0.35rem;
     padding-top: 0.2rem;
     font-size: 5.5pt;
+    border-top-color: #000000 !important;
   }
 
   a {
     text-decoration: none !important;
-  }
-
-  /* Soften red accents for B/W-friendly print */
-  .sheet-section__kicker,
-  .sheet-section--error .sheet-section__title,
-  .state-line--error {
-    color: var(--ink) !important;
   }
 }

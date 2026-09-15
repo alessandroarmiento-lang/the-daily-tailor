@@ -36,6 +36,8 @@ Open [http://127.0.0.1:3847](http://127.0.0.1:3847) on desktop or phone (same LA
 
 Non-negotiable: Print/PDF must be a **single A4**.
 
+Also: **black and white only** — white paper, black type/rules, no color fills or tinted blocks (screen matches print for consistency). Print CSS forces black text, transparent backgrounds, and `print-color-adjust: economy`.
+
 Enforced by:
 
 - `@page { size: A4 portrait; margin: 8mm; }`

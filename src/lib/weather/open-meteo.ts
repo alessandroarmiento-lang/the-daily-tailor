@@ -66,7 +66,7 @@ function buildPrecipitation(
   }));
 
   const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
-  // Daily precipitation_sum for “Oggi previsti X mm”; hourly strip keeps %.
+  // Daily precipitation_sum for “oggi previsti X mm”; hourly strip keeps %.
   const todayAmount = dailySum ?? sumDaytimeAmountMm(nextHours);
 
   return {

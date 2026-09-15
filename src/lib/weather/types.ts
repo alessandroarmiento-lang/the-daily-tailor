@@ -30,7 +30,7 @@ export type PrecipitationForecast = {
   todayChancePercent: number | null;
   /**
    * Expected liquid total for today in mm (Open-Meteo `precipitation_sum`
-   * or provider equivalent). UI label: “Oggi previsti X mm”.
+   * or provider equivalent). UI label: “oggi previsti X mm”.
    */
   todayAmountMm: number | null;
   /** Fixed 07–22 strip — percent chance under each hour. */

@@ -1,5 +1,6 @@
 #!/usr/bin/osascript
 -- Fetch yesterday's inbox messages from Apple Mail as JSON.
+-- Unified inbox covers iCloud + Gmail (and any other accounts in Mail.app).
 -- Args (optional): maxItems (default 40)
 on run argv
 	set maxItems to 40
@@ -13,12 +14,17 @@ on run argv
 	set endDay to date (short date string of now)
 	set startDay to endDay - 1 * days
 
+	set accountNames to {}
 	tell application "Mail"
+		try
+			set accountNames to name of every account
+		end try
+
 		set rows to {}
 		try
 			set msgs to (messages of inbox whose date received ≥ startDay and date received < endDay)
 		on error errMsg number errNum
-			return "{\"ok\":false,\"error\":\"Mail whose failed (" & errNum & "): " & my escapeJson(errMsg) & "\"}"
+			return "{\"ok\":false,\"error\":\"Mail whose failed (" & errNum & "): " & my escapeJson(errMsg) & "\",\"accounts\":" & my accountsJson(accountNames) & "}"
 		end try
 
 		set total to count of msgs
@@ -36,14 +42,20 @@ on run argv
 				try
 					set flagged to flagged status of m
 				end try
-				-- Skip full body fetch (very slow on large mailboxes).
-				-- Actionable filter uses subject + sender + flagged.
+				set unread to false
+				try
+					set unread to not (read status of m)
+				end try
 				set preview to ""
 				set msgId to ""
 				try
 					set msgId to message id of m as text
 				end try
-				set end of rows to my objectJson(msgId, subj, snd, iso, flagged, preview)
+				set acct to ""
+				try
+					set acct to name of account of mailbox of m as text
+				end try
+				set end of rows to my objectJson(msgId, subj, snd, iso, flagged, unread, preview, acct)
 			end try
 		end repeat
 	end tell
@@ -51,8 +63,19 @@ on run argv
 	set AppleScript's text item delimiters to ","
 	set body to rows as text
 	set AppleScript's text item delimiters to ""
-	return "{\"ok\":true,\"window\":\"yesterday\",\"total\":" & total & ",\"items\":[" & body & "]}"
+	return "{\"ok\":true,\"window\":\"yesterday\",\"total\":" & total & ",\"accounts\":" & my accountsJson(accountNames) & ",\"items\":[" & body & "]}"
 end run
+
+on accountsJson(accountNames)
+	set parts to {}
+	repeat with a in accountNames
+		set end of parts to "\"" & my escapeJson(a as text) & "\""
+	end repeat
+	set AppleScript's text item delimiters to ","
+	set joined to parts as text
+	set AppleScript's text item delimiters to ""
+	return "[" & joined & "]"
+end accountsJson
 
 on isoFromDate(d)
 	set y to year of d as integer
@@ -69,13 +92,6 @@ on pad2(n)
 	if length of s < 2 then return "0" & s
 	return s
 end pad2
-
-on leftStr(t, n)
-	if t is missing value then return ""
-	set t to t as text
-	if length of t ≤ n then return t
-	return text 1 thru n of t
-end leftStr
 
 on escapeJson(t)
 	set t to t as text
@@ -96,8 +112,10 @@ on replaceText(t, findText, replaceWith)
 	return out
 end replaceText
 
-on objectJson(msgId, subj, snd, iso, flagged, preview)
+on objectJson(msgId, subj, snd, iso, flagged, unread, preview, acct)
 	set f to "false"
 	if flagged then set f to "true"
-	return "{\"id\":\"" & my escapeJson(msgId) & "\",\"subject\":\"" & my escapeJson(subj) & "\",\"sender\":\"" & my escapeJson(snd) & "\",\"receivedAt\":\"" & my escapeJson(iso) & "\",\"flagged\":" & f & ",\"preview\":\"" & my escapeJson(preview) & "\"}"
+	set u to "false"
+	if unread then set u to "true"
+	return "{\"id\":\"" & my escapeJson(msgId) & "\",\"subject\":\"" & my escapeJson(subj) & "\",\"sender\":\"" & my escapeJson(snd) & "\",\"receivedAt\":\"" & my escapeJson(iso) & "\",\"flagged\":" & f & ",\"unread\":" & u & ",\"preview\":\"" & my escapeJson(preview) & "\",\"account\":\"" & my escapeJson(acct) & "\"}"
 end objectJson

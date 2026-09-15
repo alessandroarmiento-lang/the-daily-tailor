@@ -1,16 +1,5 @@
 /**
- * Placeholder for a future IMAP / Gmail / Apple Mail integration.
- * Documents the swap contract; not used on this cloud VM.
+ * Placeholder kept for imports; real IMAP lives in ./imap.ts.
+ * @deprecated Use ImapActionEmailAdapter from ./imap
  */
-import type { ActionEmailAdapter, ActionEmailItem } from "./types";
-
-export class ImapActionEmailAdapter implements ActionEmailAdapter {
-  readonly id = "imap";
-  readonly label = "Mailbox (IMAP)";
-
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
-    throw new Error(
-      "ImapActionEmailAdapter requires mailbox credentials and host access. Use MockActionEmailAdapter on cloud/CI.",
-    );
-  }
-}
+export { ImapActionEmailAdapter } from "./imap";

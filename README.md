@@ -16,10 +16,10 @@ Sections:
 
 1. **Today’s weather** — Open-Meteo (default; precip from ≥07:00). WeatherKit adapter optional. Mock fallback on failure.
 2. **Aforisma del giorno** — one curated saying, picked by edition date (rolls at 06:00).
-3. **Agenda** — compact upcoming-days widget. Mock calendar + EventKit adapter stub.
+3. **Agenda** — CalDAV iCloud (Mac-off) or EventKit/Calendar.app (Mac awake). No silent mock.
 4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
-5. **Apple Reminders** — mock adapter (swap later on Mac).
-6. **Action emails** — mock “yesterday” emails that imply a to-do (real account when available).
+5. **Apple Reminders** — CalDAV VTODO (Mac-off) or EventKit (Mac awake). No silent mock.
+6. **Action emails** — IMAP iCloud+Gmail (Mac-off) or Mail.app (Mac awake); actionable only.
 
 ## Morning edition model (locked)
 
@@ -122,20 +122,20 @@ Copy `.env.example` to `.env.local` for overrides:
 | `WEATHERKIT_*` | — | Optional Apple WeatherKit |
 | `NEWS_FEED_URL` | Il Post Mondo RSS | trailing slash required |
 | `NEWS_MAX_ITEMS` | `4` | Print budget |
-| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `mock` / `4` | |
-| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `mock` / `3` | |
-| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `mock` / `4` / `2` | |
+| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `4` | `auto`\|`caldav`\|`eventkit`\|`mock` |
+| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `3` | `auto`\|`imap`\|`applemail`\|`mock` |
+| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `auto` / `4` / `2` | `auto`\|`caldav`\|`eventkit`\|`mock` |
+| `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP (Mac-off) |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | Edition rollover timezone |
 | `EDITIONS_DIR` | `./data/editions` | Snapshot JSON store |
 
-## Adapters (next on Mac)
+## Adapters (real data)
 
-- Reminders → `RemindersAdapter` (EventKit / Shortcuts / AppleScript)
-- Action emails → `ActionEmailAdapter` (IMAP / Gmail / Apple Mail), yesterday + actionable only
-- Calendar → `CalendarAdapter` (EventKit / CalDAV)
-- Weather → Open-Meteo primary; WeatherKit optional
-
-Stubs: `src/lib/reminders/eventkit-stub.ts`, `src/lib/action-emails/imap-stub.ts`, `src/lib/calendar/eventkit-stub.ts`.
+- **Mac-off (preferred):** IMAP (`imapflow`) for iCloud+Gmail; CalDAV (`tsdav`) for calendar + reminders; CardDAV for Contacts match.
+- **Mac-awake fallback:** AppleScript → Mail.app / Calendar.app / Reminders.app (TCC Automation). Helper: `scripts/macos/grant-apple-access.sh`.
+- Weather → Open-Meteo primary; WeatherKit optional.
+- Personal sections never silently fall back to fixture mocks.
 
 ## Stack
 

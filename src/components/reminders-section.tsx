@@ -31,8 +31,16 @@ function priorityLabel(priority: string): string | null {
 export async function RemindersSection() {
   const result = await getReminders();
 
-  if (result.status === "error" && !result.data) {
-    return <SectionError title="Promemoria" message={result.message} />;
+  if (result.status === "error" && (!result.data || result.data.items.length === 0)) {
+    return (
+      <SectionError
+        title="Promemoria"
+        message={
+          result.message ||
+          "Autorizza Promemoria o configura CalDAV iCloud per generare a Mac spento."
+        }
+      />
+    );
   }
 
   const briefing = result.data!;
@@ -52,6 +60,9 @@ export async function RemindersSection() {
       title="Promemoria"
       kicker="Oggi / aperti"
       tone={result.status === "error" ? "error" : "ok"}
+      footerNote={
+        result.status === "error" ? result.message : briefing.sourceLabel
+      }
     >
       <ul className="reminder-list">
         {items.map((item) => {

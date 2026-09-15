@@ -1,4 +1,9 @@
 import { config } from "@/lib/config";
+import { remindersAuthMessage } from "@/lib/apple/permissions";
+import {
+  CalDavRemindersAdapter,
+  hasRemindersCalDavCredentials,
+} from "./caldav";
 import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
 import type {
@@ -8,12 +13,24 @@ import type {
 } from "./types";
 
 function resolveAdapter(): RemindersAdapter {
-  switch (config.reminders.source) {
+  const source = config.reminders.source;
+  switch (source) {
+    case "caldav":
+      return new CalDavRemindersAdapter();
     case "eventkit":
       return new EventKitRemindersAdapter();
     case "mock":
-    default:
       return new MockRemindersAdapter();
+    case "auto":
+    default: {
+      if (hasRemindersCalDavCredentials()) {
+        return new CalDavRemindersAdapter();
+      }
+      if (process.platform === "darwin") {
+        return new EventKitRemindersAdapter();
+      }
+      return new CalDavRemindersAdapter();
+    }
   }
 }
 
@@ -21,6 +38,8 @@ export async function getReminders(): Promise<
   SectionResult<RemindersBriefing>
 > {
   const adapter = resolveAdapter();
+  const useMock = adapter.id === "mock";
+
   try {
     const items = await adapter.getTodaysOpenReminders();
     return {
@@ -29,22 +48,22 @@ export async function getReminders(): Promise<
         items,
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
-        isMock: adapter.id === "mock",
+        isMock: useMock,
       },
     };
   } catch (err) {
-    const message =
+    const raw =
       err instanceof Error ? err.message : "Promemoria non disponibili";
-    const fallback = new MockRemindersAdapter();
-    const items = await fallback.getTodaysOpenReminders();
+    const message = useMock ? raw : remindersAuthMessage(raw);
+
     return {
       status: "error",
       message,
       data: {
-        items,
+        items: [],
         fetchedAt: new Date().toISOString(),
-        sourceLabel: fallback.label,
-        isMock: true,
+        sourceLabel: adapter.label,
+        isMock: useMock,
       },
     };
   }

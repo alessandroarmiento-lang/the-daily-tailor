@@ -48,27 +48,39 @@ export const config = {
     maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "4"),
   },
   reminders: {
+    /**
+     * auto: CalDAV if creds (Mac-off), else EventKit on darwin.
+     * caldav | eventkit | mock
+     */
     source: defaultAppleSource(
       process.env.REMINDERS_SOURCE,
-      "eventkit",
-      "mock",
-    ) as "mock" | "eventkit",
+      "auto",
+      "auto",
+    ) as "mock" | "eventkit" | "caldav" | "auto",
     maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
   },
   actionEmails: {
+    /**
+     * auto: IMAP if creds (Mac-off), else Apple Mail on darwin.
+     * imap | applemail | mock
+     */
     source: defaultAppleSource(
       process.env.ACTION_EMAIL_SOURCE,
-      "applemail",
-      "mock",
-    ) as "mock" | "applemail" | "imap",
+      "auto",
+      "auto",
+    ) as "mock" | "applemail" | "imap" | "auto",
     maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "3"),
   },
   calendar: {
+    /**
+     * auto: CalDAV if creds (Mac-off), else EventKit on darwin.
+     * caldav | eventkit | mock
+     */
     source: defaultAppleSource(
       process.env.CALENDAR_SOURCE,
-      "eventkit",
-      "mock",
-    ) as "mock" | "eventkit",
+      "auto",
+      "auto",
+    ) as "mock" | "eventkit" | "caldav" | "auto",
     horizonDays: Number(process.env.CALENDAR_HORIZON_DAYS ?? "4"),
     maxEventsPerDay: Number(process.env.CALENDAR_MAX_EVENTS_PER_DAY ?? "2"),
   },

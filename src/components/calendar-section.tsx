@@ -26,8 +26,19 @@ function calendarHint(name: string): string | null {
 export async function CalendarSection() {
   const result = await getCalendar();
 
-  if (result.status === "error" && !result.data) {
-    return <SectionError title="Agenda" message={result.message} />;
+  if (result.status === "error") {
+    const hasAny = result.data?.days.some((d) => d.events.length > 0);
+    if (!hasAny) {
+      return (
+        <SectionError
+          title="Agenda"
+          message={
+            result.message ||
+            "Autorizza Calendario o configura CalDAV iCloud per generare a Mac spento."
+          }
+        />
+      );
+    }
   }
 
   const briefing = result.data!;
@@ -55,6 +66,9 @@ export async function CalendarSection() {
       title="Agenda"
       kicker="Prossimi giorni"
       tone={result.status === "error" ? "error" : "ok"}
+      footerNote={
+        result.status === "error" ? result.message : briefing.sourceLabel
+      }
     >
       <div className="cal-widget" role="list">
         {days.map((day) => (

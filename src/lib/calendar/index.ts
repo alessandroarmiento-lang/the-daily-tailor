@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { calendarAuthMessage } from "@/lib/apple/permissions";
+import { CalDavCalendarAdapter, hasCalDavCredentials } from "./caldav";
 import { EventKitCalendarAdapter } from "./eventkit";
 import { MockCalendarAdapter } from "./mock";
 import type {
@@ -10,12 +12,20 @@ import type {
 } from "./types";
 
 function resolveAdapter(): CalendarAdapter {
-  switch (config.calendar.source) {
+  const source = config.calendar.source;
+  switch (source) {
+    case "caldav":
+      return new CalDavCalendarAdapter();
     case "eventkit":
       return new EventKitCalendarAdapter();
     case "mock":
-    default:
       return new MockCalendarAdapter();
+    case "auto":
+    default: {
+      if (hasCalDavCredentials()) return new CalDavCalendarAdapter();
+      if (process.platform === "darwin") return new EventKitCalendarAdapter();
+      return new CalDavCalendarAdapter();
+    }
   }
 }
 
@@ -75,6 +85,8 @@ function groupByDay(
 export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
   const adapter = resolveAdapter();
   const horizon = config.calendar.horizonDays;
+  const useMock = adapter.id === "mock";
+
   try {
     const events = await adapter.getUpcomingEvents(horizon);
     return {
@@ -84,23 +96,22 @@ export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
         horizonLabel: `Prossimi ${horizon} giorni`,
-        isMock: adapter.id === "mock",
+        isMock: useMock,
       },
     };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Calendario non disponibile";
-    const fallback = new MockCalendarAdapter();
-    const events = await fallback.getUpcomingEvents(horizon);
+    const raw = err instanceof Error ? err.message : "Calendario non disponibile";
+    const message = useMock ? raw : calendarAuthMessage(raw);
+
     return {
       status: "error",
       message,
       data: {
-        days: groupByDay(events, horizon),
+        days: groupByDay([], horizon),
         fetchedAt: new Date().toISOString(),
-        sourceLabel: fallback.label,
+        sourceLabel: adapter.label,
         horizonLabel: `Prossimi ${horizon} giorni`,
-        isMock: true,
+        isMock: useMock,
       },
     };
   }

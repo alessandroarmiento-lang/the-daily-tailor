@@ -1,7 +1,6 @@
 /**
  * Action emails — messages from yesterday that imply a to-do / request / deadline.
- * Not a full inbox. Cloud VM has no mailbox: MockActionEmailAdapter for v1.
- * Later: IMAP / Gmail API / Apple Mail adapters can implement the same interface.
+ * Not a full inbox.
  */
 
 export type ActionEmailItem = {
@@ -12,6 +11,10 @@ export type ActionEmailItem = {
   /** One-line cue of what the user should do. */
   actionCue: string;
   receivedAt: string;
+  /** Optional Mail.app deep link (message://…). */
+  messageUrl?: string;
+  /** Account label when known (iCloud Mail, Gmail, …). */
+  account?: string;
 };
 
 export type ActionEmailBriefing = {

@@ -20,9 +20,9 @@ export const config = {
   locale: "it-IT",
   timezone: process.env.NEWSPAPER_TIMEZONE ?? "Europe/Rome",
   weather: {
-    city: process.env.WEATHER_CITY ?? "Roma",
-    latitude: Number(process.env.WEATHER_LAT ?? "41.9028"),
-    longitude: Number(process.env.WEATHER_LON ?? "12.4964"),
+    city: process.env.WEATHER_CITY ?? "Milano",
+    latitude: Number(process.env.WEATHER_LAT ?? "45.4642"),
+    longitude: Number(process.env.WEATHER_LON ?? "9.1900"),
     /**
      * Provider preference: auto | weatherkit | open-meteo | mock.
      * Default open-meteo (Apple Weather / WeatherKit not pursued).

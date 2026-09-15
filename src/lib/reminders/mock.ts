@@ -10,7 +10,7 @@ const MOCK_REMINDERS: ReminderItem[] = [
   {
     id: "rem-1",
     title: "Rivedere bozza mattutina del giornale",
-    notes: "Controllare meteo Roma e titoli mondo",
+    notes: "Controllare meteo Milano e titoli mondo",
     listName: "Lavoro",
     dueAt: todayAt(8, 30),
     isCompleted: false,

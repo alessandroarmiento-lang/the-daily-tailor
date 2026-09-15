@@ -20,7 +20,7 @@ export async function ActionEmailsSection() {
 
   if (result.status === "error" && !result.data) {
     return (
-      <SectionError title="Email da fare" message={result.message} />
+      <SectionError title="Email" message={result.message} />
     );
   }
 
@@ -28,7 +28,7 @@ export async function ActionEmailsSection() {
   if (briefing.items.length === 0) {
     return (
       <SectionEmpty
-        title="Email da fare"
+        title="Email"
         message="Nessuna email d’azione arrivata ieri."
       />
     );
@@ -38,7 +38,7 @@ export async function ActionEmailsSection() {
 
   return (
     <SectionShell
-      title="Email da fare"
+      title="Email"
       kicker="Ieri · richieste d’azione"
       tone={result.status === "error" ? "error" : "ok"}
     >
@@ -63,6 +63,6 @@ export async function ActionEmailsSection() {
 
 export function ActionEmailsSectionFallback() {
   return (
-    <SectionEmpty title="Email da fare" message="Caricamento email…" />
+    <SectionEmpty title="Email" message="Caricamento email…" />
   );
 }

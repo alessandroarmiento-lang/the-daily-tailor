@@ -412,7 +412,7 @@ export function EditionSheet({ edition, sourceNote }: Props) {
         <div className="area-emails">
           {emailsResult.status === "error" && !emailsResult.data ? (
             <SectionError
-              title="Email da fare"
+              title="Email"
               message={emailsResult.message}
             />
           ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
@@ -420,7 +420,7 @@ export function EditionSheet({ edition, sourceNote }: Props) {
               const items = emailsResult.data.items.slice(0, EMAILS_MAX);
               return (
                 <SectionShell
-                  title="Email da fare"
+                  title="Email"
                   kicker="Ieri · richieste d’azione"
                   tone={emailsResult.status === "error" ? "error" : "ok"}
                 >
@@ -446,7 +446,7 @@ export function EditionSheet({ edition, sourceNote }: Props) {
             })()
           ) : (
             <SectionEmpty
-              title="Email da fare"
+              title="Email"
               message="Nessuna email d’azione arrivata ieri."
             />
           )}

@@ -1074,27 +1074,29 @@ a.headline-list__title:hover {
     margin-bottom: 0.15rem;
   }
 
+  /* Two-row 07–14 / 15–22 strip — mirror screen proportions, stay in 1×A4. */
   .weather__precip-rows {
-    gap: 0.18rem;
+    gap: 0.28rem;
   }
 
   .weather__precip-chart {
-    min-height: 1.35rem;
-    gap: 0.16rem;
+    min-height: 1.85rem;
+    gap: 0.18rem;
   }
 
   .weather__precip-bar-wrap {
-    height: 0.95rem;
+    height: 1.35rem;
   }
 
   .weather__precip-bar {
     background: #000000 !important;
-    max-width: 0.45rem;
+    width: 70%;
+    max-width: 0.5rem;
   }
 
   .weather__precip-hour,
   .weather__precip-pct {
-    font-size: 6pt;
+    font-size: 6.5pt;
   }
 
   .cal-widget {

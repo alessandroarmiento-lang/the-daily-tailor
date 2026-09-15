@@ -14,7 +14,7 @@ A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollabl
 
 Sections:
 
-1. **Today’s weather** — Open-Meteo for Roma (no API key). Mock fallback on failure.
+1. **Today’s weather** — Apple WeatherKit when configured; otherwise Open-Meteo (with precipitation). Mock fallback on failure. Compact precip chart under meteo.
 2. **Aforisma del giorno** — one curated saying, picked deterministically by date.
 3. **Agenda** — compact upcoming-days widget. Mock calendar + EventKit adapter stub.
 4. **World news** — BBC World RSS by default. Mock fallback. Capped for one-page print.
@@ -56,7 +56,10 @@ Copy `.env.example` to `.env.local` for overrides:
 | --- | --- | --- |
 | `NEXT_PUBLIC_PRODUCT_NAME` | `The Daily Tailor` | Masthead |
 | `NEXT_PUBLIC_PRODUCT_TAGLINE` | Italian tagline below | Optional |
-| `WEATHER_CITY` / `WEATHER_LAT` / `WEATHER_LON` | Roma | Open-Meteo |
+| `WEATHER_CITY` / `WEATHER_LAT` / `WEATHER_LON` | Roma | Location |
+| `WEATHER_PROVIDER` | `auto` | `auto` \| `weatherkit` \| `open-meteo` \| `mock` |
+| `WEATHERKIT_TEAM_ID` / `KEY_ID` / `SERVICE_ID` | — | Apple WeatherKit |
+| `WEATHERKIT_PRIVATE_KEY` or `_PATH` | — | AuthKey `.p8` |
 | `NEWS_FEED_URL` | BBC World RSS | Any RSS URL |
 | `NEWS_MAX_ITEMS` | `4` | Print budget |
 | `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `mock` / `4` | |
@@ -64,11 +67,33 @@ Copy `.env.example` to `.env.local` for overrides:
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `mock` / `4` / `2` | |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | |
 
+## Apple Weather (WeatherKit) setup
+
+iPhone Weather data comes from Apple’s WeatherKit. The web app cannot read the Weather app on the phone without Apple Developer credentials.
+
+1. Apple Developer Program membership (paid).
+2. [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list) → **Identifiers** → register an **App ID** / Services ID and enable **WeatherKit**.
+3. **Keys** → create a key with **WeatherKit** enabled → download `AuthKey_XXXXXXXXXX.p8` (once). Note **Key ID** and your **Team ID**.
+4. Put in `.env.local`:
+
+```bash
+WEATHER_PROVIDER=auto
+WEATHERKIT_TEAM_ID=YOUR_TEAM_ID
+WEATHERKIT_KEY_ID=YOUR_KEY_ID
+WEATHERKIT_SERVICE_ID=com.your.bundle.id
+WEATHERKIT_PRIVATE_KEY_PATH=/absolute/path/to/AuthKey_XXXXXXXXXX.p8
+```
+
+5. Restart `npm run dev`. Footer under meteo should show `Sorgente: Apple Weather`.
+
+Without these keys, `auto` uses **Open-Meteo** (free, includes hourly/today precip) so the precip UI still works. Code path: `src/lib/weather/` (`WeatherProvider`, `weatherkit.ts`, `open-meteo.ts`).
+
 ## Adapters (next on Mac)
 
 - Reminders → `RemindersAdapter` (EventKit / Shortcuts / AppleScript)
 - Action emails → `ActionEmailAdapter` (IMAP / Gmail / Apple Mail), yesterday + actionable only
 - Calendar → `CalendarAdapter` (EventKit / CalDAV)
+- Weather → `WeatherProvider` (WeatherKit live when keyed; Open-Meteo interim)
 
 Stubs: `src/lib/reminders/eventkit-stub.ts`, `src/lib/action-emails/imap-stub.ts`, `src/lib/calendar/eventkit-stub.ts`.
 

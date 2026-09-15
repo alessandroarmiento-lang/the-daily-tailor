@@ -1,91 +1,62 @@
 import { config } from "@/lib/config";
-import { conditionFromWmo, labelForCondition, mockWeather } from "./mock";
-import type { SectionResult, WeatherSnapshot } from "./types";
+import { mockWeather } from "./mock";
+import { openMeteoProvider } from "./open-meteo";
+import type { SectionResult, WeatherProvider, WeatherSnapshot } from "./types";
+import { weatherKitProvider } from "./weatherkit";
 
-type OpenMeteoResponse = {
-  timezone?: string;
-  current?: {
-    time: string;
-    temperature_2m: number;
-    relative_humidity_2m?: number;
-    weather_code: number;
-    wind_speed_10m?: number;
-    apparent_temperature?: number;
-  };
-  daily?: {
-    temperature_2m_max?: number[];
-    temperature_2m_min?: number[];
-  };
-};
-
-async function fetchOpenMeteo(): Promise<WeatherSnapshot> {
-  const { latitude, longitude, city } = config.weather;
-  const params = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
-    current:
-      "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature",
-    daily: "temperature_2m_max,temperature_2m_min",
-    timezone: config.timezone,
-    forecast_days: "1",
-  });
-
-  const res = await fetch(
-    `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
-    { next: { revalidate: 600 } },
-  );
-
-  if (!res.ok) {
-    throw new Error(`Open-Meteo HTTP ${res.status}`);
+/**
+ * Prefer Apple WeatherKit when credentials are present.
+ * Otherwise use Open-Meteo (includes precip) so the sheet never blocks on keys.
+ */
+export function resolveWeatherProvider(): WeatherProvider {
+  const forced = config.weather.provider;
+  if (forced === "weatherkit") return weatherKitProvider;
+  if (forced === "open-meteo") return openMeteoProvider;
+  if (forced === "mock") {
+    return {
+      id: "mock",
+      labelIt: "Mock",
+      isConfigured: () => true,
+      async fetch() {
+        return mockWeather(config.weather.city, config.timezone);
+      },
+    };
   }
 
-  const json = (await res.json()) as OpenMeteoResponse;
-  if (!json.current) {
-    throw new Error("Open-Meteo: missing current weather");
-  }
-
-  const condition = conditionFromWmo(json.current.weather_code);
-
-  return {
-    city,
-    timezone: json.timezone ?? config.timezone,
-    observedAt: json.current.time,
-    temperatureC: Math.round(json.current.temperature_2m),
-    feelsLikeC:
-      json.current.apparent_temperature != null
-        ? Math.round(json.current.apparent_temperature)
-        : null,
-    humidityPercent: json.current.relative_humidity_2m ?? null,
-    windKmh:
-      json.current.wind_speed_10m != null
-        ? Math.round(json.current.wind_speed_10m)
-        : null,
-    condition,
-    conditionLabelIt: labelForCondition(condition),
-    highC:
-      json.daily?.temperature_2m_max?.[0] != null
-        ? Math.round(json.daily.temperature_2m_max[0])
-        : null,
-    lowC:
-      json.daily?.temperature_2m_min?.[0] != null
-        ? Math.round(json.daily.temperature_2m_min[0])
-        : null,
-    source: "open-meteo",
-    isMock: false,
-  };
+  if (weatherKitProvider.isConfigured()) return weatherKitProvider;
+  return openMeteoProvider;
 }
 
 /**
- * Prefer Open-Meteo (no key). If it fails, return mock with error status
- * so the sheet still prints.
+ * Fetch via the active WeatherProvider. On failure, return mock + precip
+ * so print still works.
  */
 export async function getWeather(): Promise<SectionResult<WeatherSnapshot>> {
+  const provider = resolveWeatherProvider();
   try {
-    const data = await fetchOpenMeteo();
+    if (!provider.isConfigured()) {
+      throw new Error(`${provider.labelIt}: non configurato`);
+    }
+    const data = await provider.fetch();
     return { status: "ok", data };
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Meteo non disponibile";
+
+    // If WeatherKit was selected but failed, try Open-Meteo before mock.
+    if (provider.id === "weatherkit") {
+      try {
+        const data = await openMeteoProvider.fetch();
+        return {
+          status: "error",
+          message: `Apple Weather non disponibile (${message}). Uso Open-Meteo.`,
+          data,
+        };
+      } catch {
+        // fall through to mock
+      }
+    }
+
     return {
       status: "error",
       message,
@@ -93,3 +64,7 @@ export async function getWeather(): Promise<SectionResult<WeatherSnapshot>> {
     };
   }
 }
+
+export type { WeatherSnapshot, PrecipitationForecast, PrecipHour } from "./types";
+export { weatherKitProvider } from "./weatherkit";
+export { openMeteoProvider } from "./open-meteo";

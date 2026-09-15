@@ -13,8 +13,25 @@ export const config = {
     city: process.env.WEATHER_CITY ?? "Roma",
     latitude: Number(process.env.WEATHER_LAT ?? "41.9028"),
     longitude: Number(process.env.WEATHER_LON ?? "12.4964"),
-    /** Optional OpenWeatherMap key; without it we use Open-Meteo (no key). */
+    /**
+     * Provider preference: auto | weatherkit | open-meteo | mock.
+     * auto → WeatherKit when Apple keys are set, else Open-Meteo (with precip).
+     */
+    provider: (process.env.WEATHER_PROVIDER ?? "auto") as
+      | "auto"
+      | "weatherkit"
+      | "open-meteo"
+      | "mock",
+    /** Optional legacy key; unused when WeatherKit / Open-Meteo are active. */
     openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? "",
+    weatherKit: {
+      teamId: process.env.WEATHERKIT_TEAM_ID ?? "",
+      keyId: process.env.WEATHERKIT_KEY_ID ?? "",
+      serviceId: process.env.WEATHERKIT_SERVICE_ID ?? "",
+      /** PEM contents (use \n for newlines) or leave empty and set path. */
+      privateKey: process.env.WEATHERKIT_PRIVATE_KEY ?? "",
+      privateKeyPath: process.env.WEATHERKIT_PRIVATE_KEY_PATH ?? "",
+    },
   },
   news: {
     /** BBC World RSS — free, no key. Override with NEWS_FEED_URL. */

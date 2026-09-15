@@ -46,22 +46,12 @@ export async function RemindersSection() {
   }
 
   const items = briefing.items.slice(0, config.reminders.maxItems);
-  const hidden = Math.max(0, briefing.items.length - items.length);
-  const noteParts = [briefing.sourceLabel];
-  if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-  if (briefing.isMock) {
-    noteParts.push("Mock — EventKit / Shortcuts su Mac");
-  }
-  if (result.status === "error") {
-    noteParts.push(result.message);
-  }
 
   return (
     <SectionShell
       title="Reminders"
       kicker="Oggi / aperti"
       tone={result.status === "error" ? "error" : "ok"}
-      footerNote={noteParts.join(" · ")}
     >
       <ul className="reminder-list">
         {items.map((item) => {

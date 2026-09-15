@@ -15,6 +15,14 @@ function formatEventTime(iso: string, isAllDay: boolean): string {
   }).format(new Date(iso));
 }
 
+/** Compact calendar source hint (Birthdays / holidays / etc.). */
+function calendarHint(name: string): string | null {
+  const n = name.toLowerCase();
+  if (n.includes("compleann") || n.includes("birthday")) return "Compleanni";
+  if (n.includes("festiv") || n.includes("holiday")) return "Festività";
+  return null;
+}
+
 export async function CalendarSection() {
   const result = await getCalendar();
 
@@ -23,10 +31,15 @@ export async function CalendarSection() {
   }
 
   const briefing = result.data!;
-  const days = briefing.days.map((day) => ({
-    ...day,
-    events: day.events.slice(0, config.calendar.maxEventsPerDay),
-  }));
+  const maxPerDay = config.calendar.maxEventsPerDay;
+  const days = briefing.days.map((day) => {
+    const hidden = Math.max(0, day.events.length - maxPerDay);
+    return {
+      ...day,
+      events: day.events.slice(0, maxPerDay),
+      hidden,
+    };
+  });
   const hasAny = days.some((day) => day.events.length > 0);
   if (!hasAny) {
     return (
@@ -37,20 +50,11 @@ export async function CalendarSection() {
     );
   }
 
-  const noteParts = [briefing.horizonLabel, briefing.sourceLabel];
-  if (briefing.isMock) {
-    noteParts.push("Mock — Apple Calendar / EventKit");
-  }
-  if (result.status === "error") {
-    noteParts.push(result.message);
-  }
-
   return (
     <SectionShell
       title="Agenda"
       kicker="Prossimi giorni"
       tone={result.status === "error" ? "error" : "ok"}
-      footerNote={noteParts.join(" · ")}
     >
       <div className="cal-widget" role="list">
         {days.map((day) => (
@@ -67,14 +71,27 @@ export async function CalendarSection() {
               <p className="cal-day__empty">—</p>
             ) : (
               <ul className="cal-day__events">
-                {day.events.map((event) => (
-                  <li key={event.id} className="cal-event">
-                    <span className="cal-event__time">
-                      {formatEventTime(event.startsAt, event.isAllDay)}
-                    </span>
-                    <span className="cal-event__title">{event.title}</span>
+                {day.events.map((event) => {
+                  const hint = calendarHint(event.calendarName);
+                  return (
+                    <li key={event.id} className="cal-event">
+                      <span className="cal-event__time">
+                        {formatEventTime(event.startsAt, event.isAllDay)}
+                      </span>
+                      <span className="cal-event__title">
+                        {event.title}
+                        {hint ? (
+                          <span className="cal-event__cal"> · {hint}</span>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+                {day.hidden > 0 ? (
+                  <li className="cal-event cal-event--more">
+                    +{day.hidden} altri
                   </li>
-                ))}
+                ) : null}
               </ul>
             )}
           </div>

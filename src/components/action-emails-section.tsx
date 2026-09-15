@@ -35,22 +35,12 @@ export async function ActionEmailsSection() {
   }
 
   const items = briefing.items.slice(0, config.actionEmails.maxItems);
-  const hidden = Math.max(0, briefing.items.length - items.length);
-  const noteParts = [briefing.windowLabel, briefing.sourceLabel];
-  if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-  if (briefing.isMock) {
-    noteParts.push("Mock — IMAP/Gmail/Apple Mail");
-  }
-  if (result.status === "error") {
-    noteParts.push(result.message);
-  }
 
   return (
     <SectionShell
       title="Email da fare"
       kicker="Ieri · richieste d’azione"
       tone={result.status === "error" ? "error" : "ok"}
-      footerNote={noteParts.join(" · ")}
     >
       <ul className="action-mail-list">
         {items.map((item) => (

@@ -254,22 +254,11 @@ export function EditionSheet({ edition, sourceNote }: Props) {
                   />
                 );
               }
-              const noteParts = [
-                calendarResult.data.horizonLabel,
-                calendarResult.data.sourceLabel,
-              ];
-              if (calendarResult.data.isMock) {
-                noteParts.push("Mock — Apple Calendar / EventKit");
-              }
-              if (calendarResult.status === "error") {
-                noteParts.push(calendarResult.message);
-              }
               return (
                 <SectionShell
                   title="Agenda"
                   kicker="Prossimi giorni"
                   tone={calendarResult.status === "error" ? "error" : "ok"}
-                  footerNote={noteParts.join(" · ")}
                 >
                   <div className="cal-widget" role="list">
                     {days.map((day) => (
@@ -371,24 +360,11 @@ export function EditionSheet({ edition, sourceNote }: Props) {
           ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
             (() => {
               const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
-              const hidden = Math.max(
-                0,
-                remindersResult.data.items.length - items.length,
-              );
-              const noteParts = [remindersResult.data.sourceLabel];
-              if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-              if (remindersResult.data.isMock) {
-                noteParts.push("Mock — EventKit / Shortcuts su Mac");
-              }
-              if (remindersResult.status === "error") {
-                noteParts.push(remindersResult.message);
-              }
               return (
                 <SectionShell
                   title="Reminders"
                   kicker="Oggi / aperti"
                   tone={remindersResult.status === "error" ? "error" : "ok"}
-                  footerNote={noteParts.join(" · ")}
                 >
                   <ul className="reminder-list">
                     {items.map((item) => {
@@ -432,27 +408,11 @@ export function EditionSheet({ edition, sourceNote }: Props) {
           ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
             (() => {
               const items = emailsResult.data.items.slice(0, EMAILS_MAX);
-              const hidden = Math.max(
-                0,
-                emailsResult.data.items.length - items.length,
-              );
-              const noteParts = [
-                emailsResult.data.windowLabel,
-                emailsResult.data.sourceLabel,
-              ];
-              if (hidden > 0) noteParts.push(`+${hidden} omessi (limite 1 pagina)`);
-              if (emailsResult.data.isMock) {
-                noteParts.push("Mock — IMAP/Gmail/Apple Mail");
-              }
-              if (emailsResult.status === "error") {
-                noteParts.push(emailsResult.message);
-              }
               return (
                 <SectionShell
                   title="Email da fare"
                   kicker="Ieri · richieste d’azione"
                   tone={emailsResult.status === "error" ? "error" : "ok"}
-                  footerNote={noteParts.join(" · ")}
                 >
                   <ul className="action-mail-list">
                     {items.map((item) => (

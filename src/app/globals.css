@@ -429,7 +429,7 @@ a:hover {
 }
 
 .weather__precip-today {
-  margin: 0 0 0.1rem;
+  margin: 0 0 0.02rem;
   font-family: var(--font-sans);
   font-size: 0.78rem;
   line-height: 1.2;
@@ -1068,7 +1068,7 @@ a.headline-list__title:hover {
 
   .weather__precip-today {
     font-size: 7.5pt;
-    margin-bottom: 0.06rem;
+    margin-bottom: 0.02rem;
   }
 
   /* Two-row 07–14 / 15–22 — tight vertical stack, still readable. */

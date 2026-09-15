@@ -6,10 +6,7 @@ import { EditionSheet } from "@/components/edition-sheet";
 import { MorningReload } from "@/components/morning-reload";
 import { PrintToolbar } from "@/components/print-toolbar";
 import type { NewspaperEdition } from "@/lib/edition-types";
-import {
-  loadEditionForClient,
-  type EditionLoadSource,
-} from "@/lib/offline-editions";
+import { loadEditionForClient } from "@/lib/offline-editions";
 
 type Props = {
   /** "today" or YYYY-MM-DD */
@@ -24,17 +21,14 @@ export function DailyPaperApp({
   showHistoryLink = true,
 }: Props) {
   const [edition, setEdition] = useState<NewspaperEdition | null>(null);
-  const [source, setSource] = useState<EditionLoadSource>("none");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [online, setOnline] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     const result = await loadEditionForClient(dateKey);
     setEdition(result.edition);
-    setSource(result.source);
     setError(result.error ?? null);
     setLoading(false);
   }, [dateKey]);
@@ -43,38 +37,9 @@ export function DailyPaperApp({
     void refresh();
   }, [refresh]);
 
-  useEffect(() => {
-    const sync = () => setOnline(navigator.onLine);
-    sync();
-    window.addEventListener("online", sync);
-    window.addEventListener("offline", sync);
-    return () => {
-      window.removeEventListener("online", sync);
-      window.removeEventListener("offline", sync);
-    };
-  }, []);
-
-  const sourceNote =
-    source === "local"
-      ? "Copia locale (offline)"
-      : source === "network"
-        ? "Edizione del mattino"
-        : undefined;
-
-  const statusLine = loading
-    ? "Caricamento edizione…"
-    : !edition
-      ? error ?? "Edizione non disponibile"
-      : source === "local"
-        ? online
-          ? "Mostrata dalla memoria del telefono"
-          : "Offline · edizione salvata sul dispositivo"
-        : "Aggiornata dal server · salvata per uso offline";
-
   return (
     <>
       <PrintToolbar
-        statusLine={statusLine}
         onRefresh={() => void refresh()}
         historyHref={showHistoryLink ? "/storia" : undefined}
         canPrint={Boolean(edition)}
@@ -98,7 +63,7 @@ export function DailyPaperApp({
       ) : null}
       {edition ? (
         <>
-          <EditionSheet edition={edition} sourceNote={sourceNote} />
+          <EditionSheet edition={edition} />
           {dateKey === "today" ? (
             <MorningReload
               editionDateKey={edition.dateKey}

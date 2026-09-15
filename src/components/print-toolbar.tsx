@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 type Props = {
-  statusLine?: string;
   onRefresh?: () => void;
   historyHref?: string;
   /** Stampa is optional and manual — never auto-invoked. */
@@ -11,23 +10,17 @@ type Props = {
 };
 
 /**
- * Screen-only chrome. Stampa calls window.print() only on user tap
- * (works on iOS Safari / Add to Home Screen when the edition DOM is present,
- * including offline/local editions). No auto-print on open.
+ * Screen-only chrome. Left side stays empty — actions only on the right.
+ * Stampa calls window.print() only on user tap.
  */
 export function PrintToolbar({
-  statusLine,
   onRefresh,
   historyHref,
   canPrint = true,
 }: Props) {
   return (
     <div className="no-print toolbar">
-      {statusLine ? (
-        <p className="toolbar__status toolbar__status--solo">{statusLine}</p>
-      ) : (
-        <span className="toolbar__spacer" aria-hidden="true" />
-      )}
+      <span className="toolbar__spacer" aria-hidden="true" />
       <div className="toolbar__actions">
         {historyHref ? (
           <Link className="toolbar__btn toolbar__btn--ghost" href={historyHref}>

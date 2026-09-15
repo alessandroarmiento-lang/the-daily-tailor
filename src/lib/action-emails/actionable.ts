@@ -20,7 +20,7 @@ const DENY_SUBJECT =
  * These pass even for no-reply senders when the subject looks operational.
  */
 const ALLOW_DOMAIN =
-  /\b(intesa|unicredit|bnl|bps|bancoposta|fineco|chebanca|ing\.|isysbank|revolut|n26|wise\.com|paypal|posteitaliane|poste\.it|posteid|sda\.it|bartolini|brt\.it|dhl\.|ups\.com|fedex|amazon\.|vinted\.|inps\.|agenziaentrate|agenziaentrateriscossione|pagopa|io\.italia|spazio\.|comune\.|regione\.|poliziadistato|carabinieri|mise\.gov|interno\.gov|istruzione\.it|pec\.it)\b/i;
+  /\b(intesa|unicredit|bnl|bps|bancoposta|fineco|chebanca|ing\.|isysbank|revolut|n26|wise\.com|paypal|relaxbanking|posteitaliane|poste\.it|posteid|sda\.it|bartolini|brt\.it|dhl\.|ups\.com|fedex|amazon\.|vinted\.|inps\.|agenziaentrate|agenziaentrateriscossione|pagopa|io\.italia|spazio\.|comune\.|regione\.|poliziadistato|carabinieri|mise\.gov|interno\.gov|istruzione\.it|pec\.it)\b/i;
 
 const ACTION_HINT =
   /\b(scadenz|pagamento|pagare|conferma|fattura|appuntamento|puoi|potresti|per favore|cortesemente|ti chiedo|serve che|dovresti|rispondi|inviami|mandami|entro il|urgente|asap|please|could you|can you|need you to|action required|rsvp|let me know|waiting on you|deadline|firm[ae]|approva|revisione|feedback|ritiro|spedizione|consegn|avviso di|bollettino|cartella|avviso bonario|codice otp|codice di verifica|verifica identit)\b/i;
@@ -116,6 +116,11 @@ export function isActionableMail(
     if (ACTION_HINT.test(blob)) return true;
     // Allow-list domain + unread: still surface (ops mail often terse).
     if (msg.unread) return true;
+  }
+
+  // Bank/ops cues even from noreply senders not yet on allow-list.
+  if (BANK_ACTION.test(blob) && /bank|banca|banking|paypal|revolut|n26|wise/i.test(sender)) {
+    return true;
   }
 
   if (ACTION_HINT.test(blob)) return true;

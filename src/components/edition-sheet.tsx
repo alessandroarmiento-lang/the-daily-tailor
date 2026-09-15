@@ -255,8 +255,15 @@ export function EditionSheet({ edition }: Props) {
         </div>
 
         <div className="area-calendar">
-          {calendarResult.status === "error" && !calendarResult.data ? (
-            <SectionError title="Agenda" message={calendarResult.message} />
+          {calendarResult.status === "error" &&
+          !(calendarResult.data?.days.some((d) => d.events.length > 0)) ? (
+            <SectionError
+              title="Agenda"
+              message={
+                calendarResult.message ||
+                "Autorizza Calendario o configura CalDAV iCloud."
+              }
+            />
           ) : calendarResult.data ? (
             (() => {
               const days = calendarResult.data.days.map((day) => ({
@@ -362,8 +369,15 @@ export function EditionSheet({ edition }: Props) {
         </div>
 
         <div className="area-reminders">
-          {remindersResult.status === "error" && !remindersResult.data ? (
-            <SectionError title="Promemoria" message={remindersResult.message} />
+          {remindersResult.status === "error" &&
+          !(remindersResult.data && remindersResult.data.items.length > 0) ? (
+            <SectionError
+              title="Promemoria"
+              message={
+                remindersResult.message ||
+                "Autorizza Promemoria o configura CalDAV iCloud."
+              }
+            />
           ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
             (() => {
               const items = remindersResult.data.items.slice(0, REMINDERS_MAX);

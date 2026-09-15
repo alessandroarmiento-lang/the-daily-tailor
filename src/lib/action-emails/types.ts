@@ -1,0 +1,34 @@
+/**
+ * Action emails — messages from yesterday that imply a to-do / request / deadline.
+ * Not a full inbox. Cloud VM has no mailbox: MockActionEmailAdapter for v1.
+ * Later: IMAP / Gmail API / Apple Mail adapters can implement the same interface.
+ */
+
+export type ActionEmailItem = {
+  id: string;
+  subject: string;
+  senderName: string;
+  senderAddress: string;
+  /** One-line cue of what the user should do. */
+  actionCue: string;
+  receivedAt: string;
+};
+
+export type ActionEmailBriefing = {
+  items: ActionEmailItem[];
+  fetchedAt: string;
+  sourceLabel: string;
+  windowLabel: string;
+  isMock: boolean;
+};
+
+export type SectionResult<T> =
+  | { status: "ok"; data: T }
+  | { status: "error"; message: string; data?: T };
+
+export interface ActionEmailAdapter {
+  readonly id: string;
+  readonly label: string;
+  /** Emails arrived yesterday whose content implies an actionable request. */
+  getYesterdaysActionEmails(): Promise<ActionEmailItem[]>;
+}

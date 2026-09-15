@@ -1,5 +1,6 @@
 import type {
   PrecipitationForecast,
+  PrecipHour,
   WeatherCondition,
   WeatherSnapshot,
 } from "./types";
@@ -78,18 +79,27 @@ export function emptyPrecipitation(): PrecipitationForecast {
   };
 }
 
+/**
+ * Daytime precip strip: 07:00–22:00 local (inclusive).
+ * No overnight hours; full day band for the morning sheet.
+ */
+export const PRECIP_TIMELINE_START_HOUR = 7;
+export const PRECIP_TIMELINE_END_HOUR = 22;
+
 export function mockPrecipitation(): PrecipitationForecast {
+  const nextHours: PrecipHour[] = [];
+  for (let h = PRECIP_TIMELINE_START_HOUR; h <= PRECIP_TIMELINE_END_HOUR; h++) {
+    const chance = Math.max(0, Math.min(80, (h - 7) * 5));
+    nextHours.push({
+      hourLabel: String(h).padStart(2, "0"),
+      chancePercent: chance,
+      amountMm: chance > 40 ? 0.2 : 0,
+    });
+  }
   return {
     todayChancePercent: 35,
     todayAmountMm: 1.2,
-    nextHours: [
-      { hourLabel: "07", chancePercent: 10, amountMm: 0 },
-      { hourLabel: "08", chancePercent: 20, amountMm: 0 },
-      { hourLabel: "09", chancePercent: 35, amountMm: 0.1 },
-      { hourLabel: "10", chancePercent: 45, amountMm: 0.3 },
-      { hourLabel: "11", chancePercent: 40, amountMm: 0.2 },
-      { hourLabel: "12", chancePercent: 25, amountMm: 0 },
-    ],
+    nextHours,
   };
 }
 
@@ -134,11 +144,62 @@ export function hourOfDayInZone(iso: string, timeZone: string): number {
   return Number.isFinite(n) ? n : new Date(iso).getHours();
 }
 
-/**
- * Hourly precip chart starts at 07:00 local — skip overnight / early morning.
- */
-export const PRECIP_TIMELINE_START_HOUR = 7;
-
 export function isPrecipTimelineHour(iso: string, timeZone: string): boolean {
-  return hourOfDayInZone(iso, timeZone) >= PRECIP_TIMELINE_START_HOUR;
+  const h = hourOfDayInZone(iso, timeZone);
+  return h >= PRECIP_TIMELINE_START_HOUR && h <= PRECIP_TIMELINE_END_HOUR;
+}
+
+/** Civil YYYY-MM-DD in an IANA zone. */
+export function dateKeyInZone(iso: string, timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return new Date(iso).toISOString().slice(0, 10);
+  }
+}
+
+type PrecipSample = {
+  iso: string;
+  chancePercent: number;
+  amountMm: number | null;
+};
+
+/**
+ * Build a fixed 07–22 strip for one civil day. Missing hours → 0%.
+ */
+export function buildDaytimePrecipHours(
+  samples: PrecipSample[],
+  timeZone: string,
+  dayKey: string,
+): PrecipHour[] {
+  const byHour = new Map<number, PrecipHour>();
+  for (const sample of samples) {
+    if (dateKeyInZone(sample.iso, timeZone) !== dayKey) continue;
+    const h = hourOfDayInZone(sample.iso, timeZone);
+    if (h < PRECIP_TIMELINE_START_HOUR || h > PRECIP_TIMELINE_END_HOUR) {
+      continue;
+    }
+    byHour.set(h, {
+      hourLabel: String(h).padStart(2, "0"),
+      chancePercent: sample.chancePercent,
+      amountMm: sample.amountMm,
+    });
+  }
+
+  const nextHours: PrecipHour[] = [];
+  for (let h = PRECIP_TIMELINE_START_HOUR; h <= PRECIP_TIMELINE_END_HOUR; h++) {
+    nextHours.push(
+      byHour.get(h) ?? {
+        hourLabel: String(h).padStart(2, "0"),
+        chancePercent: 0,
+        amountMm: null,
+      },
+    );
+  }
+  return nextHours;
 }

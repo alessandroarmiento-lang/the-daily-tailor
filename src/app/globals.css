@@ -439,7 +439,7 @@ a:hover {
 .weather__precip-chart {
   display: flex;
   align-items: flex-end;
-  gap: 0.2rem;
+  gap: 0.08rem;
   min-height: 2.6rem;
 }
 
@@ -448,7 +448,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.08rem;
   min-width: 0;
 }
 
@@ -461,8 +461,8 @@ a:hover {
 }
 
 .weather__precip-bar {
-  width: 70%;
-  max-width: 0.55rem;
+  width: 85%;
+  max-width: 0.4rem;
   min-height: 1px;
   background: #000000;
 }
@@ -470,10 +470,10 @@ a:hover {
 .weather__precip-hour,
 .weather__precip-pct {
   font-family: var(--font-sans);
-  font-size: 0.55rem;
+  font-size: 0.48rem;
   line-height: 1;
   color: var(--ink-muted);
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .weather__precip-pct {

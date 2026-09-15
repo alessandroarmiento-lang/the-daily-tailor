@@ -1,21 +1,18 @@
 import { createPrivateKey, sign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { config } from "@/lib/config";
+import { getEditionDateKey } from "@/lib/edition";
 import {
+  buildDaytimePrecipHours,
   conditionFromWeatherKit,
   emptyPrecipitation,
-  hourLabelInZone,
-  isPrecipTimelineHour,
   labelForCondition,
 } from "./mock";
 import type {
-  PrecipHour,
   PrecipitationForecast,
   WeatherProvider,
   WeatherSnapshot,
 } from "./types";
-
-const HOURLY_SLOTS = 6;
 
 type WeatherKitCurrent = {
   asOf?: string;
@@ -27,6 +24,7 @@ type WeatherKitCurrent = {
 };
 
 type WeatherKitDay = {
+  forecastStart?: string;
   temperatureMax?: number;
   temperatureMin?: number;
   precipitationChance?: number;
@@ -119,7 +117,11 @@ function buildPrecipitation(
   json: WeatherKitResponse,
   timezone: string,
 ): PrecipitationForecast {
-  const day = json.forecastDaily?.days?.[0];
+  const dayKey = getEditionDateKey(new Date(), timezone);
+  const days = json.forecastDaily?.days ?? [];
+  const day =
+    days.find((d) => d.forecastStart && d.forecastStart.startsWith(dayKey)) ??
+    days[0];
   const todayChance =
     day?.precipitationChance != null
       ? Math.round(day.precipitationChance * 100)
@@ -129,19 +131,10 @@ function buildPrecipitation(
       ? Math.round(day.precipitationAmount * 10) / 10
       : null;
 
-  const hours = json.forecastHourly?.hours ?? [];
-  const now = Date.now();
-  const nextHours: PrecipHour[] = [];
-
-  for (const hour of hours) {
-    if (nextHours.length >= HOURLY_SLOTS) break;
-    if (!hour.forecastStart) continue;
-    const t = Date.parse(hour.forecastStart);
-    if (Number.isNaN(t) || t < now - 30 * 60 * 1000) continue;
-    // Timeline starts at 07:00 local — no overnight / pre-dawn slots.
-    if (!isPrecipTimelineHour(hour.forecastStart, timezone)) continue;
-    nextHours.push({
-      hourLabel: hourLabelInZone(hour.forecastStart, timezone),
+  const samples = (json.forecastHourly?.hours ?? [])
+    .filter((hour) => hour.forecastStart)
+    .map((hour) => ({
+      iso: hour.forecastStart!,
       chancePercent:
         hour.precipitationChance != null
           ? Math.round(hour.precipitationChance * 100)
@@ -152,13 +145,12 @@ function buildPrecipitation(
           : hour.precipitationIntensity != null
             ? Math.round(hour.precipitationIntensity * 10) / 10
             : null,
-    });
-  }
+    }));
 
   return {
     todayChancePercent: todayChance,
     todayAmountMm: todayAmount,
-    nextHours,
+    nextHours: buildDaytimePrecipHours(samples, timezone, dayKey),
   };
 }
 

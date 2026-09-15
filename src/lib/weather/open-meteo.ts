@@ -1,19 +1,16 @@
 import { config } from "@/lib/config";
+import { getEditionDateKey } from "@/lib/edition";
 import {
+  buildDaytimePrecipHours,
   conditionFromWmo,
   emptyPrecipitation,
-  hourLabelInZone,
-  isPrecipTimelineHour,
   labelForCondition,
 } from "./mock";
 import type {
-  PrecipHour,
   PrecipitationForecast,
   WeatherProvider,
   WeatherSnapshot,
 } from "./types";
-
-const HOURLY_SLOTS = 6;
 
 type OpenMeteoResponse = {
   timezone?: string;
@@ -31,6 +28,7 @@ type OpenMeteoResponse = {
     precipitation?: (number | null)[];
   };
   daily?: {
+    time?: string[];
     temperature_2m_max?: number[];
     temperature_2m_min?: number[];
     precipitation_probability_max?: (number | null)[];
@@ -42,40 +40,34 @@ function buildPrecipitation(
   json: OpenMeteoResponse,
   timezone: string,
 ): PrecipitationForecast {
+  const dayKey = getEditionDateKey(new Date(), timezone);
+  const dailyTimes = json.daily?.time ?? [];
+  let dayIndex = dailyTimes.findIndex((t) => t.slice(0, 10) === dayKey);
+  if (dayIndex < 0) dayIndex = 0;
+
   const todayChance =
-    json.daily?.precipitation_probability_max?.[0] != null
-      ? Math.round(json.daily.precipitation_probability_max[0])
+    json.daily?.precipitation_probability_max?.[dayIndex] != null
+      ? Math.round(json.daily.precipitation_probability_max[dayIndex]!)
       : null;
   const todayAmount =
-    json.daily?.precipitation_sum?.[0] != null
-      ? Math.round(json.daily.precipitation_sum[0] * 10) / 10
+    json.daily?.precipitation_sum?.[dayIndex] != null
+      ? Math.round(json.daily.precipitation_sum[dayIndex]! * 10) / 10
       : null;
 
   const times = json.hourly?.time ?? [];
   const chances = json.hourly?.precipitation_probability ?? [];
   const amounts = json.hourly?.precipitation ?? [];
-  const now = Date.now();
-  const nextHours: PrecipHour[] = [];
-
-  for (let i = 0; i < times.length && nextHours.length < HOURLY_SLOTS; i++) {
-    const iso = times[i]!;
-    const t = Date.parse(iso);
-    if (Number.isNaN(t) || t < now - 30 * 60 * 1000) continue;
-    // Timeline starts at 07:00 local — no overnight / pre-dawn slots.
-    if (!isPrecipTimelineHour(iso, timezone)) continue;
-    const chance = chances[i];
-    nextHours.push({
-      hourLabel: hourLabelInZone(iso, timezone),
-      chancePercent: chance != null ? Math.round(chance) : 0,
-      amountMm:
-        amounts[i] != null ? Math.round(Number(amounts[i]) * 10) / 10 : null,
-    });
-  }
+  const samples = times.map((iso, i) => ({
+    iso,
+    chancePercent: chances[i] != null ? Math.round(Number(chances[i])) : 0,
+    amountMm:
+      amounts[i] != null ? Math.round(Number(amounts[i]) * 10) / 10 : null,
+  }));
 
   return {
     todayChancePercent: todayChance,
     todayAmountMm: todayAmount,
-    nextHours,
+    nextHours: buildDaytimePrecipHours(samples, timezone, dayKey),
   };
 }
 
@@ -96,8 +88,8 @@ export const openMeteoProvider: WeatherProvider = {
       daily:
         "temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum",
       timezone: config.timezone,
-      forecast_days: "1",
-      forecast_hours: "24",
+      // Two civil days so 07–22 of the edition day is always covered.
+      forecast_days: "2",
     });
 
     const res = await fetch(
@@ -117,6 +109,10 @@ export const openMeteoProvider: WeatherProvider = {
     const timezone = json.timezone ?? config.timezone;
     const condition = conditionFromWmo(json.current.weather_code);
     const precipitation = buildPrecipitation(json, timezone);
+    const dayKey = getEditionDateKey(new Date(), timezone);
+    const dailyTimes = json.daily?.time ?? [];
+    let dayIndex = dailyTimes.findIndex((t) => t.slice(0, 10) === dayKey);
+    if (dayIndex < 0) dayIndex = 0;
 
     return {
       city,
@@ -135,12 +131,12 @@ export const openMeteoProvider: WeatherProvider = {
       condition,
       conditionLabelIt: labelForCondition(condition),
       highC:
-        json.daily?.temperature_2m_max?.[0] != null
-          ? Math.round(json.daily.temperature_2m_max[0])
+        json.daily?.temperature_2m_max?.[dayIndex] != null
+          ? Math.round(json.daily.temperature_2m_max[dayIndex]!)
           : null,
       lowC:
-        json.daily?.temperature_2m_min?.[0] != null
-          ? Math.round(json.daily.temperature_2m_min[0])
+        json.daily?.temperature_2m_min?.[dayIndex] != null
+          ? Math.round(json.daily.temperature_2m_min[dayIndex]!)
           : null,
       precipitation:
         precipitation.nextHours.length > 0 ||

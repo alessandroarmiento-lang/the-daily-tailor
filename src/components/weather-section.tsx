@@ -6,21 +6,6 @@ import {
 import { getWeather } from "@/lib/weather";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 
-function sourceLabelIt(source: string): string {
-  switch (source) {
-    case "weatherkit":
-      return "Apple Weather";
-    case "open-meteo":
-      return "Open-Meteo (provvisorio)";
-    case "openweathermap":
-      return "OpenWeatherMap";
-    case "mock":
-      return "Mock";
-    default:
-      return source;
-  }
-}
-
 function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
   const hasToday = precip.todayChancePercent != null;
   const hours = precip.nextHours;
@@ -68,22 +53,12 @@ export async function WeatherSection() {
   }
 
   const weather = result.data!;
-  const noteParts: string[] = [];
-  if (result.status === "error") {
-    noteParts.push(`Dati di riserva: ${result.message}`);
-  }
-  if (weather.isMock) {
-    noteParts.push("Sorgente mock");
-  } else {
-    noteParts.push(`Sorgente: ${sourceLabelIt(weather.source)}`);
-  }
 
   return (
     <SectionShell
       title="Meteo di oggi"
       kicker={weather.city}
       tone={result.status === "error" ? "error" : "ok"}
-      footerNote={noteParts.join(" · ")}
     >
       <div className="weather">
         <div className="weather__top">

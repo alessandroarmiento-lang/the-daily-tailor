@@ -15,19 +15,6 @@ const REMINDERS_MAX = 4;
 const EMAILS_MAX = 3;
 const EVENTS_PER_DAY = 2;
 
-function weatherSourceLabel(source: string): string {
-  switch (source) {
-    case "weatherkit":
-      return "Apple Weather";
-    case "open-meteo":
-      return "Open-Meteo";
-    case "mock":
-      return "Mock";
-    default:
-      return source;
-  }
-}
-
 function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
   const hasToday = precip.todayChancePercent != null;
   const hours = precip.nextHours;
@@ -177,16 +164,6 @@ export function EditionSheet({ edition, sourceNote }: Props) {
               title="Meteo di oggi"
               kicker={weatherResult.data.city}
               tone={weatherResult.status === "error" ? "error" : "ok"}
-              footerNote={[
-                weatherResult.status === "error"
-                  ? `Dati di riserva: ${weatherResult.message}`
-                  : null,
-                weatherResult.data.isMock
-                  ? "Sorgente mock"
-                  : `Sorgente: ${weatherSourceLabel(weatherResult.data.source)}`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
             >
               <div className="weather">
                 <div className="weather__top">

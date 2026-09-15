@@ -21,10 +21,17 @@ function providerLabel(source: string): string {
   }
 }
 
+const PRECIP_ROW_SIZE = 8;
+
 function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
   const hasToday = precip.todayChancePercent != null;
   const hours = precip.nextHours;
   if (!hasToday && hours.length === 0) return null;
+
+  const rows: (typeof hours)[] = [];
+  for (let i = 0; i < hours.length; i += PRECIP_ROW_SIZE) {
+    rows.push(hours.slice(i, i + PRECIP_ROW_SIZE));
+  }
 
   return (
     <div className="weather__precip">
@@ -37,19 +44,29 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
             : ""}
         </p>
       ) : null}
-      {hours.length > 0 ? (
-        <div className="weather__precip-chart" aria-label="Previsione oraria">
-          {hours.map((h) => (
-            <div key={`${h.hourLabel}-${h.chancePercent}`} className="weather__precip-col">
-              <div className="weather__precip-bar-wrap">
+      {rows.length > 0 ? (
+        <div className="weather__precip-rows" aria-label="Previsione oraria">
+          {rows.map((row, rowIndex) => (
+            <div
+              key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
+              className="weather__precip-chart"
+            >
+              {row.map((h) => (
                 <div
-                  className="weather__precip-bar"
-                  style={{ height: `${Math.max(4, h.chancePercent)}%` }}
-                  title={`${h.hourLabel}: ${h.chancePercent}%`}
-                />
-              </div>
-              <span className="weather__precip-hour">{h.hourLabel}</span>
-              <span className="weather__precip-pct">{h.chancePercent}</span>
+                  key={`${h.hourLabel}-${h.chancePercent}`}
+                  className="weather__precip-col"
+                >
+                  <div className="weather__precip-bar-wrap">
+                    <div
+                      className="weather__precip-bar"
+                      style={{ height: `${Math.max(4, h.chancePercent)}%` }}
+                      title={`${h.hourLabel}: ${h.chancePercent}%`}
+                    />
+                  </div>
+                  <span className="weather__precip-hour">{h.hourLabel}</span>
+                  <span className="weather__precip-pct">{h.chancePercent}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>

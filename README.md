@@ -1,8 +1,8 @@
-# Tailor-Made Newspaper
+# The Daily Tailor
 
-Personal morning briefing web app for Alessandro Armiento.
+Personal one-page morning paper, tailored to you — web app for Alessandro Armiento.
 
-**Product name:** Tailor-Made (masthead: Tailor-Made Newspaper).
+**Product name (locked):** The Daily Tailor.
 
 ## Provenance
 
@@ -51,7 +51,8 @@ Copy `.env.example` to `.env.local` for overrides:
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `NEXT_PUBLIC_PRODUCT_NAME` | `Tailor-Made Newspaper` | Masthead |
+| `NEXT_PUBLIC_PRODUCT_NAME` | `The Daily Tailor` | Masthead |
+| `NEXT_PUBLIC_PRODUCT_TAGLINE` | Italian tagline below | Optional |
 | `WEATHER_CITY` / `WEATHER_LAT` / `WEATHER_LON` | Roma | Open-Meteo |
 | `NEWS_FEED_URL` | BBC World RSS | Any RSS URL |
 | `NEWS_MAX_ITEMS` | `5` | Print budget |

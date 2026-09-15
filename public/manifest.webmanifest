@@ -1,7 +1,7 @@
 {
-  "name": "Tailor-Made Newspaper",
-  "short_name": "Tailor-Made",
-  "description": "Personal morning briefing — read on iPhone, print one page.",
+  "name": "The Daily Tailor",
+  "short_name": "Daily Tailor",
+  "description": "Personal one-page morning paper, tailored to you — read on iPhone, print one A4.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fffdf8",

@@ -18,9 +18,7 @@ export function Masthead() {
     <header className="masthead">
       <p className="masthead__edition">Edizione personale · {dateLine}</p>
       <h1 className="masthead__brand">{config.productName}</h1>
-      <p className="masthead__tagline">
-        Briefing del mattino — meteo, agenda, mondo, Reminders, email
-      </p>
+      <p className="masthead__tagline">{config.tagline}</p>
       <div className="masthead__rule" aria-hidden="true" />
     </header>
   );

@@ -34,7 +34,7 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
   },
   {
     id: "ae-4",
-    subject: "Feedback sul brief Tailor-Made",
+    subject: "Feedback sul brief The Daily Tailor",
     senderName: "Elena Conti",
     senderAddress: "elena.conti@collaboratori.example",
     actionCue: "Rispondere con 3 punti di feedback sulla bozza di ieri.",

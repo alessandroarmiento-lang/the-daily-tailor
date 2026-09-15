@@ -1,9 +1,12 @@
 /**
- * Tailor-Made Newspaper runtime config.
+ * The Daily Tailor runtime config.
  * Override via env without code changes.
  */
 export const config = {
-  productName: process.env.NEXT_PUBLIC_PRODUCT_NAME ?? "Tailor-Made Newspaper",
+  productName: process.env.NEXT_PUBLIC_PRODUCT_NAME ?? "The Daily Tailor",
+  tagline:
+    process.env.NEXT_PUBLIC_PRODUCT_TAGLINE ??
+    "Il giornale del mattino in una pagina, su misura per te",
   locale: "it-IT",
   timezone: process.env.NEWSPAPER_TIMEZONE ?? "Europe/Rome",
   weather: {

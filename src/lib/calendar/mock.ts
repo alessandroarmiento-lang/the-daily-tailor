@@ -39,7 +39,7 @@ const MOCK_EVENTS: CalendarEventItem[] = [
   },
   {
     id: "cal-3",
-    title: "Scadenza bozza Tailor-Made",
+    title: "Scadenza bozza The Daily Tailor",
     location: null,
     startsAt: allDay(1),
     endsAt: null,

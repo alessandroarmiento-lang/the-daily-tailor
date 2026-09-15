@@ -37,7 +37,7 @@ const MOCK_REMINDERS: ReminderItem[] = [
   {
     id: "rem-4",
     title: "Rispondere a mail di progetto",
-    notes: "Priorità: Tailor-Made Newspaper",
+    notes: "Priorità: The Daily Tailor",
     listName: "Lavoro",
     dueAt: todayAt(17, 0),
     isCompleted: false,

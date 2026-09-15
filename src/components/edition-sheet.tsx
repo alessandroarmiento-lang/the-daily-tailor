@@ -163,14 +163,8 @@ export function EditionSheet({ edition, sourceNote }: Props) {
       </header>
 
       <aside className="aphorism" aria-label="Aforisma del giorno">
-        <p className="aphorism__kicker">Aforisma del giorno</p>
         <blockquote className="aphorism__quote">
           <p className="aphorism__text">«{edition.aphorism.text}»</p>
-          {edition.aphorism.attribution ? (
-            <footer className="aphorism__attr">
-              — {edition.aphorism.attribution}
-            </footer>
-          ) : null}
         </blockquote>
       </aside>
 

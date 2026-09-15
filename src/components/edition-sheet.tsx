@@ -185,7 +185,7 @@ export function EditionSheet({ edition, sourceNote }: Props) {
                   : null,
                 weatherResult.data.isMock
                   ? "Mock"
-                  : weatherProviderLabel(weatherResult.data.source),
+                  : weatherSourceLabel(weatherResult.data.source),
               ]
                 .filter(Boolean)
                 .join(" · ")}

@@ -22,12 +22,17 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# Parse KEY=VALUE without printing values; build fly secrets set args.
-mapfile -t SET_ARGS < <(python3 - "$ENV_FILE" <<'PY'
+# Parse KEY=VALUE without printing values; write import file for fly secrets.
+# Avoid mapfile (bash 4+) — macOS ships bash 3.2.
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
+
+python3 - "$ENV_FILE" "$TMP" <<'PY'
 import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
+out = Path(sys.argv[2])
 raw = path.read_text(encoding="utf-8")
 wanted = {
     "ICLOUD_MAIL_USER",
@@ -68,21 +73,18 @@ if missing:
         print(f"MISSING:{m}", file=sys.stderr)
     sys.exit(2)
 
+if not found:
+    print("No secrets parsed", file=sys.stderr)
+    sys.exit(1)
+
+lines = []
 for key in sorted(found):
     print(f"OK:{key}", file=sys.stderr)
-    print(f"{key}={found[key]}")
+    lines.append(f"{key}={found[key]}")
+out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
-)
-
-if [[ "${#SET_ARGS[@]}" -eq 0 ]]; then
-  echo "No secrets parsed from $ENV_FILE" >&2
-  exit 1
-fi
 
 echo "Setting Fly secrets on app=$APP (values not printed)…"
 # Pass via env file to avoid shell history / argv inspection of values where possible.
-TMP="$(mktemp)"
-trap 'rm -f "$TMP"' EXIT
-printf '%s\n' "${SET_ARGS[@]}" > "$TMP"
 "${FLY[@]}" secrets import --app "$APP" < "$TMP"
 echo "Done. Verify names with: ${FLY[*]} secrets list --app $APP"

@@ -15,8 +15,8 @@ import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
-const NEWS_MAX = 4;
-const REMINDERS_MAX = 7;
+const NEWS_MAX = 6;
+const REMINDERS_MAX = 8;
 const EMAILS_MAX = 4;
 const EVENTS_PER_DAY = 2;
 
@@ -342,106 +342,106 @@ export function EditionSheet({ edition }: Props) {
         </div>
 
         <div className="area-news">
-          {newsResult.status === "error" && !newsResult.data ? (
-            <SectionError
-              title="Notizie dal mondo"
-              kicker="Il Post"
-              message={newsResult.message}
-            />
-          ) : newsResult.data && newsResult.data.items.length > 0 ? (
-            (() => {
-              const items = newsResult.data.items.slice(0, NEWS_MAX);
-              return (
-                <SectionShell
-                  title="Notizie dal mondo"
-                  kicker="Il Post"
-                  tone={newsResult.status === "error" ? "error" : "ok"}
-                >
-                  <ol className="headline-list">
-                    {items.map((item, i) => (
-                      <li key={item.id} className="headline-list__item">
-                        <span className="headline-list__index">{i + 1}.</span>
-                        <div>
-                          <HeadlineTitle item={item} />
-                          {item.summary ? (
-                            <p className="headline-list__summary">
-                              {item.summary}
-                            </p>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </SectionShell>
-              );
-            })()
-          ) : (
-            <SectionEmpty
-              title="Notizie dal mondo"
-              kicker="Il Post"
-              message="Nessun titolo disponibile questa mattina."
-            />
-          )}
-        </div>
-
-        <div className="area-reminders">
-          {remindersResult.status === "error" &&
-          !(remindersResult.data && remindersResult.data.items.length > 0) ? (
-            <SectionError
-              title="Promemoria"
-              message={
-                remindersResult.message ||
-                "Autorizza Promemoria o configura CalDAV iCloud."
-              }
-            />
-          ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
-            (() => {
-              const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
-              const hidden =
-                typeof remindersResult.data.hiddenCount === "number"
-                  ? remindersResult.data.hiddenCount
-                  : 0;
-              const overflow = remindersOverflowLabel(hidden);
-              return (
-                <SectionShell
-                  title="Promemoria"
-                  kicker="Oggi / aperti"
-                  tone={remindersResult.status === "error" ? "error" : "ok"}
-                >
-                  <ul className="reminder-list">
-                    {items.map((item) => {
-                      const pri = priorityLabel(item.priority);
-                      return (
-                        <li key={item.id} className="reminder-list__item">
-                          <span
-                            className="reminder-list__box"
-                            aria-hidden="true"
-                          />
+            {newsResult.status === "error" && !newsResult.data ? (
+              <SectionError
+                title="Notizie dal mondo"
+                kicker="Il Post"
+                message={newsResult.message}
+              />
+            ) : newsResult.data && newsResult.data.items.length > 0 ? (
+              (() => {
+                const items = newsResult.data.items.slice(0, NEWS_MAX);
+                return (
+                  <SectionShell
+                    title="Notizie dal mondo"
+                    kicker="Il Post"
+                    tone={newsResult.status === "error" ? "error" : "ok"}
+                  >
+                    <ol className="headline-list">
+                      {items.map((item, i) => (
+                        <li key={item.id} className="headline-list__item">
+                          <span className="headline-list__index">{i + 1}.</span>
                           <div>
-                            <p className="reminder-list__title">{item.title}</p>
-                            <p className="reminder-list__meta">
-                              {item.listName}
-                              {" · "}
-                              {formatDue(item.dueAt, tz)}
-                              {pri ? ` · Priorità ${pri}` : ""}
-                            </p>
+                            <HeadlineTitle item={item} />
+                            {item.summary ? (
+                              <p className="headline-list__summary">
+                                {item.summary}
+                              </p>
+                            ) : null}
                           </div>
                         </li>
-                      );
-                    })}
-                  </ul>
-                  {overflow ? (
-                    <p className="section-overflow">{overflow}</p>
-                  ) : null}
-                </SectionShell>
-              );
-            })()
-          ) : (
-            <SectionEmpty
-              title="Promemoria"
-              message="Nessun reminder aperto per oggi."
-            />
-          )}
+                      ))}
+                    </ol>
+                  </SectionShell>
+                );
+              })()
+            ) : (
+              <SectionEmpty
+                title="Notizie dal mondo"
+                kicker="Il Post"
+                message="Nessun titolo disponibile questa mattina."
+              />
+            )}
+          </div>
+
+        <div className="area-reminders">
+            {remindersResult.status === "error" &&
+            !(remindersResult.data && remindersResult.data.items.length > 0) ? (
+              <SectionError
+                title="Promemoria"
+                message={
+                  remindersResult.message ||
+                  "Autorizza Promemoria o configura CalDAV iCloud."
+                }
+              />
+            ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
+              (() => {
+                const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
+                const hidden =
+                  typeof remindersResult.data.hiddenCount === "number"
+                    ? remindersResult.data.hiddenCount
+                    : 0;
+                const overflow = remindersOverflowLabel(hidden);
+                return (
+                  <SectionShell
+                    title="Promemoria"
+                    kicker="Oggi / aperti"
+                    tone={remindersResult.status === "error" ? "error" : "ok"}
+                  >
+                    <ul className="reminder-list">
+                      {items.map((item) => {
+                        const pri = priorityLabel(item.priority);
+                        return (
+                          <li key={item.id} className="reminder-list__item">
+                            <span
+                              className="reminder-list__box"
+                              aria-hidden="true"
+                            />
+                            <div>
+                              <p className="reminder-list__title">{item.title}</p>
+                              <p className="reminder-list__meta">
+                                {item.listName}
+                                {" · "}
+                                {formatDue(item.dueAt, tz)}
+                                {pri ? ` · Priorità ${pri}` : ""}
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {overflow ? (
+                      <p className="section-overflow">{overflow}</p>
+                    ) : null}
+                  </SectionShell>
+                );
+              })()
+            ) : (
+              <SectionEmpty
+                title="Promemoria"
+                message="Nessun reminder aperto per oggi."
+              />
+            )}
         </div>
 
         <div className="area-emails">

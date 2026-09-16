@@ -6,6 +6,8 @@ import { exportEditionPdf } from "@/lib/export-edition-pdf";
 
 type Props = {
   onRefresh?: () => void;
+  /** True while a forced rebuild/reload is in flight. */
+  refreshing?: boolean;
   historyHref?: string;
   /** PDF export is optional and manual — never auto-invoked. */
   canExportPdf?: boolean;
@@ -19,6 +21,7 @@ type Props = {
  */
 export function PrintToolbar({
   onRefresh,
+  refreshing = false,
   historyHref,
   canExportPdf = true,
   pdfFileStem = "the-daily-tailor",
@@ -53,9 +56,11 @@ export function PrintToolbar({
         <button
           type="button"
           className="toolbar__btn toolbar__btn--ghost"
+          disabled={refreshing}
+          aria-busy={refreshing}
           onClick={() => (onRefresh ? onRefresh() : window.location.reload())}
         >
-          Aggiorna
+          {refreshing ? "Aggiorno…" : "Aggiorna"}
         </button>
         <button
           type="button"

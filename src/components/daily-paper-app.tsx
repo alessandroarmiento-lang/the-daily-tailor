@@ -29,22 +29,35 @@ export function DailyPaperApp({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialEdition);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await loadEditionForClient(dateKey);
-      // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
-      setEdition((prev) => result.edition ?? prev);
-      setError(result.edition ? null : (result.error ?? null));
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Caricamento edizione fallito",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [dateKey]);
+  const refresh = useCallback(
+    async (options?: { forceRebuild?: boolean }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // AGGIORNA on "today" must rebuild live data (not only re-read disk/IDB).
+        if (options?.forceRebuild && dateKey === "today") {
+          const warm = await fetch("/api/morning-warm?force=1", {
+            cache: "no-store",
+            headers: { "Cache-Control": "no-cache" },
+          });
+          if (!warm.ok) {
+            throw new Error(`Aggiornamento fallito (HTTP ${warm.status})`);
+          }
+        }
+        const result = await loadEditionForClient(dateKey);
+        // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
+        setEdition((prev) => result.edition ?? prev);
+        setError(result.edition ? null : (result.error ?? null));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Caricamento edizione fallito",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dateKey],
+  );
 
   useEffect(() => {
     void refresh();
@@ -55,7 +68,8 @@ export function DailyPaperApp({
   return (
     <>
       <PrintToolbar
-        onRefresh={() => void refresh()}
+        onRefresh={() => void refresh({ forceRebuild: true })}
+        refreshing={loading && Boolean(edition)}
         historyHref={showHistoryLink ? "/storia" : undefined}
         canExportPdf={Boolean(edition)}
         pdfFileStem={

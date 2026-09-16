@@ -52,6 +52,42 @@ const MOCK_REMINDERS: ReminderItem[] = [
     isCompleted: false,
     priority: "none",
   },
+  {
+    id: "rem-6",
+    title: "Ordinare toner stampante",
+    notes: null,
+    listName: "Casa",
+    dueAt: null,
+    isCompleted: false,
+    priority: "low",
+  },
+  {
+    id: "rem-7",
+    title: "Preparare lista spesa weekend",
+    notes: "Verdura e pane",
+    listName: "Spesa",
+    dueAt: todayAt(20, 0),
+    isCompleted: false,
+    priority: "none",
+  },
+  {
+    id: "rem-8",
+    title: "Inviare report settimanale",
+    notes: null,
+    listName: "Lavoro",
+    dueAt: todayAt(16, 0),
+    isCompleted: false,
+    priority: "medium",
+  },
+  {
+    id: "rem-9",
+    title: "Prenotare taglio capelli",
+    notes: null,
+    listName: "Personale",
+    dueAt: null,
+    isCompleted: false,
+    priority: "low",
+  },
 ];
 
 /**

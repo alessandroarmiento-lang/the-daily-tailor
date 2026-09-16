@@ -57,7 +57,7 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "auto",
-    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
+    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "7"),
   },
   actionEmails: {
     /**
@@ -69,7 +69,7 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
-    maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "3"),
+    maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "4"),
   },
   calendar: {
     /**

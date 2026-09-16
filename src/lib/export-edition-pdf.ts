@@ -16,7 +16,7 @@
  */
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
-const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
+const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders reminders" "emails emails emails"`;
 
 /** Selectors → on-screen `-webkit-line-clamp` line counts. */
 const LINE_CLAMP_LINES: Array<[string, number]> = [

@@ -16,8 +16,8 @@ import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
 const NEWS_MAX = 4;
-const REMINDERS_MAX = 4;
-const EMAILS_MAX = 3;
+const REMINDERS_MAX = 7;
+const EMAILS_MAX = 4;
 const EVENTS_PER_DAY = 2;
 
 function weatherSourceLabel(source: string): string {

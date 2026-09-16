@@ -123,8 +123,8 @@ Copy `.env.example` to `.env.local` for overrides:
 | `WEATHERKIT_*` | — | Optional Apple WeatherKit |
 | `NEWS_FEED_URL` | Il Post Mondo RSS | trailing slash required |
 | `NEWS_MAX_ITEMS` | `4` | Print budget |
-| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `4` | `auto`\|`caldav`\|`eventkit`\|`mock` |
-| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `3` | `auto`\|`imap`\|`applemail`\|`mock` |
+| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `7` | `auto`\|`caldav`\|`eventkit`\|`mock` |
+| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `auto` / `4` / `2` | `auto`\|`caldav`\|`eventkit`\|`mock` |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP (Mac-off) |

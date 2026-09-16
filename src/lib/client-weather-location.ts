@@ -109,16 +109,65 @@ export type GeoPermissionOutcome =
       message: string;
     };
 
+const DENIED_SESSION_KEY = "tdt-geo-denied";
+
+function readDeniedThisSession(): boolean {
+  try {
+    return sessionStorage.getItem(DENIED_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markDeniedThisSession(): void {
+  try {
+    sessionStorage.setItem(DENIED_SESSION_KEY, "1");
+  } catch {
+    // Best-effort only.
+  }
+}
+
+/**
+ * If the OS already said no, skip getCurrentPosition so Safari/PWA does not
+ * keep resurfacing the Consenti sheet on every open.
+ */
+async function permissionAlreadyDenied(): Promise<boolean> {
+  if (readDeniedThisSession()) return true;
+  try {
+    const permissions = navigator.permissions;
+    if (!permissions?.query) return false;
+    const status = await permissions.query({
+      name: "geolocation" as PermissionName,
+    });
+    if (status.state === "denied") {
+      markDeniedThisSession();
+      return true;
+    }
+  } catch {
+    // iOS Safari may reject the query; fall through to getCurrentPosition.
+  }
+  return false;
+}
+
 /** Browser geolocation with a short timeout suited to PWA open. */
-export function requestBrowserGeolocation(
+export async function requestBrowserGeolocation(
   timeoutMs = 12_000,
 ): Promise<GeoPermissionOutcome> {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return Promise.resolve({
+    return {
       ok: false,
       reason: "unsupported",
       message: "Geolocalizzazione non supportata da questo browser.",
-    });
+    };
+  }
+
+  if (await permissionAlreadyDenied()) {
+    return {
+      ok: false,
+      reason: "denied",
+      message:
+        "Posizione negata. Uso l’ultima nota o Milano come predefinita.",
+    };
   }
 
   return new Promise((resolve) => {
@@ -136,6 +185,7 @@ export function requestBrowserGeolocation(
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
+          markDeniedThisSession();
           resolve({
             ok: false,
             reason: "denied",

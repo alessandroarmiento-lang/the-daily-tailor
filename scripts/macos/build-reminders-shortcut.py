@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Build + sign the iPhone Shortcut that pushes open reminders to the host.
 
-The shortcut has two actions:
+v2 workflow (avoids iPhone flattening reminders to titles-only):
   1. Find Reminders where "Is Completed" is No
-  2. Get Contents of URL — POST the reminders to /api/reminders/ingest
+  2. Repeat with Each → Dictionary(title, listName, dueAt, notes, id)
+  3. Get Contents of URL — POST the dictionary list to /api/reminders/ingest
 
 The edition rebuild is not triggered here: the host already warms at 06:00
 (deploy/fly/crontab), five minutes after the 05:55 automation.
@@ -15,6 +16,9 @@ it is written 0600 and never echoed.
 Usage:
   python3 scripts/macos/build-reminders-shortcut.py \
       --output ~/Desktop/"Invia promemoria al giornale.shortcut"
+
+Do not install via Shortcuts Events / osascript. Double-click the Desktop file
+(or `open` it) so Alessandro taps Add himself.
 """
 from __future__ import annotations
 
@@ -31,6 +35,9 @@ FFFC = "\ufffc"
 
 DEFAULT_HOST = "https://the-daily-tailor.fly.dev"
 DEFAULT_OUTPUT = "~/Desktop/Invia promemoria al giornale.shortcut"
+
+# ISO-8601-ish; ingest-store accepts this and Italian gg/mm/aaaa text.
+DUE_AT_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXXXX"
 
 
 def read_token(env_file: Path) -> str:
@@ -73,6 +80,15 @@ def action_output(action_uuid: str, name: str) -> dict:
     return {"OutputName": name, "OutputUUID": action_uuid, "Type": "ActionOutput"}
 
 
+def attachment(ref: dict) -> dict:
+    return {"Value": ref, "WFSerializationType": "WFTextTokenAttachment"}
+
+
+def repeat_item_ref() -> dict:
+    """Current reminder inside Repeat with Each."""
+    return {"Type": "Variable", "VariableName": "Repeat Item"}
+
+
 def dictionary_field(items: list) -> dict:
     return {
         "Value": {"WFDictionaryFieldValueItems": items},
@@ -113,6 +129,64 @@ def find_open_reminders(action_uuid: str) -> dict:
     }
 
 
+def repeat_each_start(group_id: str, input_ref: dict) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.repeat.each",
+        "WFWorkflowActionParameters": {
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 0,
+            "WFInput": attachment(input_ref),
+        },
+    }
+
+
+def repeat_each_end(group_id: str, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.repeat.each",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 2,
+        },
+    }
+
+
+def reminder_detail(property_name: str, action_uuid: str) -> dict:
+    """Get Details of Reminders for the current Repeat Item."""
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.properties.reminders",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "WFContentItemPropertyName": property_name,
+            "WFInput": attachment(repeat_item_ref()),
+        },
+    }
+
+
+def format_due_at(date_ref: dict, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.format.date",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "WFDate": attachment(date_ref),
+            "WFDateFormatStyle": "Custom",
+            "WFDateFormat": "Custom",
+            "WFDateFormatString": DUE_AT_FORMAT,
+        },
+    }
+
+
+def dictionary_action(fields: list, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.dictionary",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "CustomOutputName": "Reminder Dict",
+            "WFItems": dictionary_field(fields),
+        },
+    }
+
+
 def post_reminders(url: str, token: str, reminders_ref: dict, action_uuid: str) -> dict:
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.downloadurl",
@@ -141,13 +215,46 @@ def post_reminders(url: str, token: str, reminders_ref: dict, action_uuid: str) 
 
 def build_workflow(host: str, token: str) -> dict:
     find_uuid = uid()
+    group_id = uid()
+    title_uuid = uid()
+    list_uuid = uid()
+    due_raw_uuid = uid()
+    due_fmt_uuid = uid()
+    notes_uuid = uid()
+    id_uuid = uid()
+    dict_uuid = uid()
+    end_uuid = uid()
+    post_uuid = uid()
+
+    detail_name = "Details of Reminders"
+    formatted_name = "Formatted Date"
+
     actions = [
         find_open_reminders(find_uuid),
+        repeat_each_start(group_id, action_output(find_uuid, "Reminders")),
+        reminder_detail("Title", title_uuid),
+        reminder_detail("List", list_uuid),
+        reminder_detail("Due Date", due_raw_uuid),
+        format_due_at(action_output(due_raw_uuid, detail_name), due_fmt_uuid),
+        reminder_detail("Notes", notes_uuid),
+        # Identifier is optional in the content-item schema; empty → host synthesizes.
+        reminder_detail("Identifier", id_uuid),
+        dictionary_action(
+            [
+                text_field("title", [action_output(title_uuid, detail_name)]),
+                text_field("listName", [action_output(list_uuid, detail_name)]),
+                text_field("dueAt", [action_output(due_fmt_uuid, formatted_name)]),
+                text_field("notes", [action_output(notes_uuid, detail_name)]),
+                text_field("id", [action_output(id_uuid, detail_name)]),
+            ],
+            dict_uuid,
+        ),
+        repeat_each_end(group_id, end_uuid),
         post_reminders(
             f"{host.rstrip('/')}/api/reminders/ingest",
             token,
-            action_output(find_uuid, "Reminders"),
-            uid(),
+            action_output(end_uuid, "Repeat Results"),
+            post_uuid,
         ),
     ]
     return {
@@ -201,6 +308,11 @@ def main() -> None:
         choices=["anyone", "people-who-know-me"],
         help="shortcuts sign mode",
     )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="open the signed .shortcut so the user can tap Add (no CLI install)",
+    )
     args = parser.parse_args()
 
     token = read_token(Path(args.env_file).expanduser())
@@ -211,9 +323,22 @@ def main() -> None:
     # `shortcuts sign` only accepts .wflow / .shortcut input, never .plist.
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "reminders.wflow"
+        workflow = build_workflow(args.host, token)
         with source.open("wb") as handle:
-            plistlib.dump(build_workflow(args.host, token), handle)
+            plistlib.dump(workflow, handle)
         subprocess.run(["plutil", "-lint", str(source)], check=True, capture_output=True)
+
+        # Sanity: v2 must include the Repeat + Dictionary path (not raw Reminders POST).
+        action_ids = [
+            a["WFWorkflowActionIdentifier"] for a in workflow["WFWorkflowActions"]
+        ]
+        if action_ids.count("is.workflow.actions.repeat.each") != 2:
+            raise SystemExit("shortcut v2: expected Repeat with Each start+end")
+        if "is.workflow.actions.dictionary" not in action_ids:
+            raise SystemExit("shortcut v2: expected Dictionary action")
+        if "is.workflow.actions.properties.reminders" not in action_ids:
+            raise SystemExit("shortcut v2: expected Get Details of Reminders")
+
         if output.exists():
             output.unlink()
         subprocess.run(
@@ -230,8 +355,11 @@ def main() -> None:
             check=True,
         )
     output.chmod(0o600)
-    print(f"Shortcut firmato: {output}")
+    print(f"Shortcut v2 firmato: {output}")
     print("Contiene il token: trattalo come materiale segreto.")
+    print("Non usare Automation/Shortcuts Events: doppio click sul file → Aggiungi.")
+    if args.open:
+        subprocess.run(["open", str(output)], check=False)
 
 
 if __name__ == "__main__":

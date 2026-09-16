@@ -38,10 +38,9 @@ export async function NewsSection() {
       kicker="Il Post"
       tone={result.status === "error" ? "error" : "ok"}
     >
-      <ol className="headline-list">
-        {items.map((item, i) => (
+      <ul className="headline-list">
+        {items.map((item) => (
           <li key={item.id} className="headline-list__item">
-            <span className="headline-list__index">{i + 1}.</span>
             <div>
               <a
                 className="headline-list__title"
@@ -57,7 +56,7 @@ export async function NewsSection() {
             </div>
           </li>
         ))}
-      </ol>
+      </ul>
     </SectionShell>
   );
 }

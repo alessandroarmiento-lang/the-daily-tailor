@@ -16,7 +16,7 @@ import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
 const NEWS_MAX = 6;
-const REMINDERS_MAX = 8;
+const REMINDERS_MAX = 6;
 const EMAILS_MAX = 4;
 const EVENTS_PER_DAY = 2;
 
@@ -357,10 +357,9 @@ export function EditionSheet({ edition }: Props) {
                     kicker="Il Post"
                     tone={newsResult.status === "error" ? "error" : "ok"}
                   >
-                    <ol className="headline-list">
-                      {items.map((item, i) => (
+                    <ul className="headline-list">
+                      {items.map((item) => (
                         <li key={item.id} className="headline-list__item">
-                          <span className="headline-list__index">{i + 1}.</span>
                           <div>
                             <HeadlineTitle item={item} />
                             {item.summary ? (
@@ -371,7 +370,7 @@ export function EditionSheet({ edition }: Props) {
                           </div>
                         </li>
                       ))}
-                    </ol>
+                    </ul>
                   </SectionShell>
                 );
               })()

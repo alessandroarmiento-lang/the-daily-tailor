@@ -710,22 +710,13 @@ a:hover {
 }
 
 .headline-list__item {
-  display: grid;
-  grid-template-columns: 1.4rem 1fr;
-  gap: 0.25rem;
+  display: block;
   padding: 0.28rem 0;
   border-bottom: 1px dotted rgba(0, 0, 0, 0.22);
 }
 
 .headline-list__item:last-child {
   border-bottom: 0;
-}
-
-.headline-list__index {
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  color: var(--ink-muted);
-  padding-top: 0.2rem;
 }
 
 .headline-list__title {
@@ -1312,13 +1303,8 @@ a.headline-list__title:hover {
   }
 
   .headline-list__item {
-    grid-template-columns: 1.2rem 1fr;
     padding: 0.28rem 0;
     border-bottom-color: #000000 !important;
-  }
-
-  .headline-list__index {
-    font-size: 7pt;
   }
 
   .headline-list__title {

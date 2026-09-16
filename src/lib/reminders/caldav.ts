@@ -74,7 +74,7 @@ function parseTodos(
     const status = todo.status ? String(todo.status).toUpperCase() : "";
     if (status === "COMPLETED") continue;
 
-    let title = (todo.summary ? String(todo.summary) : "") || "(senza titolo)";
+    const title = (todo.summary ? String(todo.summary) : "") || "(senza titolo)";
     const uid = (todo.uid ? String(todo.uid) : "") || title;
     const notes = todo.description
       ? String(todo.description).slice(0, 200)

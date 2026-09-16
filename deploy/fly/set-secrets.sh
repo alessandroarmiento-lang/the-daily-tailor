@@ -47,6 +47,7 @@ wanted = {
     "GOOGLE_CALDAV_URL",
     "GOOGLE_CALDAV_USER",
     "GOOGLE_CALDAV_APP_PASSWORD",
+    "REMINDERS_INGEST_TOKEN",
 }
 required = {
     "ICLOUD_MAIL_USER",

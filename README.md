@@ -18,7 +18,7 @@ Sections:
 2. **Aforisma del giorno** — one curated saying, picked by edition date (rolls at 06:00).
 3. **Agenda** — CalDAV iCloud (Mac-off) or EventKit/Calendar.app (Mac awake). No silent mock.
 4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
-5. **Apple Reminders** — CalDAV VTODO (Mac-off) or EventKit (Mac awake). No silent mock.
+5. **Apple Reminders** — EventKit (Mac awake) or the iPhone push snapshot (Mac-off); CalDAV VTODO only as fallback. No silent mock.
 6. **Action emails** — IMAP iCloud+Gmail (Mac-off) or Mail.app (Mac awake); actionable only.
 
 ## Morning edition model (locked)
@@ -41,6 +41,8 @@ Sections:
 | `GET /api/weather?lat=&lon=&save=1` | Live Open-Meteo for coords; `save=1` stores last known for warm |
 | `POST /api/weather` | Persist last known lat/lon/city from the PWA |
 | `GET /api/weather/location` | Last known weather location (or Milano default) |
+| `POST /api/reminders/ingest?warm=1` | iPhone Shortcut pushes open reminders (token header); `warm=1` rebuilds now |
+| `GET /api/reminders/ingest` | Snapshot status: age, count, freshness (same token) |
 
 Snapshots are written under `data/editions/YYYY-MM-DD.json` (gitignored — may contain personal email/reminders). Override with `EDITIONS_DIR`.
 
@@ -57,6 +59,25 @@ Production target: **Fly.io** (not Raspberry Pi / not Minda). The container runs
 ```
 
 iPhone: open `https://<app>.fly.dev/` (Home Screen icon). First fetch of the day pulls `/api/edition/today`.
+
+### Promemoria with the Mac off — iPhone push
+
+Apple Reminders were migrated to **CloudKit**: iCloud CalDAV only exposes an empty VTODO stub, so no headless host can read them. The phone pushes them instead.
+
+1. Generate a token once and keep it in `.env.local` (never committed):
+
+```bash
+openssl rand -hex 32   # paste into REMINDERS_INGEST_TOKEN=
+./deploy/fly/set-secrets.sh   # imports it into Fly (names only logged)
+```
+
+2. iOS Shortcut (see `promemoria-iphone.md` in the Agent Store for the Italian step-by-step): **Trova promemoria** (non completati) → build a dictionary per reminder → **Ottieni contenuto da URL** `POST https://<app>.fly.dev/api/reminders/ingest` with header `X-Ingest-Token`. Automation at **05:55** runs it before the 06:00 warm.
+3. The snapshot lands on the editions volume (`$EDITIONS_DIR/pushed-reminders.json`) and wins over CalDAV while it is fresh (`REMINDERS_PUSH_MAX_AGE_HOURS`, default 36h). Source label reads `iPhone (Promemoria · <ora>)`.
+4. From the Mac (awake) the same payload can be pushed with EventKit:
+
+```bash
+./scripts/macos/push-reminders-to-host.sh --warm
+```
 
 ### 06:00 generation — optional fallback: Mac LaunchAgent
 
@@ -138,7 +159,9 @@ Copy `.env.example` to `.env.local` for overrides:
 | `WEATHERKIT_*` | — | Optional Apple WeatherKit |
 | `NEWS_FEED_URL` | Il Post Mondo RSS | trailing slash required |
 | `NEWS_MAX_ITEMS` | `6` | Print budget |
-| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | On Mac `auto` prefers EventKit; CalDAV for Mac-off |
+| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | On Mac `auto` prefers EventKit; elsewhere iPhone push, then CalDAV |
+| `REMINDERS_INGEST_TOKEN` | — | Shared token for `POST /api/reminders/ingest` (iPhone Shortcut) |
+| `REMINDERS_PUSH_MAX_AGE_HOURS` | `36` | How long a pushed snapshot stays preferred over CalDAV |
 | `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | On Mac `auto` prefers EventKit (all calendars); all events per day |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
@@ -149,7 +172,7 @@ Copy `.env.example` to `.env.local` for overrides:
 
 ## Adapters (real data)
 
-- **Mac-off (preferred):** IMAP (`imapflow`) for iCloud+Gmail; CalDAV iCloud (`tsdav`) + Google legacy CalDAV REPORT for calendar; CardDAV for Contacts match. Apple Reminders (CloudKit) are **not** on CalDAV — use EventKit on Mac.
+- **Mac-off (preferred):** IMAP (`imapflow`) for iCloud+Gmail; CalDAV iCloud (`tsdav`) + Google legacy CalDAV REPORT for calendar; CardDAV for Contacts match. Apple Reminders (CloudKit) are **not** on CalDAV — the iPhone pushes them to `/api/reminders/ingest`.
 - **Mac-awake fallback:** AppleScript → Mail.app / Calendar.app / Reminders.app (TCC Automation). Helper: `scripts/macos/grant-apple-access.sh`.
 - Weather → Open-Meteo primary; WeatherKit optional.
 - Personal sections never silently fall back to fixture mocks.

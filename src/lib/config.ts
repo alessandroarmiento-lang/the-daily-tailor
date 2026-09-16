@@ -49,14 +49,15 @@ export const config = {
   },
   reminders: {
     /**
-     * auto: CalDAV if creds (Mac-off), else EventKit on darwin.
-     * caldav | eventkit | mock
+     * auto: EventKit on darwin; elsewhere the iPhone push snapshot with CalDAV
+     * fallback (Apple Reminders live in CloudKit, invisible to CalDAV).
+     * push | caldav | eventkit | mock
      */
     source: defaultAppleSource(
       process.env.REMINDERS_SOURCE,
       "auto",
       "auto",
-    ) as "mock" | "eventkit" | "caldav" | "auto",
+    ) as "mock" | "eventkit" | "caldav" | "push" | "auto",
     maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "6"),
   },
   actionEmails: {

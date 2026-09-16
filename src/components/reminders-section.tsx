@@ -6,6 +6,7 @@ import {
 import { reminderDeepLink } from "@/lib/apple/deep-links";
 import { config } from "@/lib/config";
 import { getReminders } from "@/lib/reminders";
+import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { remindersOverflowLabel } from "@/lib/section-overflow";
 
 function formatDue(iso: string | null): string {
@@ -64,7 +65,7 @@ export async function RemindersSection() {
         title="Promemoria"
         message={
           result.message ||
-          "Autorizza Promemoria o configura CalDAV iCloud per generare a Mac spento."
+          "Autorizza Promemoria su Mac, oppure invia lo snapshot dall’iPhone per generare a Mac spento."
         }
       />
     );
@@ -75,11 +76,7 @@ export async function RemindersSection() {
     return (
       <SectionEmpty
         title="Promemoria"
-        message={
-          briefing.sourceLabel.includes("CloudKit")
-            ? "Promemoria Apple non leggibili via CalDAV (CloudKit). Su Mac usa EventKit."
-            : "Nessun reminder aperto."
-        }
+        message={remindersEmptyMessage(briefing.sourceLabel)}
       />
     );
   }

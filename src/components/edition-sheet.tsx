@@ -11,6 +11,7 @@ import {
 } from "@/lib/apple/deep-links";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
+import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import {
   emailsOverflowLabel,
   remindersOverflowLabel,
@@ -513,11 +514,9 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             ) : (
               <SectionEmpty
                 title="Promemoria"
-                message={
-                  remindersResult.data?.sourceLabel?.includes("CloudKit")
-                    ? "Promemoria Apple non leggibili via CalDAV (CloudKit). Su Mac usa EventKit."
-                    : "Nessun reminder aperto."
-                }
+                message={remindersEmptyMessage(
+                  remindersResult.data?.sourceLabel,
+                )}
               />
             )}
         </div>

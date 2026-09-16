@@ -131,6 +131,15 @@ function parseCompleted(value: unknown): boolean {
   );
 }
 
+/** Shortcuts flattens a reminders variable to one title per line. */
+function splitTitleLines(value: string): string[] | null {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.length ? lines : null;
+}
+
 function coerceList(payload: unknown): unknown[] | null {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return null;
@@ -139,6 +148,10 @@ function coerceList(payload: unknown): unknown[] | null {
   for (const key of ["reminders", "items", "promemoria", "data"]) {
     const value = record[key];
     if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      const lines = splitTitleLines(value);
+      if (lines) return lines;
+    }
   }
   return null;
 }
@@ -165,11 +178,18 @@ export function normalizePushedReminders(payload: unknown): NormalizedPush {
   let skipped = 0;
 
   for (const entry of list) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    // A bare string is a title-only reminder (flattened Shortcuts variable).
+    const record =
+      typeof entry === "string" && entry.trim()
+        ? { title: entry }
+        : entry && typeof entry === "object" && !Array.isArray(entry)
+          ? (entry as Record<string, unknown>)
+          : null;
+    if (!record) {
       skipped += 1;
       continue;
     }
-    const get = reader(entry as Record<string, unknown>);
+    const get = reader(record);
 
     if (parseCompleted(get(["iscompleted", "completed", "completato"]))) {
       skipped += 1;

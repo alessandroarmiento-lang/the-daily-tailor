@@ -619,11 +619,18 @@ a.cal-event__link:hover {
   line-height: 1.05;
   color: var(--ink-muted);
   letter-spacing: 0;
-}
-
-.weather__precip-pct {
+  font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.weather__precip-unit {
+  font-family: inherit;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 400;
+  font-synthesis: none;
+  margin-right: 0.08em;
 }
 
 .weather__deg {
@@ -904,15 +911,15 @@ a.cal-event__link:hover {
 }
 
 .action-mail-list__body {
-  margin: 0.28rem 0 0;
-  padding: 0.28rem 0 0;
+  margin: 0.22rem 0 0;
+  padding: 0.22rem 0 0;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   font-family: var(--font-serif);
-  font-size: 0.72rem;
-  line-height: 1.32;
+  font-size: 0.62rem;
+  line-height: 1.28;
   color: var(--ink-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

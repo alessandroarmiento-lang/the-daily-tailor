@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       edition.weather.data && !edition.weather.data.isMock
         ? edition.weather.data.source
         : "mock",
+    weatherCity: edition.weather.data?.city ?? null,
     newsFeed: edition.news.data?.feedLabel ?? null,
     actionEmailSource: edition.actionEmails.data?.sourceLabel ?? null,
     warmedAt: new Date().toISOString(),

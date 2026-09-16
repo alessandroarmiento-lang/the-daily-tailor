@@ -14,7 +14,7 @@ A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollabl
 
 Sections:
 
-1. **Today’s weather** — Open-Meteo (default; precip from ≥07:00). WeatherKit adapter optional. Mock fallback on failure.
+1. **Today’s weather** — Open-Meteo for the user’s location (browser geolocation on iPhone PWA; last known for 06:00 warm; Milano env fallback). WeatherKit adapter optional. Mock fallback on failure.
 2. **Aforisma del giorno** — one curated saying, picked by edition date (rolls at 06:00).
 3. **Agenda** — CalDAV iCloud (Mac-off) or EventKit/Calendar.app (Mac awake). No silent mock.
 4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
@@ -28,7 +28,7 @@ Sections:
 3. The **iPhone downloads** the edition (on open / after generation) and keeps it **offline all day**.
 4. When consulting on iPhone, content is served from **device local storage** (IndexedDB + Cache API), not live Mail/Calendar fetches.
 5. The web app has an **edition history** (`/storia`) — past days browseable.
-6. Weather stays **Open-Meteo**; email remains fundamental (IMAP iCloud+Gmail or Mail.app fallback).
+6. Weather stays **Open-Meteo** at the device location when possible; email remains fundamental (IMAP iCloud+Gmail or Mail.app fallback).
 
 ### Server APIs
 
@@ -38,6 +38,9 @@ Sections:
 | `GET /api/edition/today` | Today’s JSON (build if missing) |
 | `GET /api/edition/YYYY-MM-DD` | Dated edition from archive (today may build) |
 | `GET /api/editions` | List archived editions (newest first) |
+| `GET /api/weather?lat=&lon=&save=1` | Live Open-Meteo for coords; `save=1` stores last known for warm |
+| `POST /api/weather` | Persist last known lat/lon/city from the PWA |
+| `GET /api/weather/location` | Last known weather location (or Milano default) |
 
 Snapshots are written under `data/editions/YYYY-MM-DD.json` (gitignored — may contain personal email/reminders). Override with `EDITIONS_DIR`.
 

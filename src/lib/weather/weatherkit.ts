@@ -162,7 +162,11 @@ export const weatherKitProvider: WeatherProvider = {
   id: "weatherkit",
   labelIt: "Apple Weather",
   isConfigured: weatherKitConfigured,
-  async fetch(): Promise<WeatherSnapshot> {
+  async fetch(location?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+  }): Promise<WeatherSnapshot> {
     if (!weatherKitConfigured()) {
       throw new Error(
         "WeatherKit non configurato (servono Team ID, Key ID, Service ID e chiave .p8)",
@@ -170,7 +174,9 @@ export const weatherKitProvider: WeatherProvider = {
     }
 
     const token = createWeatherKitJwt();
-    const { latitude, longitude, city } = config.weather;
+    const latitude = location?.latitude ?? config.weather.latitude;
+    const longitude = location?.longitude ?? config.weather.longitude;
+    const city = location?.city ?? config.weather.city;
     const lang = "it";
     const params = new URLSearchParams({
       dataSets: "currentWeather,forecastDaily,forecastHourly",
@@ -183,7 +189,7 @@ export const weatherKitProvider: WeatherProvider = {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
       },
-      next: { revalidate: 600 },
+      ...(location ? { cache: "no-store" as const } : { next: { revalidate: 600 } }),
     });
 
     if (!res.ok) {

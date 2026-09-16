@@ -7,6 +7,10 @@ import { MorningReload } from "@/components/morning-reload";
 import { PrintToolbar } from "@/components/print-toolbar";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { loadEditionForClient } from "@/lib/offline-editions";
+import {
+  refreshWeatherFromGeolocation,
+  type WeatherGeoStatus,
+} from "@/lib/refresh-weather-geo";
 
 type Props = {
   /** "today" or YYYY-MM-DD */
@@ -28,6 +32,28 @@ export function DailyPaperApp({
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialEdition);
+  const [geoStatus, setGeoStatus] = useState<WeatherGeoStatus>({
+    kind: "idle",
+  });
+
+  const refreshWeatherGeo = useCallback(async () => {
+    if (dateKey !== "today") return;
+    try {
+      await refreshWeatherFromGeolocation(setEdition, setGeoStatus);
+    } catch {
+      setGeoStatus({
+        kind: "fallback",
+        location: {
+          latitude: 45.4642,
+          longitude: 9.19,
+          city: "Milano",
+          source: "default",
+          updatedAt: new Date(0).toISOString(),
+        },
+        note: "Posizione non aggiornata — meteo dell’edizione.",
+      });
+    }
+  }, [dateKey]);
 
   const refresh = useCallback(
     async (options?: { forceRebuild?: boolean }) => {
@@ -48,6 +74,9 @@ export function DailyPaperApp({
         // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
         setEdition((prev) => result.edition ?? prev);
         setError(result.edition ? null : (result.error ?? null));
+        if (result.edition && dateKey === "today") {
+          void refreshWeatherGeo();
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Caricamento edizione fallito",
@@ -56,7 +85,7 @@ export function DailyPaperApp({
         setLoading(false);
       }
     },
-    [dateKey],
+    [dateKey, refreshWeatherGeo],
   );
 
   useEffect(() => {
@@ -64,6 +93,12 @@ export function DailyPaperApp({
   }, [refresh]);
 
   const showLoading = loading && !edition;
+  const geoNote =
+    geoStatus.kind === "ok" || geoStatus.kind === "fallback"
+      ? geoStatus.note
+      : geoStatus.kind === "locating"
+        ? "Rilevamento posizione…"
+        : null;
 
   return (
     <>
@@ -78,6 +113,11 @@ export function DailyPaperApp({
             : "the-daily-tailor"
         }
       />
+      {geoNote && dateKey === "today" ? (
+        <p className="no-print geo-status" role="status">
+          {geoNote}
+        </p>
+      ) : null}
       {showLoading ? (
         <main className="sheet-page">
           <p className="state-line">Caricamento The Daily Tailor…</p>
@@ -97,7 +137,14 @@ export function DailyPaperApp({
       ) : null}
       {edition ? (
         <>
-          <EditionSheet edition={edition} />
+          <EditionSheet
+            edition={edition}
+            weatherLocationNote={
+              geoStatus.kind === "ok" || geoStatus.kind === "fallback"
+                ? geoStatus.note
+                : null
+            }
+          />
           {dateKey === "today" ? (
             <MorningReload
               editionDateKey={edition.dateKey}

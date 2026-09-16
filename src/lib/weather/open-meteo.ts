@@ -82,8 +82,14 @@ export const openMeteoProvider: WeatherProvider = {
   isConfigured() {
     return true;
   },
-  async fetch(): Promise<WeatherSnapshot> {
-    const { latitude, longitude, city } = config.weather;
+  async fetch(location?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+  }): Promise<WeatherSnapshot> {
+    const latitude = location?.latitude ?? config.weather.latitude;
+    const longitude = location?.longitude ?? config.weather.longitude;
+    const city = location?.city ?? config.weather.city;
     const params = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
@@ -99,7 +105,8 @@ export const openMeteoProvider: WeatherProvider = {
 
     const res = await fetch(
       `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
-      { next: { revalidate: 600 } },
+      // Live GPS refreshes must not reuse a Milano-cached response.
+      location ? { cache: "no-store" } : { next: { revalidate: 600 } },
     );
 
     if (!res.ok) {

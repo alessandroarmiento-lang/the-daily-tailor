@@ -13,6 +13,7 @@ primary_region = "fra"
   NEWSPAPER_TIMEZONE = "Europe/Rome"
   EDITIONS_DIR = "/data/editions"
   WEATHER_PROVIDER = "open-meteo"
+  # Fallback only — live PWA GPS overrides; morning warm uses last saved fix.
   WEATHER_CITY = "Milano"
   WEATHER_LAT = "45.4642"
   WEATHER_LON = "9.1900"

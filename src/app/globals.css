@@ -76,6 +76,16 @@ a.cal-event__link:hover {
   display: block;
 }
 
+.geo-status {
+  max-width: 210mm;
+  margin: 0.25rem auto 0;
+  padding: 0 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: #5c5c5c;
+  text-align: right;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1036,6 +1046,7 @@ a.cal-event__link:hover {
   }
 
   .no-print,
+  .geo-status,
   .toolbar,
   nextjs-portal,
   [data-nextjs-toast],

@@ -58,10 +58,16 @@ export type SectionResult<T> =
   | { status: "ok"; data: T }
   | { status: "error"; message: string; data?: T };
 
+export type WeatherFetchLocation = {
+  latitude: number;
+  longitude: number;
+  city: string;
+};
+
 export interface WeatherProvider {
   readonly id: WeatherSource;
   /** Human label for footer notes (Italian). */
   readonly labelIt: string;
   isConfigured(): boolean;
-  fetch(): Promise<WeatherSnapshot>;
+  fetch(location?: WeatherFetchLocation): Promise<WeatherSnapshot>;
 }

@@ -213,13 +213,15 @@ function HeadlineTitle({ item }: { item: NewsItem }) {
 
 type Props = {
   edition: NewspaperEdition;
+  /** Client GPS / last-known note for the meteo footer (not printed loudly). */
+  weatherLocationNote?: string | null;
 };
 
 /**
  * Full A4 newspaper sheet from a frozen edition snapshot.
  * Same DOM is captured for the PDF button and optional browser print.
  */
-export function EditionSheet({ edition }: Props) {
+export function EditionSheet({ edition, weatherLocationNote }: Props) {
   const tz = edition.timezone;
   const weatherResult = edition.weather;
   const newsResult = edition.news;
@@ -261,6 +263,7 @@ export function EditionSheet({ edition }: Props) {
                 weatherResult.status === "error"
                   ? `Dati di riserva: ${weatherResult.message}`
                   : null,
+                weatherLocationNote ?? null,
                 weatherResult.data.isMock
                   ? "Mock"
                   : weatherSourceLabel(weatherResult.data.source),

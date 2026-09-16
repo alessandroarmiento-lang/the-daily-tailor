@@ -12,6 +12,7 @@ import {
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
+import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
 import {
   emailsOverflowLabel,
   remindersOverflowLabel,
@@ -474,7 +475,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                     tone={remindersResult.status === "error" ? "error" : "ok"}
                   >
                     <ul className="reminder-list">
-                      {items.map((item) => {
+                      {items.map((raw) => {
+                        const item = sanitizeReminderItem(raw);
                         const pri = priorityLabel(item.priority);
                         const href = reminderDeepLink(item.id);
                         const title = href ? (

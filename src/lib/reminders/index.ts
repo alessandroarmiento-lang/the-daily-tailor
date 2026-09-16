@@ -4,6 +4,7 @@ import { CalDavRemindersAdapter } from "./caldav";
 import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
 import { PushedRemindersAdapter } from "./pushed";
+import { sanitizeReminderItems } from "./normalize-push";
 import { rankAndCapReminders } from "./rank";
 import type {
   RemindersAdapter,
@@ -46,8 +47,10 @@ export async function getReminders(): Promise<
 
   try {
     const pool = await adapter.getTodaysOpenReminders();
+    // Repair stringified Shortcut Dictionaries stored as titles.
+    const { items: cleaned } = sanitizeReminderItems(pool);
     const { items, hiddenCount } = rankAndCapReminders(
-      pool,
+      cleaned,
       config.reminders.maxItems,
     );
     return {

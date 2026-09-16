@@ -7,6 +7,7 @@ import { reminderDeepLink } from "@/lib/apple/deep-links";
 import { config } from "@/lib/config";
 import { getReminders } from "@/lib/reminders";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
+import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
 import { remindersOverflowLabel } from "@/lib/section-overflow";
 
 function formatDue(iso: string | null): string {
@@ -96,7 +97,8 @@ export async function RemindersSection() {
       }
     >
       <ul className="reminder-list">
-        {items.map((item) => {
+        {items.map((raw) => {
+          const item = sanitizeReminderItem(raw);
           const pri = priorityLabel(item.priority);
           const href = reminderDeepLink(item.id);
           const title = href ? (

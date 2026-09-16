@@ -1,5 +1,6 @@
 import type { EditionListItem, NewspaperEdition } from "@/lib/edition-types";
 import { preserveNewsUrls } from "@/lib/news-links";
+import { sanitizeEditionReminders } from "@/lib/sanitize-edition-reminders";
 
 const DB_NAME = "daily-tailor-editions";
 const DB_VERSION = 1;
@@ -75,7 +76,8 @@ async function withDbTimeout<T>(
 }
 
 function withPreservedNews(edition: NewspaperEdition): NewspaperEdition {
-  return { ...edition, news: preserveNewsUrls(edition.news) };
+  const { edition: cleaned } = sanitizeEditionReminders(edition);
+  return { ...cleaned, news: preserveNewsUrls(cleaned.news) };
 }
 
 export async function cacheEditionLocally(

@@ -2,6 +2,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { isValidDateKey } from "@/lib/edition";
 import type { EditionListItem, NewspaperEdition } from "@/lib/edition-types";
+import { sanitizeEditionReminders } from "@/lib/sanitize-edition-reminders";
 
 function editionsRoot(): string {
   const override = process.env.EDITIONS_DIR?.trim();
@@ -25,9 +26,10 @@ export async function ensureEditionsDir(): Promise<string> {
 export async function saveEdition(
   edition: NewspaperEdition,
 ): Promise<string> {
+  const { edition: cleaned } = sanitizeEditionReminders(edition);
   const root = await ensureEditionsDir();
-  const file = path.join(root, `${edition.dateKey}.json`);
-  await writeFile(file, `${JSON.stringify(edition, null, 2)}\n`, "utf8");
+  const file = path.join(root, `${cleaned.dateKey}.json`);
+  await writeFile(file, `${JSON.stringify(cleaned, null, 2)}\n`, "utf8");
   return file;
 }
 
@@ -40,7 +42,19 @@ export async function loadEdition(
     if (parsed?.schemaVersion !== 1 || parsed.dateKey !== dateKey) {
       return null;
     }
-    return parsed;
+    const { edition, changed } = sanitizeEditionReminders(parsed);
+    if (changed) {
+      try {
+        await writeFile(
+          editionPath(dateKey),
+          `${JSON.stringify(edition, null, 2)}\n`,
+          "utf8",
+        );
+      } catch {
+        // Still return sanitized edition even if rewrite fails.
+      }
+    }
+    return edition;
   } catch {
     return null;
   }

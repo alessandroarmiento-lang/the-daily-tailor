@@ -8,6 +8,7 @@ import { loadEdition, saveEdition } from "@/lib/edition-store";
 import { getWorldNews } from "@/lib/news";
 import { preserveNewsUrls } from "@/lib/news-links";
 import { getReminders } from "@/lib/reminders";
+import { sanitizeEditionReminders } from "@/lib/sanitize-edition-reminders";
 import { getWeather } from "@/lib/weather";
 
 function formatEditionDateLine(dateKey: string, timeZone: string): string {
@@ -66,16 +67,18 @@ export async function getOrBuildTodayEdition(options?: {
   if (!options?.force) {
     const existing = await loadEdition(dateKey);
     if (existing) {
+      const { edition: cleaned } = sanitizeEditionReminders(existing);
       return {
         edition: {
-          ...existing,
-          news: preserveNewsUrls(existing.news),
+          ...cleaned,
+          news: preserveNewsUrls(cleaned.news),
         },
         created: false,
       };
     }
   }
   const edition = await buildEdition(dateKey);
-  const path = await saveEdition(edition);
-  return { edition, created: true, path };
+  const { edition: cleaned } = sanitizeEditionReminders(edition);
+  const path = await saveEdition(cleaned);
+  return { edition: cleaned, created: true, path };
 }

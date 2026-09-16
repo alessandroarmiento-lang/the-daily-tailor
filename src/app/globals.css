@@ -31,6 +31,7 @@ html {
   background: #ffffff;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -41,6 +42,8 @@ body {
   font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   padding-bottom: var(--safe-bottom);
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 a {
@@ -232,13 +235,18 @@ a.cal-event__link:hover {
 }
 
 .sheet-page {
-  max-width: 210mm;
+  /* Cap at A4 on desktop; never exceed the phone viewport (210mm alone
+   * let min-content children — e.g. unbreakable JSON titles — grow to ~794px). */
+  width: 100%;
+  max-width: min(210mm, 100%);
   margin: 0.75rem auto 2rem;
   padding: 12mm 12mm 10mm;
   background: #ffffff;
   color: var(--ink);
   border: 1px solid #000000;
   box-shadow: none;
+  overflow-x: clip;
+  min-width: 0;
 }
 
 .masthead {
@@ -329,6 +337,20 @@ a.cal-event__link:hover {
   gap: 1rem;
   margin-top: 0.85rem;
   align-items: start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sheet-grid > *,
+.sheet-section,
+.sheet-section__body,
+.weather,
+.cal-widget,
+.reminder-list,
+.action-mail-list,
+.headline-list {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /*
@@ -596,6 +618,9 @@ a.cal-event__link:hover {
   align-items: flex-end;
   gap: 0.14rem;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   /* Room for absolute first-column h/% hanging left of digits. */
   padding-left: 0.7rem;
 }
@@ -693,8 +718,15 @@ a.cal-event__link:hover {
 
 .cal-widget {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Phone: single column so VEN/DOM never leave the viewport. */
+  grid-template-columns: 1fr;
   gap: 0.35rem 0.55rem;
+}
+
+@media (min-width: 480px) {
+  .cal-widget {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .cal-day {
@@ -867,6 +899,8 @@ a.cal-event__link:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reminder-list__link {
@@ -984,8 +1018,16 @@ a.cal-event__link:hover {
 }
 
 @media (max-width: 640px) {
+  .toolbar,
+  .geo-status {
+    max-width: 100%;
+  }
+
   .sheet-page {
-    margin: 0.5rem;
+    /* Side margins without letting width:100% + margin overflow the viewport. */
+    margin: 0.5rem auto;
+    width: calc(100% - 1rem);
+    max-width: calc(100% - 1rem);
     padding: 1rem 1rem 1.35rem;
     border-radius: 0;
   }
@@ -1006,8 +1048,13 @@ a.cal-event__link:hover {
     font-size: 1rem;
   }
 
-  .cal-widget {
-    grid-template-columns: 1fr 1fr;
+  .weather__precip-chart {
+    padding-left: 0.55rem;
+    gap: 0.08rem;
+  }
+
+  .weather__precip-unit {
+    margin-right: 0.28rem;
   }
 }
 

@@ -137,11 +137,18 @@ async function fetchAccountYesterday(
             parsed.from?.value?.[0]?.address ||
             "";
           const subject = parsed.subject || "(senza oggetto)";
-          const preview = (parsed.text || parsed.html || "")
-            .replace(/<[^>]+>/g, " ")
+          const textPart = (parsed.text || "").trim();
+          const htmlPart = (parsed.html || "").trim();
+          const previewSource =
+            textPart ||
+            htmlPart
+              .replace(/<style[\s\S]*?<\/style>/gi, " ")
+              .replace(/<script[\s\S]*?<\/script>/gi, " ")
+              .replace(/<[^>]+>/g, " ");
+          const preview = previewSource
             .replace(/\s+/g, " ")
             .trim()
-            .slice(0, 400);
+            .slice(0, 500);
           const messageId =
             (typeof parsed.messageId === "string" && parsed.messageId) ||
             `imap-${account.id}-${uid}`;

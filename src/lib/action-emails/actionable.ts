@@ -163,14 +163,43 @@ export function actionCueFromMessage(msg: MailRawMessage): string {
 
 /** Compact plain body for the A4 email slot (a few lines). */
 export function bodyPreviewFromMessage(msg: MailRawMessage): string {
-  const raw = (msg.preview || "").replace(/\s+/g, " ").trim();
+  let raw = (msg.preview || "").trim();
   if (!raw) return "";
-  // Drop leading subject echo / boilerplate markers.
-  const cleaned = raw
-    .replace(/^(re|fw|fwd)\s*:\s*/i, "")
-    .replace(/^[-–—]+\s*/, "")
+
+  // HTML / CSS noise from multipart messages without a clean text part.
+  raw = raw
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/@media[\s\S]*?\{[\s\S]*?\}\s*\}/gi, " ")
+    .replace(/@font-face[\s\S]*?\}/gi, " ")
+    .replace(/\{[^{}]{0,400}\}/g, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
     .trim();
-  return cleaned.slice(0, 320);
+
+  // Drop leftover CSS property chatter.
+  raw = raw
+    .replace(
+      /\b(font-(family|style|weight|display|size)|unicode-range|src|local|format|woff2?|swap)\b[^.;]{0,80}/gi,
+      " ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!raw) return "";
+
+  // Prefer a human sentence if we can find one after branding chrome.
+  const sentence = raw.match(
+    /(?:Gentile|Ciao|Buongiorno|Buonasera|Caro|Cara|Hi |Hello |Dear |ti informiamo|È stato|E' stato|La informiamo)[\s\S]{20,280}/i,
+  );
+  const picked = (sentence?.[0] || raw).trim();
+  return picked.slice(0, 320);
 }
 
 export function messageUrlFromId(messageId: string): string | undefined {

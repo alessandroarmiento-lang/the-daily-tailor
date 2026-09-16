@@ -151,12 +151,21 @@ def repeat_each_end(group_id: str, action_uuid: str) -> dict:
     }
 
 
-def reminder_detail(property_name: str, action_uuid: str) -> dict:
-    """Get Details of Reminders for the current Repeat Item."""
+def reminder_detail(
+    property_name: str, action_uuid: str, output_name: str
+) -> dict:
+    """Get Details of Reminders for the current Repeat Item.
+
+    Each call needs a distinct CustomOutputName: Italian Shortcuts otherwise
+    collapses every "Details of Reminders" and the Dictionary can bind `id`
+    to Elenco (List) by mistake. There is no reliable Identifier property on
+    Reminder content items — do not request one.
+    """
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.properties.reminders",
         "WFWorkflowActionParameters": {
             "UUID": action_uuid,
+            "CustomOutputName": output_name,
             "WFContentItemPropertyName": property_name,
             "WFInput": attachment(repeat_item_ref()),
         },
@@ -168,10 +177,25 @@ def format_due_at(date_ref: dict, action_uuid: str) -> dict:
         "WFWorkflowActionIdentifier": "is.workflow.actions.format.date",
         "WFWorkflowActionParameters": {
             "UUID": action_uuid,
+            "CustomOutputName": "Reminder DueAt",
             "WFDate": attachment(date_ref),
             "WFDateFormatStyle": "Custom",
             "WFDateFormat": "Custom",
             "WFDateFormatString": DUE_AT_FORMAT,
+        },
+    }
+
+
+def stable_id_text(
+    list_ref: dict, title_ref: dict, action_uuid: str
+) -> dict:
+    """Stable push id = listName|title (host synthesizes the same when id missing)."""
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "CustomOutputName": "Reminder Id",
+            "WFTextActionText": token_string([list_ref, "|", title_ref]),
         },
     }
 
@@ -221,31 +245,40 @@ def build_workflow(host: str, token: str) -> dict:
     due_raw_uuid = uid()
     due_fmt_uuid = uid()
     notes_uuid = uid()
-    id_uuid = uid()
+    id_text_uuid = uid()
     dict_uuid = uid()
     end_uuid = uid()
     post_uuid = uid()
 
-    detail_name = "Details of Reminders"
-    formatted_name = "Formatted Date"
+    title_name = "Reminder Title"
+    list_name = "Reminder List"
+    due_raw_name = "Reminder DueRaw"
+    due_name = "Reminder DueAt"
+    notes_name = "Reminder Notes"
+    id_name = "Reminder Id"
 
     actions = [
         find_open_reminders(find_uuid),
         repeat_each_start(group_id, action_output(find_uuid, "Reminders")),
-        reminder_detail("Title", title_uuid),
-        reminder_detail("List", list_uuid),
-        reminder_detail("Due Date", due_raw_uuid),
-        format_due_at(action_output(due_raw_uuid, detail_name), due_fmt_uuid),
-        reminder_detail("Notes", notes_uuid),
-        # Identifier is optional in the content-item schema; empty → host synthesizes.
-        reminder_detail("Identifier", id_uuid),
+        reminder_detail("Title", title_uuid, title_name),
+        reminder_detail("List", list_uuid, list_name),
+        reminder_detail("Due Date", due_raw_uuid, due_raw_name),
+        format_due_at(action_output(due_raw_uuid, due_raw_name), due_fmt_uuid),
+        reminder_detail("Notes", notes_uuid, notes_name),
+        # No Identifier property in Shortcuts Reminder details — Italian UI was
+        # binding Dictionary.id to Elenco (List). Stable key instead.
+        stable_id_text(
+            action_output(list_uuid, list_name),
+            action_output(title_uuid, title_name),
+            id_text_uuid,
+        ),
         dictionary_action(
             [
-                text_field("title", [action_output(title_uuid, detail_name)]),
-                text_field("listName", [action_output(list_uuid, detail_name)]),
-                text_field("dueAt", [action_output(due_fmt_uuid, formatted_name)]),
-                text_field("notes", [action_output(notes_uuid, detail_name)]),
-                text_field("id", [action_output(id_uuid, detail_name)]),
+                text_field("title", [action_output(title_uuid, title_name)]),
+                text_field("listName", [action_output(list_uuid, list_name)]),
+                text_field("dueAt", [action_output(due_fmt_uuid, due_name)]),
+                text_field("notes", [action_output(notes_uuid, notes_name)]),
+                text_field("id", [action_output(id_text_uuid, id_name)]),
             ],
             dict_uuid,
         ),
@@ -338,6 +371,22 @@ def main() -> None:
             raise SystemExit("shortcut v2: expected Dictionary action")
         if "is.workflow.actions.properties.reminders" not in action_ids:
             raise SystemExit("shortcut v2: expected Get Details of Reminders")
+        if "is.workflow.actions.gettext" not in action_ids:
+            raise SystemExit("shortcut v2: expected Text action for stable id")
+        # Guard: invalid "Identifier" detail remaps to Elenco on Italian iOS.
+        for action in workflow["WFWorkflowActions"]:
+            if action["WFWorkflowActionIdentifier"] != (
+                "is.workflow.actions.properties.reminders"
+            ):
+                continue
+            prop = action["WFWorkflowActionParameters"].get(
+                "WFContentItemPropertyName"
+            )
+            if prop == "Identifier":
+                raise SystemExit(
+                    "shortcut v2: do not use Reminder Identifier detail "
+                    "(Italian UI binds it to Elenco)"
+                )
 
         if output.exists():
             output.unlink()

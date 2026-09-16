@@ -79,7 +79,7 @@ openssl rand -hex 32   # paste into REMINDERS_INGEST_TOKEN=
 ./deploy/fly/set-secrets.sh   # imports it into Fly (names only logged)
 ```
 
-2. iOS Shortcut (see `promemoria-iphone.md` in the Agent Store for the Italian step-by-step): **Trova promemoria** (non completati) → build a dictionary per reminder → **Ottieni contenuto da URL** `POST https://<app>.fly.dev/api/reminders/ingest` with header `X-Ingest-Token`. Automation at **05:55** runs it before the 06:00 warm.
+2. iOS Shortcut (see `promemoria-iphone.md` in the Agent Store): **Trova promemoria** → Repeat → Dictionary (`title`, `listName`, `dueAt`, `notes`, `id` = `listName|title`) → **Ottieni contenuto da URL** `POST …/api/reminders/ingest` with `Content-Type` + `X-Ingest-Token`. Automation at **05:55** must use **Esegui comando rapido**, not **Apri** (Open only edits the shortcut; it does not POST).
 3. The snapshot lands on the editions volume (`$EDITIONS_DIR/pushed-reminders.json`) and wins over CalDAV while it is fresh (`REMINDERS_PUSH_MAX_AGE_HOURS`, default 36h). Source label reads `iPhone (Promemoria · <ora>)`.
 4. From the Mac (awake) the same payload can be pushed with EventKit:
 

@@ -1,9 +1,6 @@
 import { config } from "@/lib/config";
 import { remindersAuthMessage } from "@/lib/apple/permissions";
-import {
-  CalDavRemindersAdapter,
-  hasRemindersCalDavCredentials,
-} from "./caldav";
+import { CalDavRemindersAdapter } from "./caldav";
 import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
 import { rankAndCapReminders } from "./rank";
@@ -15,6 +12,13 @@ import type {
 
 function resolveAdapter(): RemindersAdapter {
   const source = config.reminders.source;
+  const onDarwin = process.platform === "darwin";
+
+  // Linux / Fly: never EventKit (CLI missing) — always CalDAV for Mac-off.
+  if (!onDarwin && source !== "mock") {
+    return new CalDavRemindersAdapter();
+  }
+
   switch (source) {
     case "caldav":
       return new CalDavRemindersAdapter();
@@ -26,11 +30,8 @@ function resolveAdapter(): RemindersAdapter {
     default: {
       // Mac awake: EventKit sees local + iCloud + Google lists. CalDAV alone
       // often returns empty VTODO and used to cache [] forever.
-      if (process.platform === "darwin") {
+      if (onDarwin) {
         return new EventKitRemindersAdapter();
-      }
-      if (hasRemindersCalDavCredentials()) {
-        return new CalDavRemindersAdapter();
       }
       return new CalDavRemindersAdapter();
     }
@@ -62,7 +63,8 @@ export async function getReminders(): Promise<
   } catch (err) {
     const raw =
       err instanceof Error ? err.message : "Promemoria non disponibili";
-    const message = useMock ? raw : remindersAuthMessage(raw);
+    const message =
+      useMock || adapter.id === "caldav" ? raw : remindersAuthMessage(raw);
 
     return {
       status: "error",

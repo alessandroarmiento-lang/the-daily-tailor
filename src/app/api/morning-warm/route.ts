@@ -1,6 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { rm } from "node:fs/promises";
-import path from "node:path";
+import { clearEditionAdapterCache } from "@/lib/apple/edition-cache";
 import { getOrBuildTodayEdition } from "@/lib/build-edition";
 import {
   DAILY_TAILOR_CACHE_TAG,
@@ -32,13 +31,7 @@ export async function GET(request: Request) {
   revalidateTag("section-news", "max");
 
   if (force) {
-    const adapterCache = path.join(
-      process.cwd(),
-      ".cache",
-      "edition-adapters",
-      editionDateKey,
-    );
-    await rm(adapterCache, { recursive: true, force: true });
+    await clearEditionAdapterCache(editionDateKey);
   }
 
   const { edition, created, path: savedPath } = await getOrBuildTodayEdition({

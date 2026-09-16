@@ -2,13 +2,32 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getEditionDateKey } from "@/lib/edition";
 
-const CACHE_ROOT = path.join(process.cwd(), ".cache", "edition-adapters");
+/**
+ * Adapter section cache root.
+ * On Fly the image `/app` is read-only for user `nextjs`; prefer the editions
+ * volume (EDITIONS_DIR) or an explicit EDITION_ADAPTER_CACHE_DIR.
+ */
+export function getEditionAdapterCacheRoot(): string {
+  const explicit = process.env.EDITION_ADAPTER_CACHE_DIR?.trim();
+  if (explicit) return explicit;
+
+  const editionsDir = process.env.EDITIONS_DIR?.trim();
+  if (editionsDir) {
+    return path.join(editionsDir, ".adapter-cache");
+  }
+
+  return path.join(process.cwd(), ".cache", "edition-adapters");
+}
+
+function cacheRoot(): string {
+  return getEditionAdapterCacheRoot();
+}
 
 export async function readEditionCache<T>(
   section: string,
   editionDateKey = getEditionDateKey(),
 ): Promise<T | null> {
-  const file = path.join(CACHE_ROOT, editionDateKey, `${section}.json`);
+  const file = path.join(cacheRoot(), editionDateKey, `${section}.json`);
   try {
     const raw = await readFile(file, "utf8");
     return JSON.parse(raw) as T;
@@ -22,7 +41,7 @@ export async function writeEditionCache<T>(
   data: T,
   editionDateKey = getEditionDateKey(),
 ): Promise<void> {
-  const dir = path.join(CACHE_ROOT, editionDateKey);
+  const dir = path.join(cacheRoot(), editionDateKey);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, `${section}.json`);
   await writeFile(
@@ -46,7 +65,7 @@ export async function readEditionCacheEnvelope<T>(
   section: string,
   editionDateKey = getEditionDateKey(),
 ): Promise<CachedEnvelope<T> | null> {
-  const file = path.join(CACHE_ROOT, editionDateKey, `${section}.json`);
+  const file = path.join(cacheRoot(), editionDateKey, `${section}.json`);
   try {
     const raw = await readFile(file, "utf8");
     const parsed = JSON.parse(raw) as CachedEnvelope<T>;
@@ -65,6 +84,6 @@ export async function readEditionCacheEnvelope<T>(
 export async function clearEditionAdapterCache(
   editionDateKey = getEditionDateKey(),
 ): Promise<void> {
-  const dir = path.join(CACHE_ROOT, editionDateKey);
+  const dir = path.join(cacheRoot(), editionDateKey);
   await rm(dir, { recursive: true, force: true });
 }

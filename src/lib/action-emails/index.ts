@@ -21,6 +21,13 @@ import type {
 
 function resolveAdapter(): ActionEmailAdapter {
   const source = config.actionEmails.source;
+  const onDarwin = process.platform === "darwin";
+
+  // Linux / Fly: never Apple Mail — always IMAP for Mac-off.
+  if (!onDarwin && source !== "mock") {
+    return new ImapActionEmailAdapter();
+  }
+
   switch (source) {
     case "imap":
       return new ImapActionEmailAdapter();
@@ -31,7 +38,7 @@ function resolveAdapter(): ActionEmailAdapter {
     case "auto":
     default: {
       if (hasImapCredentials()) return new ImapActionEmailAdapter();
-      if (process.platform === "darwin") {
+      if (onDarwin) {
         return new AppleMailActionEmailAdapter();
       }
       return new ImapActionEmailAdapter();
@@ -91,7 +98,7 @@ export async function getActionEmails(): Promise<
   } catch (err) {
     const raw = err instanceof Error ? err.message : "Email non disponibili";
     const message =
-      adapter.id === "mock" ? raw : mailAuthMessage(raw);
+      useMock || adapter.id === "imap" ? raw : mailAuthMessage(raw);
 
     return {
       status: "error",

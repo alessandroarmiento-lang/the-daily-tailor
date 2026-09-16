@@ -1,6 +1,6 @@
 import { config } from "@/lib/config";
 import { calendarAuthMessage } from "@/lib/apple/permissions";
-import { CalDavCalendarAdapter, hasCalDavCredentials } from "./caldav";
+import { CalDavCalendarAdapter } from "./caldav";
 import { EventKitCalendarAdapter } from "./eventkit";
 import { MockCalendarAdapter } from "./mock";
 import type {
@@ -13,6 +13,13 @@ import type {
 
 function resolveAdapter(): CalendarAdapter {
   const source = config.calendar.source;
+  const onDarwin = process.platform === "darwin";
+
+  // Linux / Fly: never EventKit — always CalDAV for Mac-off.
+  if (!onDarwin && source !== "mock") {
+    return new CalDavCalendarAdapter();
+  }
+
   switch (source) {
     case "caldav":
       return new CalDavCalendarAdapter();
@@ -24,8 +31,7 @@ function resolveAdapter(): CalendarAdapter {
     default: {
       // Mac awake: EventKit covers all subscribed calendars (iCloud + Google).
       // CalDAV iCloud-only missed events like Gmail "Raccolta alimentare".
-      if (process.platform === "darwin") return new EventKitCalendarAdapter();
-      if (hasCalDavCredentials()) return new CalDavCalendarAdapter();
+      if (onDarwin) return new EventKitCalendarAdapter();
       return new CalDavCalendarAdapter();
     }
   }
@@ -103,7 +109,8 @@ export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
     };
   } catch (err) {
     const raw = err instanceof Error ? err.message : "Calendario non disponibile";
-    const message = useMock ? raw : calendarAuthMessage(raw);
+    const message =
+      useMock || adapter.id === "caldav" ? raw : calendarAuthMessage(raw);
 
     return {
       status: "error",

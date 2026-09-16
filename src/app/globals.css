@@ -622,15 +622,22 @@ a.cal-event__link:hover {
   font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.22rem;
 }
 
 .weather__precip-unit {
+  display: inline-block;
   font-family: inherit;
   font-size: inherit;
   font-style: normal;
   font-weight: 700;
   font-synthesis: none;
-  margin-right: 0.28em;
+  letter-spacing: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .weather__deg {

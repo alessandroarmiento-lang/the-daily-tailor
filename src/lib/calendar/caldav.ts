@@ -1,10 +1,12 @@
 /**
- * Headless CalDAV calendar — iCloud (+ optional Google CalDAV).
+ * Headless CalDAV calendar — iCloud (+ Google legacy CalDAV).
  * Works with Mac powered off when app passwords / credentials are set.
+ *
+ * Google: tsdav principal discovery fails on calendar.google.com; we REPORT
+ * the legacy `/calendar/dav/<user>/events/` collection with Basic (app password).
  */
 import { createDAVClient, type DAVCalendar } from "tsdav";
 import ical from "node-ical";
-import { config } from "@/lib/config";
 import {
   readEditionCacheEnvelope,
   writeEditionCache,
@@ -21,7 +23,25 @@ type CalDavAccount = {
   serverUrl: string;
   username: string;
   password: string;
+  /** Bypass tsdav login; use calendar-query REPORT on serverUrl. */
+  transport: "tsdav" | "google-legacy";
 };
+
+function basicAuthHeader(username: string, password: string): string {
+  return `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+}
+
+function icalUtcStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}` +
+    `T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`
+  );
+}
+
+function defaultGoogleEventsUrl(username: string): string {
+  return `https://www.google.com/calendar/dav/${encodeURIComponent(username)}/events/`;
+}
 
 export function configuredCalDavAccounts(): CalDavAccount[] {
   const accounts: CalDavAccount[] = [];
@@ -37,6 +57,7 @@ export function configuredCalDavAccounts(): CalDavAccount[] {
       serverUrl: env("ICLOUD_CALDAV_URL") || "https://caldav.icloud.com",
       username: icloudUser,
       password: icloudPass.replace(/\s+/g, ""),
+      transport: "tsdav",
     });
   }
 
@@ -46,14 +67,16 @@ export function configuredCalDavAccounts(): CalDavAccount[] {
     env("GOOGLE_CALDAV_APP_PASSWORD") ||
     env("GMAIL_APP_PASSWORD") ||
     env("GOOGLE_MAIL_APP_PASSWORD");
-  // Google CalDAV often needs OAuth; app-password path is best-effort.
-  if (googleUser && googlePass && env("GOOGLE_CALDAV_URL")) {
+  if (googleUser && googlePass) {
+    const override = env("GOOGLE_CALDAV_URL");
     accounts.push({
       id: "google",
-      label: "Google Calendar (CalDAV)",
-      serverUrl: env("GOOGLE_CALDAV_URL"),
+      label: "Google Calendar",
+      // Legacy collection URL works with Gmail app passwords; OAuth CalDAV does not.
+      serverUrl: override || defaultGoogleEventsUrl(googleUser),
       username: googleUser,
       password: googlePass.replace(/\s+/g, ""),
+      transport: "google-legacy",
     });
   }
 
@@ -132,7 +155,77 @@ function parseEventsFromIcs(
   return items;
 }
 
-async function fetchAccountEvents(
+function decodeCalendarDataXml(raw: string): string {
+  return raw
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+async function fetchGoogleLegacyEvents(
+  account: CalDavAccount,
+  start: Date,
+  end: Date,
+): Promise<{ items: CalendarEventItem[]; error?: string }> {
+  try {
+    const collectionUrl = account.serverUrl.endsWith("/")
+      ? account.serverUrl
+      : `${account.serverUrl}/`;
+    const body = `<?xml version="1.0" encoding="utf-8"?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:time-range start="${icalUtcStamp(start)}" end="${icalUtcStamp(end)}"/>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`;
+
+    const res = await fetch(collectionUrl, {
+      method: "REPORT",
+      headers: {
+        Authorization: basicAuthHeader(account.username, account.password),
+        Depth: "1",
+        "Content-Type": "application/xml; charset=utf-8",
+      },
+      body,
+    });
+    const xml = await res.text();
+    if (!res.ok) {
+      return {
+        items: [],
+        error: `${account.label}: HTTP ${res.status}`,
+      };
+    }
+
+    const blocks = [
+      ...xml.matchAll(
+        /<(?:[\w.-]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?calendar-data>/gi,
+      ),
+    ].map((m) => decodeCalendarDataXml(m[1]));
+
+    const calendarName = account.username || account.label;
+    const items: CalendarEventItem[] = [];
+    for (const ics of blocks) {
+      if (!ics.trim()) continue;
+      items.push(...parseEventsFromIcs(ics, calendarName, start, end));
+    }
+    return { items };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { items: [], error: `${account.label}: ${message}` };
+  }
+}
+
+async function fetchTsdavAccountEvents(
   account: CalDavAccount,
   start: Date,
   end: Date,
@@ -187,6 +280,29 @@ async function fetchAccountEvents(
   }
 }
 
+async function fetchAccountEvents(
+  account: CalDavAccount,
+  start: Date,
+  end: Date,
+): Promise<{ items: CalendarEventItem[]; error?: string }> {
+  if (account.transport === "google-legacy") {
+    return fetchGoogleLegacyEvents(account, start, end);
+  }
+  return fetchTsdavAccountEvents(account, start, end);
+}
+
+function dedupeEvents(items: CalendarEventItem[]): CalendarEventItem[] {
+  const seen = new Set<string>();
+  const out: CalendarEventItem[] = [];
+  for (const item of items) {
+    const key = `${item.id}|${item.startsAt}|${item.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 export class CalDavCalendarAdapter implements CalendarAdapter {
   readonly id = "caldav";
   label = "CalDAV (iCloud)";
@@ -212,18 +328,21 @@ export class CalDavCalendarAdapter implements CalendarAdapter {
       const result = await fetchAccountEvents(account, start, end);
       if (result.error) errors.push(result.error);
       else labels.push(account.label);
+      // Keep partial successes even when one account errors.
       all.push(...result.items);
     }
 
-    if (all.length === 0 && errors.length > 0) {
+    if (all.length === 0 && errors.length > 0 && labels.length === 0) {
       throw new Error(errors.join("; "));
     }
 
-    all.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    const merged = dedupeEvents(all).sort((a, b) =>
+      a.startsAt.localeCompare(b.startsAt),
+    );
     this.label =
       labels.length > 0 ? `CalDAV (${labels.join(" + ")})` : this.label;
 
-    await writeEditionCache("calendar", all);
-    return all;
+    await writeEditionCache("calendar", merged);
+    return merged;
   }
 }

@@ -117,6 +117,10 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
     const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
     if (cached?.data) {
+      if (cached.data.length === 0) {
+        this.label =
+          "CalDAV (iCloud Reminders — liste CloudKit non esposte)";
+      }
       return rankReminders(cached.data).slice(0, poolSize);
     }
 
@@ -139,6 +143,7 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
 
     const calendars = await client.fetchCalendars();
     const items: ReminderItem[] = [];
+    let vtodoLists = 0;
 
     for (const cal of calendars as DAVCalendar[]) {
       const name =
@@ -148,6 +153,7 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
       );
       // Prefer lists that include VTODO; also try all if components unknown.
       if (components.length > 0 && !components.includes("VTODO")) continue;
+      vtodoLists += 1;
 
       try {
         const objects = await client.fetchCalendarObjects({
@@ -161,6 +167,16 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
       } catch {
         // skip
       }
+    }
+
+    // Upgraded Apple Reminders (post Catalina) live in CloudKit, not CalDAV.
+    // iCloud still exposes an empty VTODO stub (e.g. "Promemoria") — treat as
+    // irreducible Mac-off gap rather than a credentials failure.
+    if (items.length === 0) {
+      this.label =
+        vtodoLists > 0
+          ? "CalDAV (iCloud Reminders — liste CloudKit non esposte)"
+          : "CalDAV (iCloud Reminders — nessun VTODO)";
     }
 
     const ranked = rankReminders(items).slice(0, poolSize);

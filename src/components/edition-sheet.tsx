@@ -510,7 +510,11 @@ export function EditionSheet({ edition }: Props) {
             ) : (
               <SectionEmpty
                 title="Promemoria"
-                message="Nessun reminder aperto per oggi."
+                message={
+                  remindersResult.data?.sourceLabel?.includes("CloudKit")
+                    ? "Promemoria Apple non leggibili via CalDAV (CloudKit). Su Mac usa EventKit."
+                    : "Nessun reminder aperto."
+                }
               />
             )}
         </div>

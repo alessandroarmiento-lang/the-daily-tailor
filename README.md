@@ -139,13 +139,14 @@ Copy `.env.example` to `.env.local` for overrides:
 | `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | On Mac `auto` prefers EventKit (all calendars); all events per day |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
-| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP (Mac-off) |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP + Google Calendar CalDAV (Mac-off) |
+| `GOOGLE_CALDAV_URL` | auto legacy `/calendar/dav/<user>/events/` | Optional override |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | Edition rollover timezone |
 | `EDITIONS_DIR` | `./data/editions` | Snapshot JSON store |
 
 ## Adapters (real data)
 
-- **Mac-off (preferred):** IMAP (`imapflow`) for iCloud+Gmail; CalDAV (`tsdav`) for calendar + reminders; CardDAV for Contacts match.
+- **Mac-off (preferred):** IMAP (`imapflow`) for iCloud+Gmail; CalDAV iCloud (`tsdav`) + Google legacy CalDAV REPORT for calendar; CardDAV for Contacts match. Apple Reminders (CloudKit) are **not** on CalDAV — use EventKit on Mac.
 - **Mac-awake fallback:** AppleScript → Mail.app / Calendar.app / Reminders.app (TCC Automation). Helper: `scripts/macos/grant-apple-access.sh`.
 - Weather → Open-Meteo primary; WeatherKit optional.
 - Personal sections never silently fall back to fixture mocks.

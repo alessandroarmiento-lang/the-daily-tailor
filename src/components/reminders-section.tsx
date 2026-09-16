@@ -75,7 +75,11 @@ export async function RemindersSection() {
     return (
       <SectionEmpty
         title="Promemoria"
-        message="Nessun reminder aperto per oggi."
+        message={
+          briefing.sourceLabel.includes("CloudKit")
+            ? "Promemoria Apple non leggibili via CalDAV (CloudKit). Su Mac usa EventKit."
+            : "Nessun reminder aperto."
+        }
       />
     );
   }

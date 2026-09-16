@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 APP="${FLY_APP:-the-daily-tailor}"
-REGION="${FLY_REGION:-mxp}"
+REGION="${FLY_REGION:-fra}"
 
 if command -v flyctl >/dev/null 2>&1; then
   FLY=(flyctl)

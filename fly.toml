@@ -1,7 +1,7 @@
 # fly.toml — The Daily Tailor always-on host (isolated from Minda / Raspberry Pi).
 # App name must be unique on Fly; change if `fly apps create` says taken.
 app = "the-daily-tailor"
-primary_region = "mxp"
+primary_region = "fra"
 
 [build]
 

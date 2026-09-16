@@ -628,9 +628,9 @@ a.cal-event__link:hover {
   font-family: inherit;
   font-size: inherit;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 700;
   font-synthesis: none;
-  margin-right: 0.08em;
+  margin-right: 0.28em;
 }
 
 .weather__deg {

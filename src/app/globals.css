@@ -1438,8 +1438,8 @@ a.cal-event__link:hover {
   }
 
   .action-mail-list__body {
-    font-size: 6.5pt;
-    -webkit-line-clamp: 4;
+    font-size: 5.75pt;
+    -webkit-line-clamp: 5;
     border-top-color: #000000 !important;
   }
 

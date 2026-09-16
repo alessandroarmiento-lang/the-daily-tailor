@@ -1,0 +1,3 @@
+# Morning warm — 06:00 Europe/Rome (container TZ=Europe/Rome).
+# __PORT__ is replaced by entrypoint.sh from $PORT.
+0 6 * * * curl -fsS --max-time 240 "http://127.0.0.1:__PORT__/api/morning-warm?force=1"

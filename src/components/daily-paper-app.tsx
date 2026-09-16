@@ -1,0 +1,179 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { EditionSheet } from "@/components/edition-sheet";
+import { MorningReload } from "@/components/morning-reload";
+import { PrintToolbar } from "@/components/print-toolbar";
+import type { NewspaperEdition } from "@/lib/edition-types";
+import { loadEditionForClient } from "@/lib/offline-editions";
+import {
+  MILANO_FALLBACK,
+  readWeatherGeoOverride,
+  refreshWeatherFromGeolocation,
+  type WeatherGeoStatus,
+} from "@/lib/refresh-weather-geo";
+import type { SectionResult, WeatherSnapshot } from "@/lib/weather/types";
+
+type Props = {
+  /** "today" or YYYY-MM-DD */
+  dateKey: "today" | string;
+  timezone: string;
+  showHistoryLink?: boolean;
+  /** Server-rendered edition so Safari never sticks on loading if client fetch stalls. */
+  initialEdition?: NewspaperEdition | null;
+};
+
+export function DailyPaperApp({
+  dateKey,
+  timezone,
+  showHistoryLink = true,
+  initialEdition = null,
+}: Props) {
+  const [edition, setEdition] = useState<NewspaperEdition | null>(
+    initialEdition,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!initialEdition);
+  const [geoStatus, setGeoStatus] = useState<WeatherGeoStatus>({
+    kind: "idle",
+  });
+  /**
+   * Kept beside the edition, not merged into it: a later edition load
+   * (network, AGGIORNA) must not put the 06:00 snapshot back on screen.
+   */
+  const [geoWeather, setGeoWeather] =
+    useState<SectionResult<WeatherSnapshot> | null>(null);
+
+  const refreshWeatherGeo = useCallback(async () => {
+    if (dateKey !== "today") return;
+    try {
+      const outcome = await refreshWeatherFromGeolocation({
+        override:
+          typeof window === "undefined"
+            ? null
+            : readWeatherGeoOverride(window.location.search),
+        onStatus: setGeoStatus,
+      });
+      if (outcome.weather?.data) setGeoWeather(outcome.weather);
+    } catch {
+      setGeoStatus({
+        kind: "fallback",
+        location: MILANO_FALLBACK,
+        note: "Posizione non aggiornata — meteo dell’edizione.",
+      });
+    }
+  }, [dateKey]);
+
+  const refresh = useCallback(
+    async (options?: { forceRebuild?: boolean }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // AGGIORNA on "today" must rebuild live data (not only re-read disk/IDB).
+        if (options?.forceRebuild && dateKey === "today") {
+          const warm = await fetch("/api/morning-warm?force=1", {
+            cache: "no-store",
+            headers: { "Cache-Control": "no-cache" },
+          });
+          if (!warm.ok) {
+            throw new Error(`Aggiornamento fallito (HTTP ${warm.status})`);
+          }
+        }
+        const result = await loadEditionForClient(dateKey);
+        // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
+        setEdition((prev) => result.edition ?? prev);
+        setError(result.edition ? null : (result.error ?? null));
+        // AGGIORNA rebuilds from the stored fix, so take a fresh one too.
+        if (options?.forceRebuild && dateKey === "today") {
+          void refreshWeatherGeo();
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Caricamento edizione fallito",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dateKey, refreshWeatherGeo],
+  );
+
+  // Position runs alongside the edition fetch: with permission already granted
+  // the sheet shows the current place as soon as the fix lands, not at 06:00.
+  useEffect(() => {
+    void refresh();
+    void refreshWeatherGeo();
+  }, [refresh, refreshWeatherGeo]);
+
+  const sheetEdition =
+    edition && geoWeather?.data ? { ...edition, weather: geoWeather } : edition;
+  const showLoading = loading && !edition;
+  const geoNote =
+    geoStatus.kind === "ok" || geoStatus.kind === "fallback"
+      ? `${geoStatus.note} · ${geoStatus.location.city}`
+      : geoStatus.kind === "locating"
+        ? "Rilevamento posizione…"
+        : null;
+
+  return (
+    <>
+      <PrintToolbar
+        onRefresh={() => void refresh({ forceRebuild: true })}
+        refreshing={loading && Boolean(edition)}
+        historyHref={showHistoryLink ? "/storia" : undefined}
+        canExportPdf={Boolean(edition)}
+        pdfFileStem={
+          edition
+            ? `the-daily-tailor-${edition.dateKey}`
+            : "the-daily-tailor"
+        }
+      />
+      {geoNote && dateKey === "today" ? (
+        <p className="no-print geo-status" role="status">
+          {geoNote}
+        </p>
+      ) : null}
+      {showLoading ? (
+        <main className="sheet-page">
+          <p className="state-line">Caricamento The Daily Tailor…</p>
+        </main>
+      ) : null}
+      {!loading && !edition ? (
+        <main className="sheet-page">
+          <p className="state-line state-line--error">
+            {error ?? "Nessuna edizione disponibile."}
+          </p>
+          <p className="state-line">
+            Apri l’app dopo le 06:00 (con rete) per scaricare il giornale del
+            giorno, oppure genera sul Mac con{" "}
+            <code>/api/morning-warm</code>.
+          </p>
+        </main>
+      ) : null}
+      {sheetEdition ? (
+        <>
+          <EditionSheet
+            edition={sheetEdition}
+            weatherLocationNote={
+              geoStatus.kind === "ok" || geoStatus.kind === "fallback"
+                ? geoStatus.note
+                : null
+            }
+          />
+          {dateKey === "today" ? (
+            <MorningReload
+              editionDateKey={sheetEdition.dateKey}
+              timezone={timezone}
+            />
+          ) : null}
+        </>
+      ) : null}
+      {dateKey !== "today" ? (
+        <p className="no-print history-back">
+          <Link href="/">Torna a oggi</Link>
+        </p>
+      ) : null}
+    </>
+  );
+}

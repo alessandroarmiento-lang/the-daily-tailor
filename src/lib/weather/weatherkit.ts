@@ -1,0 +1,243 @@
+import { createPrivateKey, sign } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { config } from "@/lib/config";
+import { getEditionDateKey } from "@/lib/edition";
+import {
+  buildDaytimePrecipHours,
+  sumDaytimeAmountMm,
+  conditionFromWeatherKit,
+  emptyPrecipitation,
+  labelForCondition,
+} from "./mock";
+import type {
+  PrecipitationForecast,
+  WeatherProvider,
+  WeatherSnapshot,
+} from "./types";
+
+type WeatherKitCurrent = {
+  asOf?: string;
+  temperature?: number;
+  temperatureApparent?: number;
+  humidity?: number;
+  windSpeed?: number;
+  conditionCode?: string;
+};
+
+type WeatherKitDay = {
+  forecastStart?: string;
+  temperatureMax?: number;
+  temperatureMin?: number;
+  precipitationChance?: number;
+  precipitationAmount?: number;
+  conditionCode?: string;
+};
+
+type WeatherKitHour = {
+  forecastStart?: string;
+  precipitationChance?: number;
+  precipitationIntensity?: number;
+  precipitationAmount?: number;
+  conditionCode?: string;
+};
+
+type WeatherKitResponse = {
+  currentWeather?: WeatherKitCurrent;
+  forecastDaily?: { days?: WeatherKitDay[] };
+  forecastHourly?: { hours?: WeatherKitHour[] };
+};
+
+function base64url(input: Buffer | string): string {
+  const buf = Buffer.isBuffer(input) ? input : Buffer.from(input, "utf8");
+  return buf
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function resolvePrivateKeyPem(): string | null {
+  const inline = config.weather.weatherKit.privateKey.trim();
+  if (inline) {
+    return inline.includes("\\n")
+      ? inline.replace(/\\n/g, "\n")
+      : inline;
+  }
+  const path = config.weather.weatherKit.privateKeyPath.trim();
+  if (!path) return null;
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function weatherKitConfigured(): boolean {
+  const { teamId, keyId, serviceId } = config.weather.weatherKit;
+  return Boolean(
+    teamId && keyId && serviceId && resolvePrivateKeyPem(),
+  );
+}
+
+/**
+ * WeatherKit REST JWT (ES256). Requires Apple Developer WeatherKit key.
+ * @see https://developer.apple.com/documentation/weatherkitrestapi
+ */
+function createWeatherKitJwt(): string {
+  const { teamId, keyId, serviceId } = config.weather.weatherKit;
+  const pem = resolvePrivateKeyPem();
+  if (!pem) {
+    throw new Error("WeatherKit: chiave privata assente");
+  }
+
+  const header = {
+    alg: "ES256",
+    kid: keyId,
+    id: `${teamId}.${serviceId}`,
+  };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: teamId,
+    iat: now,
+    exp: now + 60 * 60,
+    sub: serviceId,
+  };
+
+  const unsigned = `${base64url(JSON.stringify(header))}.${base64url(
+    JSON.stringify(payload),
+  )}`;
+  const key = createPrivateKey(pem);
+  const signature = sign("SHA256", Buffer.from(unsigned), {
+    key,
+    dsaEncoding: "ieee-p1363",
+  });
+  return `${unsigned}.${base64url(signature)}`;
+}
+
+function buildPrecipitation(
+  json: WeatherKitResponse,
+  timezone: string,
+): PrecipitationForecast {
+  const dayKey = getEditionDateKey(new Date(), timezone);
+  const days = json.forecastDaily?.days ?? [];
+  const day =
+    days.find((d) => d.forecastStart && d.forecastStart.startsWith(dayKey)) ??
+    days[0];
+  const todayChance =
+    day?.precipitationChance != null
+      ? Math.round(day.precipitationChance * 100)
+      : null;
+  const dailyAmount =
+    day?.precipitationAmount != null
+      ? Math.round(day.precipitationAmount * 10) / 10
+      : null;
+
+  const samples = (json.forecastHourly?.hours ?? [])
+    .filter((hour) => hour.forecastStart)
+    .map((hour) => ({
+      iso: hour.forecastStart!,
+      chancePercent:
+        hour.precipitationChance != null
+          ? Math.round(hour.precipitationChance * 100)
+          : 0,
+      amountMm:
+        hour.precipitationAmount != null
+          ? Math.round(hour.precipitationAmount * 10) / 10
+          : hour.precipitationIntensity != null
+            ? Math.round(hour.precipitationIntensity * 10) / 10
+            : null,
+    }));
+
+  const nextHours = buildDaytimePrecipHours(samples, timezone, dayKey);
+  const todayAmount = dailyAmount ?? sumDaytimeAmountMm(nextHours);
+
+  return {
+    todayChancePercent: todayChance,
+    todayAmountMm: todayAmount,
+    nextHours,
+  };
+}
+
+export const weatherKitProvider: WeatherProvider = {
+  id: "weatherkit",
+  labelIt: "Apple Weather",
+  isConfigured: weatherKitConfigured,
+  async fetch(location?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+  }): Promise<WeatherSnapshot> {
+    if (!weatherKitConfigured()) {
+      throw new Error(
+        "WeatherKit non configurato (servono Team ID, Key ID, Service ID e chiave .p8)",
+      );
+    }
+
+    const token = createWeatherKitJwt();
+    const latitude = location?.latitude ?? config.weather.latitude;
+    const longitude = location?.longitude ?? config.weather.longitude;
+    const city = location?.city ?? config.weather.city;
+    const lang = "it";
+    const params = new URLSearchParams({
+      dataSets: "currentWeather,forecastDaily,forecastHourly",
+      timezone: config.timezone,
+    });
+    const url = `https://weatherkit.apple.com/api/v1/weather/${lang}/${latitude}/${longitude}?${params.toString()}`;
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      ...(location ? { cache: "no-store" as const } : { next: { revalidate: 600 } }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(
+        `WeatherKit HTTP ${res.status}${body ? `: ${body.slice(0, 160)}` : ""}`,
+      );
+    }
+
+    const json = (await res.json()) as WeatherKitResponse;
+    const current = json.currentWeather;
+    if (!current || current.temperature == null) {
+      throw new Error("WeatherKit: currentWeather assente");
+    }
+
+    const condition = conditionFromWeatherKit(current.conditionCode ?? "");
+    const day = json.forecastDaily?.days?.[0];
+    const precipitation = buildPrecipitation(json, config.timezone);
+
+    return {
+      city,
+      timezone: config.timezone,
+      observedAt: current.asOf ?? new Date().toISOString(),
+      temperatureC: Math.round(current.temperature),
+      feelsLikeC:
+        current.temperatureApparent != null
+          ? Math.round(current.temperatureApparent)
+          : null,
+      humidityPercent:
+        current.humidity != null
+          ? Math.round(current.humidity * 100)
+          : null,
+      // WeatherKit documents windSpeed in km/h when using metric locale.
+      windKmh:
+        current.windSpeed != null ? Math.round(current.windSpeed) : null,
+      condition,
+      conditionLabelIt: labelForCondition(condition),
+      highC:
+        day?.temperatureMax != null ? Math.round(day.temperatureMax) : null,
+      lowC:
+        day?.temperatureMin != null ? Math.round(day.temperatureMin) : null,
+      precipitation:
+        precipitation.nextHours.length > 0 ||
+        precipitation.todayAmountMm != null
+          ? precipitation
+          : emptyPrecipitation(),
+      source: "weatherkit",
+      isMock: false,
+    };
+  },
+};

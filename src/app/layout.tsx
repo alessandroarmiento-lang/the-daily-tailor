@@ -1,38 +1,68 @@
-import type { Metadata } from "next";
-import { Libre_Baskerville, Playfair_Display, Source_Serif_4 } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Newsreader, Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { config } from "@/lib/config";
 import "./globals.css";
 
 const playfair = Playfair_Display({
-  variable: "--font-masthead",
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
-
-const sourceSerif = Source_Serif_4({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-});
-
-const libreBaskerville = Libre_Baskerville({
-  variable: "--font-serif-accent",
+  variable: "--font-playfair",
   subsets: ["latin"],
   weight: ["400", "700"],
 });
 
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"],
+});
+
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "Tailor-Made Newspaper",
+  title: config.productName,
   description:
-    "Edizione mattutina personale di Alessandro Armiento: meteo, titoli dal mondo e promemoria email su una pagina stampabile.",
+    "Personal one-page morning paper, tailored to you — meteo, agenda, notizie, promemoria, email da fare. Leggibile su iPhone, stampa una sola A4.",
+  applicationName: "The Daily Tailor",
+  appleWebApp: {
+    capable: true,
+    title: "The Daily Tailor",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="it"
-      className={`${playfair.variable} ${sourceSerif.variable} ${libreBaskerville.variable} h-full`}
+      className={`${playfair.variable} ${newsreader.variable} ${sourceSans.variable} h-full`}
     >
-      <body className="min-h-full font-body antialiased">{children}</body>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }

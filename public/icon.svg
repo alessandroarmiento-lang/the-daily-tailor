@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="The Daily Tailor">
+  <rect width="128" height="128" fill="#ffffff" stroke="#000000" stroke-width="8"/>
+  <text x="64" y="78" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="48" font-weight="700" fill="#000000">DT</text>
+  <rect x="28" y="28" width="72" height="3" fill="#000000"/>
+  <rect x="28" y="97" width="72" height="2" fill="#000000"/>
+</svg>

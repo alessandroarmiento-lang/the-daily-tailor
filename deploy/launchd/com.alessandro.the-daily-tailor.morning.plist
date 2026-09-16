@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Install (once):
+    cp deploy/launchd/com.alessandro.the-daily-tailor.morning.plist ~/Library/LaunchAgents/
+    # Edit the Script path if the repo is not at ~/Desktop/the-daily-tailor
+    launchctl load ~/Library/LaunchAgents/com.alessandro.the-daily-tailor.morning.plist
+
+  Runs daily at 06:00 local (Mac clock; set Mac timezone to Europe/Rome).
+  Does NOT push to iPhone — only builds the edition on the Mac app.
+-->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.alessandro.the-daily-tailor.morning</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/bash</string>
+      <string>/Users/alessandroarmiento/Desktop/the-daily-tailor/scripts/morning-warm.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>6</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/alessandroarmiento/Library/Logs/the-daily-tailor/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/alessandroarmiento/Library/Logs/the-daily-tailor/launchd.err.log</string>
+  </dict>
+</plist>

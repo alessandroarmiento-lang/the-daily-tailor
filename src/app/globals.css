@@ -1,196 +1,1500 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-body);
-  --font-body: var(--font-body), "Source Serif 4", Georgia, serif;
-  --font-masthead: var(--font-masthead), "Playfair Display", Georgia, serif;
-  --font-serif: var(--font-serif-accent), "Libre Baskerville", Georgia, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-heading: var(--font-masthead);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
 
 :root {
-  --background: #f4efe6;
-  --foreground: #1c1917;
-  --card: #fbf8f1;
-  --card-foreground: #1c1917;
-  --popover: #fbf8f1;
-  --popover-foreground: #1c1917;
-  --primary: #1c1917;
-  --primary-foreground: #fbf8f1;
-  --secondary: #ebe4d6;
-  --secondary-foreground: #1c1917;
-  --muted: #ebe4d6;
-  --muted-foreground: #78716c;
-  --accent: #ebe4d6;
-  --accent-foreground: #1c1917;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #d6d3d1;
-  --input: #d6d3d1;
-  --ring: #78716c;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.25rem;
-  --sidebar: #fbf8f1;
-  --sidebar-foreground: #1c1917;
-  --sidebar-primary: #1c1917;
-  --sidebar-primary-foreground: #fbf8f1;
-  --sidebar-accent: #ebe4d6;
-  --sidebar-accent-foreground: #1c1917;
-  --sidebar-border: #d6d3d1;
-  --sidebar-ring: #78716c;
+  --ink: #000000;
+  --ink-muted: #333333;
+  --rule: #000000;
+  --paper: #ffffff;
+  --paper-pure: #ffffff;
+  --accent: #000000;
+  --error: #000000;
+  --font-masthead: var(--font-playfair), "Times New Roman", Times, serif;
+  --font-serif: var(--font-newsreader), "Georgia", "Times New Roman", serif;
+  --font-sans: var(--font-source-sans), "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+@theme inline {
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #ffffff;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--ink);
+  background: #ffffff;
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: var(--safe-bottom);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+/* Sheet content links: same hover underline as email subjects (no accent shift). */
+a.action-mail-list__link,
+a.headline-list__title,
+a.reminder-list__link,
+a.cal-event__link {
+  color: inherit;
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a.action-mail-list__link:hover,
+a.headline-list__title:hover,
+a.reminder-list__link:hover,
+a.cal-event__link:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.no-print {
+  display: block;
+}
+
+.geo-status {
+  max-width: 210mm;
+  margin: 0.25rem auto 0;
+  padding: 0 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: #5c5c5c;
+  text-align: right;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem 1rem;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: calc(0.75rem + var(--safe-top)) 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #ffffff;
+}
+
+.toolbar__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.toolbar__status {
+  margin: 0;
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--ink-muted);
+}
+
+.toolbar__status--solo {
+  text-align: left;
+}
+
+.toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--paper-pure);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0.7rem 1.05rem;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.toolbar__btn--ghost {
+  color: var(--ink);
+  background: transparent;
+}
+
+.toolbar__btn:hover {
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+  opacity: 0.85;
+}
+
+.toolbar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.history-page {
+  max-width: 210mm;
+  margin: 0 auto 2rem;
+  padding: 1rem 1rem 2rem;
+}
+
+.history-page__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-masthead);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.history-page__lead {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #000;
+}
+
+.history-list__item {
+  border-bottom: 1px solid #000;
+}
+
+.history-list__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 0.15rem;
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+}
+
+.history-list__date {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+
+.history-list__meta {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.history-back {
+  max-width: 210mm;
+  margin: 0 auto 2rem;
+  padding: 0 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+.sheet-page {
+  max-width: 210mm;
+  margin: 0.75rem auto 2rem;
+  padding: 12mm 12mm 10mm;
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid #000000;
+  box-shadow: none;
+}
+
+.masthead {
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.masthead__edition {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.masthead__brand {
+  margin: 0;
+  font-family: var(--font-masthead);
+  font-weight: 700;
+  font-size: clamp(2rem, 8vw, 3.35rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.masthead__tagline {
+  margin: 0.45rem 0 0.7rem;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+
+.masthead__rule {
+  height: 3px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--rule);
+  background-clip: padding-box;
+}
+
+/* Quote-only band: equal padding top/bottom between masthead rule and thin rule. */
+.aphorism {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.9rem 0.75rem;
+  min-height: 3.6rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: center;
+}
+
+.aphorism__kicker,
+.aphorism__attr {
+  display: none !important;
+}
+
+.aphorism__quote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
+  max-width: 42rem;
+}
+
+.aphorism__text {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  font-family: var(--font-masthead);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink);
+}
+
+.sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  align-items: start;
+}
+
+/*
+ * Desktop newspaper grid. Breakpoint is ≤ A4 sheet width (~794px at 96dpi)
+ * so html2canvas clones (iframe ≈ sheet width) keep the same 3-column map
+ * as a wide Safari window. Previously 860px → PDF always single-column.
+ */
+@media (min-width: 700px) {
+  .sheet-grid {
+    grid-template-columns: 0.95fr 1.05fr 1.2fr;
+    /* Promemoria fills mid-left under Meteo/Agenda; News spans down to Email. */
+    grid-template-areas:
+      "weather calendar news"
+      "reminders reminders news"
+      "emails emails emails";
+    gap: 0.85rem 1rem;
+    align-items: stretch;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  .area-weather,
+  .area-calendar,
+  .area-news,
+  .area-reminders,
+  .area-emails {
+    min-width: 0;
   }
 
-  html {
-    @apply font-body;
+  .area-weather {
+    grid-area: weather;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    align-self: start;
+  }
+  .area-weather > .sheet-section {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .area-weather .sheet-section__body {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .area-calendar {
+    grid-area: calendar;
+    align-self: start;
+  }
+  .area-news {
+    grid-area: news;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .area-news > .sheet-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+  .area-news .sheet-section__body {
+    flex: 1 1 auto;
+  }
+  .area-reminders {
+    grid-area: reminders;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .area-reminders > .sheet-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+  .area-emails {
+    grid-area: emails;
+    align-self: start;
   }
 }
 
-@layer components {
-  .newspaper-page {
-    animation: edition-rise 520ms ease-out both;
+/* Belt-and-suspenders for PDF capture clones (also set inline in onclone). */
+.sheet-page.is-pdf-capture {
+  width: 210mm !important;
+  max-width: 210mm !important;
+  margin: 0 !important;
+}
+
+.sheet-page.is-pdf-capture .sheet-grid {
+  display: grid !important;
+  grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
+  grid-template-areas:
+    "weather calendar news"
+    "reminders reminders news"
+    "emails emails emails" !important;
+  gap: 0.85rem 1rem !important;
+  margin-top: 0.85rem !important;
+  align-content: start !important;
+  align-items: stretch !important;
+}
+
+.sheet-page.is-pdf-capture .area-weather,
+.sheet-page.is-pdf-capture .area-calendar,
+.sheet-page.is-pdf-capture .area-emails {
+  align-self: start !important;
+}
+
+.sheet-page.is-pdf-capture .area-weather {
+  grid-area: weather !important;
+}
+.sheet-page.is-pdf-capture .area-calendar {
+  grid-area: calendar !important;
+}
+.sheet-page.is-pdf-capture .area-news {
+  grid-area: news !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.sheet-page.is-pdf-capture .area-reminders {
+  grid-area: reminders !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.sheet-page.is-pdf-capture .area-emails {
+  grid-area: emails !important;
+}
+
+/*
+ * PDF capture: drop -webkit-box (glyph stretch in SVG), keep visual clamp via
+ * inline max-height set in export-edition-pdf.ts (line-height × N). Do not force
+ * max-height:none — that reintroduces phantom gaps under long summaries.
+ */
+.sheet-page.is-pdf-capture .headline-list__title,
+.sheet-page.is-pdf-capture .headline-list__summary,
+.sheet-page.is-pdf-capture .reminder-list__title,
+.sheet-page.is-pdf-capture .cal-event__title,
+.sheet-page.is-pdf-capture .action-mail-list__subject,
+.sheet-page.is-pdf-capture .action-mail-list__body {
+  display: block !important;
+  -webkit-line-clamp: none !important;
+  line-clamp: none !important;
+  -webkit-box-orient: unset !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  transform: none !important;
+  white-space: normal !important;
+}
+
+.sheet-section {
+  break-inside: avoid;
+}
+
+.sheet-section__head {
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.2rem;
+  /* Keep Meteo / Agenda / Notizie header baselines identical. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 2.55rem;
+}
+
+.sheet-section__kicker {
+  margin: 0;
+  min-height: 0.95em;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.sheet-section__title {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-masthead);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.sheet-section__note {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: var(--ink-muted);
+}
+
+.sheet-section--error .sheet-section__title {
+  color: var(--error);
+}
+
+.state-line {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.state-line--error {
+  color: var(--error);
+  font-style: normal;
+}
+
+.weather {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 100%;
+}
+
+.weather__top {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.weather__temp {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.weather__precip {
+  margin-top: auto;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.weather__precip-title {
+  margin: 0 0 0.22rem;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.weather__precip-today {
+  margin: 0 0 0.1rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.weather__precip-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.weather__precip-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.14rem;
+  min-height: 0;
+  /* Room for absolute first-column h/% hanging left of digits. */
+  padding-left: 0.7rem;
+}
+
+.weather__precip-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.02rem;
+  min-width: 0;
+}
+
+.weather__precip-bar-wrap {
+  width: 100%;
+  height: 0.7rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.weather__precip-bar {
+  width: 70%;
+  max-width: 0.55rem;
+  min-height: 1px;
+  background: #000000;
+}
+
+.weather__precip-hour,
+.weather__precip-pct {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.55rem;
+  line-height: 1.05;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Digits only — keeps bar/number centered; unit hangs outside. */
+.weather__precip-value {
+  position: relative;
+  display: inline-block;
+}
+
+.weather__precip-unit {
+  position: absolute;
+  right: 100%;
+  top: 0;
+  margin-right: 0.42rem;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 700;
+  font-synthesis: none;
+  letter-spacing: 0;
+  line-height: inherit;
+}
+
+.weather__deg {
+  font-family: var(--font-masthead);
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.weather__unit {
+  margin-top: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.weather__condition {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.weather__facts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+.cal-widget {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.55rem;
+}
+
+.cal-day {
+  border: 1px solid #000000;
+  padding: 0.35rem 0.4rem 0.4rem;
+  min-height: 3.4rem;
+  background: transparent;
+}
+
+.cal-day--today {
+  border-width: 2px;
+  border-color: #000000;
+  background: transparent;
+}
+
+.cal-day__label {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.cal-day--today .cal-day__label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.cal-day__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.cal-day__events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-event {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.12rem 0;
+}
+
+.cal-event__time {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  color: var(--ink-muted);
+}
+
+.cal-event__title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cal-event__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.headline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.headline-list__item {
+  display: block;
+  padding: 0.28rem 0;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.22);
+}
+
+.headline-list__item:last-child {
+  border-bottom: 0;
+}
+
+.headline-list__title {
+  font-family: var(--font-masthead);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.18;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.headline-list__summary {
+  margin: 0.22rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.28;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reminder-list,
+.action-mail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Mid-band under Meteo/Agenda: pack more reminders in two columns. */
+.reminder-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 0.85rem;
+  column-gap: 0.85rem;
+}
+
+@media (min-width: 700px) {
+  .reminder-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.reminder-list__item {
+  display: grid;
+  grid-template-columns: 0.85rem 1fr;
+  gap: 0.4rem;
+  padding: 0.22rem 0;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+}
+
+/* Drop trailing dotted rule on the last row (incl. bottom-left in 2-col grids). */
+.reminder-list__item:last-child,
+.action-mail-list__item:last-child {
+  border-bottom: 0;
+}
+
+@media (min-width: 700px) {
+  .reminder-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}
+
+.reminder-list__box {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: 0.28rem;
+  border: 1.5px solid var(--ink);
+}
+
+.reminder-list__title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reminder-list__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.reminder-list__meta {
+  margin: 0.08rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--ink-muted);
+}
+
+.reminder-list__list {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.action-mail-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .action-mail-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.action-mail-list__item {
+  padding: 0.4rem 0;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+}
+
+.action-mail-list__subject {
+  margin: 0;
+  font-family: var(--font-masthead);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.action-mail-list__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.action-mail-list__from {
+  margin: 0.12rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.action-mail-list__cue {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.action-mail-list__body {
+  margin: 0.22rem 0 0;
+  padding: 0.22rem 0 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  font-family: var(--font-serif);
+  font-size: 0.62rem;
+  line-height: 1.28;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.section-overflow {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-footer {
+  margin-top: 0.9rem;
+  padding-top: 0.4rem;
+  border-top: 2px solid var(--rule);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.sheet-footer__updated {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .sheet-page {
+    margin: 0.5rem;
+    padding: 1rem 1rem 1.35rem;
+    border-radius: 0;
   }
 
-  .newspaper-page > header {
-    animation: edition-fade 700ms ease-out both;
+  .masthead__tagline {
+    font-size: 0.9rem;
   }
 
-  .newspaper-page > div {
-    animation: edition-fade 900ms ease-out both;
+  .weather__deg {
+    font-size: 2.6rem;
   }
 
-  @keyframes edition-rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .sheet-section__title {
+    font-size: 1.25rem;
   }
 
-  @keyframes edition-fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  .headline-list__title {
+    font-size: 1rem;
   }
 
-  .section-kicker {
-    @apply font-serif text-[11px] font-bold uppercase tracking-[0.18em] text-stone-900;
+  .cal-widget {
+    grid-template-columns: 1fr 1fr;
   }
+}
 
-  .source-pill {
-    @apply text-[10px] uppercase tracking-[0.14em] text-stone-500;
-  }
-
-  .font-masthead {
-    font-family: var(--font-masthead), "Playfair Display", Georgia, serif;
-  }
-
-  .font-body {
-    font-family: var(--font-body), "Source Serif 4", Georgia, serif;
-  }
-
-  .font-serif {
-    font-family: var(--font-serif-accent), "Libre Baskerville", Georgia, serif;
-  }
+/* ——— Print: HARD CAP — exactly one A4 page, never page 2 ———
+   Match on-screen newspaper hierarchy/columns/spacing as closely as
+   the single-page budget allows. Own the full A4 box, clip overflow,
+   never break-inside:avoid (that creates Safari page 2). */
+@page {
+  size: A4 portrait;
+  margin: 0;
 }
 
 @media print {
-  @page {
-    size: A4;
-    margin: 10mm 12mm;
+  * {
+    color: #000000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
   }
 
   html,
   body {
-    background: white !important;
-    color: black !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    height: 296mm !important;
+    max-height: 296mm !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: economy;
+    print-color-adjust: economy;
+    color-adjust: economy;
   }
 
   .no-print,
-  .print-toolbar {
+  .geo-status,
+  .toolbar,
+  nextjs-portal,
+  [data-nextjs-toast],
+  [data-nextjs-dialog-overlay] {
     display: none !important;
   }
 
-  .newspaper-shell {
-    background: white !important;
-    min-height: auto !important;
+  .sheet-page {
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 296mm !important;
+    max-height: 296mm !important;
+    margin: 0 !important;
+    /* Screen uses 12mm; print keeps near-parity inside the clipped A4 box. */
+    padding: 9mm 10mm 8mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: hidden !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: auto !important;
+    break-before: avoid !important;
+    break-after: avoid !important;
+    break-inside: auto !important;
   }
 
-  .newspaper-page {
-    animation: none !important;
+  .history-back,
+  .history-page,
+  .state-line {
+    display: none !important;
   }
 
-  .newspaper-page {
-    width: 100% !important;
-    max-width: none !important;
+  .masthead {
+    flex: 0 0 auto;
+    margin-bottom: 0 !important;
+    text-align: center;
+  }
+
+  .masthead__edition {
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.25rem;
+  }
+
+  .masthead__brand {
+    font-size: 28pt;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+  }
+
+  .masthead__tagline {
+    font-size: 9pt;
+    font-style: italic;
+    margin: 0.35rem 0 0.5rem;
+  }
+
+  .masthead__rule {
+    height: 3px;
+    background: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  /* Quote-only band — same structure as screen, slightly tighter. */
+  .aphorism {
+    flex: 0 0 auto;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0.65rem 0.55rem !important;
+    min-height: 2.75rem;
+    border-bottom: 1px solid #000000 !important;
+    text-align: center;
+  }
+
+  .aphorism__kicker,
+  .aphorism__attr {
+    display: none !important;
+  }
+
+  .aphorism__quote {
     margin: 0 !important;
     padding: 0 !important;
-    box-shadow: none !important;
-    background: white !important;
+    border: 0 !important;
+    width: 100%;
+    max-width: 42rem;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .aphorism__text {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 10.5pt;
+    line-height: 1.2;
+    font-style: italic;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  /* Same column map as desktop screen — do not invent a print layout. */
+  .sheet-grid {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
+    grid-template-rows: minmax(0, auto) minmax(0, auto) minmax(0, auto) !important;
+    grid-template-areas:
+      "weather calendar news"
+      "reminders reminders news"
+      "emails emails emails" !important;
+    gap: 0.55rem 0.75rem !important;
+    margin-top: 0.55rem !important;
+    overflow: hidden !important;
+    align-content: start;
+    align-items: stretch !important;
+  }
+
+  .area-weather,
+  .area-calendar,
+  .area-emails {
+    align-self: start !important;
+  }
+
+  .area-weather {
+    grid-area: weather;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .area-weather > .sheet-section {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .area-weather .sheet-section__body {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .area-calendar {
+    grid-area: calendar;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .area-news {
+    grid-area: news;
+    align-self: stretch !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .area-reminders {
+    grid-area: reminders;
+    align-self: stretch !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .area-emails {
+    grid-area: emails;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Do NOT avoid breaks — that is what creates Safari page 2. Clip. */
+  .sheet-section,
+  .sheet-section__body,
+  .sheet-grid > *,
+  .masthead,
+  .aphorism,
+  .sheet-footer,
+  .cal-day,
+  .headline-list__item,
+  .reminder-list__item,
+  .action-mail-list__item {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    overflow: hidden !important;
+    background: transparent !important;
+  }
+
+  .sheet-section {
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sheet-section__body {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .sheet-section__kicker {
+    font-size: 6.5pt;
+    letter-spacing: 0.14em;
+    min-height: 0.95em;
+  }
+
+  .sheet-section__title {
+    font-size: 11.5pt;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .sheet-section__head {
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.12rem;
+    border-bottom-color: #000000 !important;
+    min-height: 2.1rem;
+  }
+
+  .sheet-section__note {
+    font-size: 5.5pt;
+    margin-top: 0.25rem;
+  }
+
+  .weather {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-height: 100%;
+  }
+
+  .weather__top {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+  }
+
+  .weather__deg {
+    font-size: 26pt;
+    letter-spacing: -0.04em;
+  }
+
+  .weather__unit {
+    font-size: 7pt;
+    margin-top: 0.25rem;
+  }
+
+  .weather__condition {
+    font-size: 9.5pt;
+    margin-bottom: 0.2rem;
+  }
+
+  .weather__facts {
+    font-size: 7.5pt;
+    line-height: 1.35;
+  }
+
+  .weather__precip {
+    margin-top: auto;
+    padding-top: 0.16rem;
+    border-top: 1px solid #000000 !important;
+  }
+
+  .weather__precip-title {
+    font-size: 6pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.12rem;
+  }
+
+  .weather__precip-today {
+    font-size: 7.5pt;
+    margin-bottom: 0.08rem;
+    line-height: 1.15;
+  }
+
+  /* Two-row 07–14 / 15–22 — compact stack, title→oggi a touch more open. */
+  .weather__precip-rows {
+    gap: 0.08rem;
+  }
+
+  .weather__precip-chart {
+    min-height: 0;
+    gap: 0.1rem;
+  }
+
+  .weather__precip-bar-wrap {
+    height: 0.55rem;
+  }
+
+  .weather__precip-bar {
+    background: #000000 !important;
+    width: 70%;
+    max-width: 0.5rem;
+  }
+
+  .weather__precip-hour,
+  .weather__precip-pct {
+    font-size: 6.5pt;
+  }
+
+  .cal-widget {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 0.4rem;
+  }
+
+  .cal-day {
+    padding: 0.25rem 0.3rem;
+    min-height: 2.6rem;
+    border: 1px solid #000000 !important;
+    background: transparent !important;
+  }
+
+  .cal-day--today {
+    border-width: 2px !important;
+    background: transparent !important;
+  }
+
+  .cal-day__label {
+    font-size: 6pt;
+    margin-bottom: 0.15rem;
+  }
+
+  .cal-day__empty {
+    font-size: 8pt;
+  }
+
+  .cal-event {
+    padding: 0.08rem 0;
+  }
+
+  .cal-event__time {
+    font-size: 6pt;
+  }
+
+  .cal-event__title {
+    font-size: 7.5pt;
+    -webkit-line-clamp: 2;
+  }
+
+  .headline-list__item {
+    padding: 0.28rem 0;
+    border-bottom-color: #000000 !important;
+  }
+
+  .headline-list__title {
+    font-size: 8.25pt;
+    line-height: 1.18;
+    -webkit-line-clamp: 3;
+  }
+
+  .headline-list__summary {
+    font-size: 6.75pt;
+    line-height: 1.25;
+    -webkit-line-clamp: 2;
+    margin-top: 0.15rem;
+  }
+
+  .reminder-list {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0 0.55rem;
+  }
+
+  .reminder-list__item {
+    grid-template-columns: 0.7rem 1fr;
+    gap: 0.3rem;
+    padding: 0.16rem 0;
+    border-bottom-color: #000000 !important;
+  }
+
+  .reminder-list__title {
+    font-size: 8pt;
+    -webkit-line-clamp: 2;
+  }
+
+  .reminder-list__meta {
+    font-size: 6.5pt;
+  }
+
+  .reminder-list__box {
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-top: 0.2rem;
+    border: 1.5px solid #000000 !important;
+    background: transparent !important;
+  }
+
+  .action-mail-list {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.15rem 0.75rem;
+  }
+
+  .action-mail-list__item {
+    padding: 0.28rem 0;
+    border-bottom-color: #000000 !important;
+  }
+
+  .action-mail-list__subject {
+    font-size: 9pt;
+    -webkit-line-clamp: 2;
+  }
+
+  .action-mail-list__from {
+    font-size: 6.5pt;
+  }
+
+  .action-mail-list__cue {
+    font-size: 5.5pt;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .action-mail-list__body {
+    font-size: 5.75pt;
+    -webkit-line-clamp: 4;
+    border-top-color: #000000 !important;
+  }
+
+  .reminder-list__item:nth-last-child(2):nth-child(odd),
+  .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0 !important;
+  }
+
+  .section-overflow {
+    margin-top: 0.2rem !important;
+    font-size: 6.5pt !important;
+    letter-spacing: 0.02em;
+    color: #000000 !important;
+    text-align: left !important;
+  }
+
+  .sheet-footer {
+    flex: 0 0 auto;
+    margin-top: 0.55rem;
+    padding-top: 0.3rem;
+    font-size: 6pt;
+    letter-spacing: 0.06em;
+    border-top: 2px solid #000000 !important;
   }
 
   a {
-    color: inherit !important;
     text-decoration: none !important;
   }
 }

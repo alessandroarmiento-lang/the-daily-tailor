@@ -32,6 +32,22 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# local edition snapshots + adapter caches (Mac morning sheet)
+/data/editions/
+/.cache/
+
+# Apple auth material — never commit
+*.p8
+AuthKey_*.p8
+
+
+# personal morning editions (email / reminders / calendar snapshots)
+/data/editions/*.json
+
+# per-section Mac adapter cache (osascript results)
+.cache/
 
 # vercel
 .vercel

@@ -41,20 +41,32 @@ Sections:
 
 Snapshots are written under `data/editions/YYYY-MM-DD.json` (gitignored — may contain personal email/reminders). Override with `EDITIONS_DIR`.
 
-### 06:00 generation (Mac + launchd)
+### 06:00 generation — preferred: Fly.io always-on host
+
+Production target: **Fly.io** (not Raspberry Pi / not Minda). The container runs Next + supercronic at **06:00 Europe/Rome**, persists editions on a volume, and uses IMAP/CalDAV secrets.
+
+- Infra: `Dockerfile`, `fly.toml`, `deploy/fly/`
+- Steps (Italian): see project docs `host-esterno.md` in the Agent Store, or:
+
+```bash
+# After: fly auth login
+./deploy/fly/deploy.sh
+```
+
+iPhone: open `https://<app>.fly.dev/` (Home Screen icon). First fetch of the day pulls `/api/edition/today`.
+
+### 06:00 generation — optional fallback: Mac LaunchAgent
+
+Use only when the Mini is awake and you want a local warm. Does not replace Fly.
 
 1. Keep the Next app running on the Mac (`npm run dev` or `npm run start` on port **3847**).
 2. Install the LaunchAgent:
 
 ```bash
-mkdir -p ~/Library/Logs/the-daily-tailor
-cp deploy/launchd/com.alessandro.the-daily-tailor.morning.plist ~/Library/LaunchAgents/
-# Edit the script path in the plist if the repo is not at ~/Desktop/the-daily-tailor
-launchctl unload ~/Library/LaunchAgents/com.alessandro.the-daily-tailor.morning.plist 2>/dev/null || true
-launchctl load ~/Library/LaunchAgents/com.alessandro.the-daily-tailor.morning.plist
+./deploy/macos/install-morning-launchd.sh
 ```
 
-3. Manual test: `./scripts/morning-warm.sh` or `curl -s 'http://127.0.0.1:3847/api/morning-warm?force=1'`.
+3. Manual test: `./deploy/morning-warm.sh` or `curl -s 'http://127.0.0.1:3847/api/morning-warm?force=1'`.
 
 Set the Mac timezone to **Europe/Rome** (or accept that launchd uses the Mac clock).
 

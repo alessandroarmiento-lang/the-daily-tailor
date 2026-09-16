@@ -49,7 +49,8 @@ export async function loadEdition(
 export async function listEditions(): Promise<EditionListItem[]> {
   try {
     const root = await ensureEditionsDir();
-    const names = await readdir(root);
+    // Volume path is runtime (EDITIONS_DIR); ignore for standalone tracing.
+    const names = await readdir(/*turbopackIgnore: true*/ root);
     const items: EditionListItem[] = [];
     for (const name of names) {
       if (!name.endsWith(".json")) continue;

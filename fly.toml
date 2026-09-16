@@ -1,0 +1,46 @@
+# fly.toml — The Daily Tailor always-on host (isolated from Minda / Raspberry Pi).
+# App name must be unique on Fly; change if `fly apps create` says taken.
+app = "the-daily-tailor"
+primary_region = "mxp"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  HOSTNAME = "0.0.0.0"
+  TZ = "Europe/Rome"
+  NEWSPAPER_TIMEZONE = "Europe/Rome"
+  EDITIONS_DIR = "/data/editions"
+  WEATHER_PROVIDER = "open-meteo"
+  WEATHER_CITY = "Milano"
+  WEATHER_LAT = "45.4642"
+  WEATHER_LON = "9.1900"
+  ACTION_EMAIL_SOURCE = "auto"
+  CALENDAR_SOURCE = "auto"
+  REMINDERS_SOURCE = "auto"
+  NEWS_FEED_URL = "https://www.ilpost.it/mondo/feed/"
+
+[mounts]
+  source = "editions_data"
+  destination = "/data/editions"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "90s"
+    method = "GET"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1

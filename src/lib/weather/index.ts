@@ -37,15 +37,21 @@ export function resolveWeatherProvider(): WeatherProvider {
   return openMeteoProvider;
 }
 
+/**
+ * Reverse geocode wins over any label we were handed: a saved fix keeps the
+ * name resolved when it was first stored, so a moved position kept showing
+ * the old comune (and the client's IndexedDB copy kept feeding it back).
+ */
 async function ensureCityLabel(
   latitude: number,
   longitude: number,
-  city?: string,
+  fallback?: string,
 ): Promise<string> {
-  const trimmed = city?.trim();
-  if (trimmed) return trimmed;
   const geocoded = await reverseGeocodeCity(latitude, longitude);
-  return geocoded ?? formatApproxCoords(latitude, longitude);
+  if (geocoded) return geocoded;
+  const trimmed = fallback?.trim();
+  if (trimmed) return trimmed;
+  return formatApproxCoords(latitude, longitude);
 }
 
 /**
@@ -57,11 +63,15 @@ export async function prepareWeatherLocation(
   options?: { persist?: boolean },
 ): Promise<WeatherLocation> {
   const resolved = await resolveWeatherLocation(input);
-  const city = await ensureCityLabel(
-    resolved.latitude,
-    resolved.longitude,
-    input?.city ?? resolved.city,
-  );
+  // The env default carries its own label and must work without network.
+  const city =
+    resolved.source === "default"
+      ? resolved.city
+      : await ensureCityLabel(
+          resolved.latitude,
+          resolved.longitude,
+          input?.city ?? resolved.city,
+        );
   const location: WeatherLocation = {
     ...resolved,
     city,
@@ -73,6 +83,21 @@ export async function prepareWeatherLocation(
   }
 
   return location;
+}
+
+function withPlace(
+  data: WeatherSnapshot,
+  location: WeatherLocation,
+): WeatherSnapshot {
+  return {
+    ...data,
+    place: {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      source: location.source,
+      updatedAt: location.updatedAt,
+    },
+  };
 }
 
 export async function fetchWeatherSnapshot(
@@ -90,7 +115,7 @@ export async function fetchWeatherSnapshot(
       throw new Error(`${provider.labelIt}: non configurato`);
     }
     const data = await provider.fetch(fetchLoc);
-    return { status: "ok", data };
+    return { status: "ok", data: withPlace(data, location) };
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Meteo non disponibile";
@@ -101,7 +126,7 @@ export async function fetchWeatherSnapshot(
         return {
           status: "error",
           message: `Apple Weather non disponibile (${message}). Uso Open-Meteo.`,
-          data,
+          data: withPlace(data, location),
         };
       } catch {
         // fall through to mock
@@ -111,9 +136,12 @@ export async function fetchWeatherSnapshot(
     return {
       status: "error",
       message,
-      data: mockWeather(
-        location.city || defaultWeatherLocation().city,
-        config.timezone,
+      data: withPlace(
+        mockWeather(
+          location.city || defaultWeatherLocation().city,
+          config.timezone,
+        ),
+        location,
       ),
     };
   }
@@ -135,7 +163,12 @@ export async function getWeather(
   return fetchWeatherSnapshot(location);
 }
 
-export type { WeatherSnapshot, PrecipitationForecast, PrecipHour } from "./types";
+export type {
+  WeatherSnapshot,
+  WeatherPlace,
+  PrecipitationForecast,
+  PrecipHour,
+} from "./types";
 export type {
   WeatherLocation,
   WeatherLocationInput,

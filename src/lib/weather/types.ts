@@ -1,3 +1,5 @@
+import type { WeatherLocationSource } from "./location-types";
+
 export type WeatherCondition =
   | "clear"
   | "partly_cloudy"
@@ -37,8 +39,19 @@ export type PrecipitationForecast = {
   nextHours: PrecipHour[];
 };
 
+/** Fix a snapshot was built from — lets the sheet/API show whose position it is. */
+export type WeatherPlace = {
+  latitude: number;
+  longitude: number;
+  source: WeatherLocationSource;
+  /** ISO timestamp of the fix (GPS read or last save). */
+  updatedAt: string;
+};
+
 export type WeatherSnapshot = {
   city: string;
+  /** Absent on editions cached before the field existed. */
+  place?: WeatherPlace;
   timezone: string;
   observedAt: string;
   temperatureC: number;

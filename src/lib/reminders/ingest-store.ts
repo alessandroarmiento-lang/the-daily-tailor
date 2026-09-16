@@ -131,9 +131,25 @@ function parseCompleted(value: unknown): boolean {
   );
 }
 
-/** Shortcuts flattens a reminders variable to one title per line. */
-function splitTitleLines(value: string): string[] | null {
-  const lines = value
+/**
+ * Shortcuts flattens a reminders variable before sending it: either a JSON
+ * array as text, or one title per line. Both become a list here.
+ */
+function coerceNestedString(value: string): unknown[] | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") return [parsed];
+    } catch {
+      // Not JSON: fall through to the line-per-title reading.
+    }
+  }
+
+  const lines = trimmed
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
@@ -149,8 +165,8 @@ function coerceList(payload: unknown): unknown[] | null {
     const value = record[key];
     if (Array.isArray(value)) return value;
     if (typeof value === "string") {
-      const lines = splitTitleLines(value);
-      if (lines) return lines;
+      const nested = coerceNestedString(value);
+      if (nested) return nested;
     }
   }
   return null;

@@ -41,7 +41,7 @@ export async function writeEditionCache<T>(
   data: T,
   editionDateKey = getEditionDateKey(),
 ): Promise<void> {
-  const dir = path.join(cacheRoot(), editionDateKey);
+  const dir = path.join(/* turbopackIgnore: true */ cacheRoot(), editionDateKey);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, `${section}.json`);
   await writeFile(
@@ -84,6 +84,6 @@ export async function readEditionCacheEnvelope<T>(
 export async function clearEditionAdapterCache(
   editionDateKey = getEditionDateKey(),
 ): Promise<void> {
-  const dir = path.join(cacheRoot(), editionDateKey);
+  const dir = path.join(/* turbopackIgnore: true */ cacheRoot(), editionDateKey);
   await rm(dir, { recursive: true, force: true });
 }

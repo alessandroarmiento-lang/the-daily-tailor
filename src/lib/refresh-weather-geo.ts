@@ -1,12 +1,11 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
 import {
+  type GeoPermissionOutcome,
   readLocalWeatherLocation,
   requestBrowserGeolocation,
   saveLocalWeatherLocation,
 } from "@/lib/client-weather-location";
-import type { NewspaperEdition } from "@/lib/edition-types";
 import type { WeatherLocation } from "@/lib/weather/location-types";
 import type { SectionResult, WeatherSnapshot } from "@/lib/weather/types";
 
@@ -16,6 +15,12 @@ export type WeatherGeoStatus =
   | { kind: "ok"; location: WeatherLocation; note: string }
   | { kind: "fallback"; location: WeatherLocation; note: string };
 
+/** `?lat=&lon=` on the page: check a position from any browser, phone aside. */
+export type WeatherGeoOverride = {
+  latitude: number;
+  longitude: number;
+};
+
 type WeatherApiResponse = {
   ok: boolean;
   location?: WeatherLocation;
@@ -23,16 +28,38 @@ type WeatherApiResponse = {
   error?: string;
 };
 
-function sourceNote(location: WeatherLocation, denied?: boolean): string {
-  if (location.source === "gps") return "Posizione GPS";
-  if (location.source === "last_known") {
-    return denied
-      ? "Posizione negata — ultima nota"
-      : "Ultima posizione nota";
+export const MILANO_FALLBACK: WeatherLocation = {
+  latitude: 45.4642,
+  longitude: 9.19,
+  city: "Milano",
+  source: "default",
+  updatedAt: new Date(0).toISOString(),
+};
+
+/** Short enough for the printed meteo footer, next to the place kicker. */
+function failureLabel(geo: GeoPermissionOutcome): string | null {
+  if (geo.ok) return null;
+  switch (geo.reason) {
+    case "denied":
+      return "Posizione negata";
+    case "timeout":
+      return "Timeout posizione";
+    case "unsupported":
+      return "GPS non supportato";
+    default:
+      return "Posizione non disponibile";
   }
-  return denied
-    ? "Posizione negata — Milano (predefinita)"
-    : "Milano (predefinita)";
+}
+
+function fallbackNote(
+  location: WeatherLocation,
+  failure: string | null,
+): string {
+  const isDefault = location.source === "default";
+  if (failure) {
+    return `${failure} — ${isDefault ? "Milano (predefinita)" : "ultima posizione nota"}`;
+  }
+  return isDefault ? "Milano (predefinita)" : "Ultima posizione nota";
 }
 
 async function fetchWeatherForCoords(options: {
@@ -63,23 +90,41 @@ async function fetchWeatherForCoords(options: {
   return (await res.json()) as WeatherApiResponse;
 }
 
-function patchEditionWeather(
-  edition: NewspaperEdition,
-  weather: SectionResult<WeatherSnapshot>,
-): NewspaperEdition {
-  return { ...edition, weather };
-}
+export type WeatherGeoOutcome = {
+  weather: SectionResult<WeatherSnapshot> | null;
+  status: WeatherGeoStatus;
+};
 
 /**
- * Request GPS (or last known / Milano), refresh “Meteo di oggi”, persist
- * last fix for morning warm on Fly.
+ * Resolve “Meteo di oggi” for where the reader is right now: GPS → last known
+ * → Milano. The caller swaps the result into the edition on screen; a real fix
+ * is persisted server-side so the 06:00 warm starts from the same place.
  */
-export async function refreshWeatherFromGeolocation(
-  setEdition: Dispatch<SetStateAction<NewspaperEdition | null>>,
-  setGeoStatus: (status: WeatherGeoStatus) => void,
-): Promise<void> {
-  setGeoStatus({ kind: "locating" });
+export async function refreshWeatherFromGeolocation(options?: {
+  override?: WeatherGeoOverride | null;
+  onStatus?: (status: WeatherGeoStatus) => void;
+}): Promise<WeatherGeoOutcome> {
+  const report = (status: WeatherGeoStatus) => options?.onStatus?.(status);
 
+  if (options?.override) {
+    report({ kind: "locating" });
+    // Not persisted: a test position must not become the warm's location.
+    const body = await fetchWeatherForCoords({
+      latitude: options.override.latitude,
+      longitude: options.override.longitude,
+    });
+    if (body?.ok && body.weather?.data && body.location) {
+      const status: WeatherGeoStatus = {
+        kind: "ok",
+        location: body.location,
+        note: "Posizione di prova",
+      };
+      report(status);
+      return { weather: body.weather, status };
+    }
+  }
+
+  report({ kind: "locating" });
   const geo = await requestBrowserGeolocation();
 
   if (geo.ok) {
@@ -90,39 +135,40 @@ export async function refreshWeatherFromGeolocation(
     });
     if (body?.ok && body.weather?.data && body.location) {
       await saveLocalWeatherLocation(body.location);
-      setEdition((prev) =>
-        prev ? patchEditionWeather(prev, body.weather!) : prev,
-      );
-      setGeoStatus({
+      const status: WeatherGeoStatus = {
         kind: "ok",
         location: body.location,
-        note: sourceNote(body.location),
-      });
-      return;
+        note: "Posizione GPS",
+      };
+      report(status);
+      return { weather: body.weather, status };
     }
   }
 
-  const denied = !geo.ok && geo.reason === "denied";
+  const failure = failureLabel(geo);
   const local = await readLocalWeatherLocation();
   if (local) {
+    // City left out on purpose: the server re-derives the comune from coords.
     const body = await fetchWeatherForCoords({
       latitude: local.latitude,
       longitude: local.longitude,
-      city: local.city,
       save: true,
     });
     if (body?.ok && body.weather?.data && body.location) {
-      setEdition((prev) =>
-        prev ? patchEditionWeather(prev, body.weather!) : prev,
-      );
-      setGeoStatus({
+      await saveLocalWeatherLocation({
+        ...body.location,
+        source: "last_known",
+      });
+      const status: WeatherGeoStatus = {
         kind: "fallback",
         location: body.location,
-        note:
-          (!geo.ok ? `${geo.message} ` : "") +
-          sourceNote({ ...body.location, source: "last_known" }, denied),
-      });
-      return;
+        note: fallbackNote(
+          { ...body.location, source: "last_known" },
+          failure,
+        ),
+      };
+      report(status);
+      return { weather: body.weather, status };
     }
   }
 
@@ -131,30 +177,37 @@ export async function refreshWeatherFromGeolocation(
     if (body.location.source !== "default") {
       await saveLocalWeatherLocation(body.location);
     }
-    setEdition((prev) =>
-      prev ? patchEditionWeather(prev, body.weather!) : prev,
-    );
-    setGeoStatus({
+    const status: WeatherGeoStatus = {
       kind: "fallback",
       location: body.location,
-      note:
-        (!geo.ok ? `${geo.message} ` : "") +
-        sourceNote(body.location, denied),
-    });
-    return;
+      note: fallbackNote(body.location, failure),
+    };
+    report(status);
+    return { weather: body.weather, status };
   }
 
-  setGeoStatus({
+  const status: WeatherGeoStatus = {
     kind: "fallback",
-    location: {
-      latitude: 45.4642,
-      longitude: 9.19,
-      city: "Milano",
-      source: "default",
-      updatedAt: new Date(0).toISOString(),
-    },
-    note: !geo.ok
-      ? geo.message
+    location: MILANO_FALLBACK,
+    note: failure
+      ? `${failure} — meteo dell’edizione`
       : "Meteo posizione non aggiornato — resta l’edizione caricata.",
-  });
+  };
+  report(status);
+  return { weather: null, status };
+}
+
+/** `?lat=&lon=` from the current URL, ignored unless both are real coords. */
+export function readWeatherGeoOverride(
+  search: string,
+): WeatherGeoOverride | null {
+  const params = new URLSearchParams(search);
+  const rawLat = params.get("lat");
+  const rawLon = params.get("lon");
+  if (!rawLat?.trim() || !rawLon?.trim()) return null;
+  const latitude = Number(rawLat);
+  const longitude = Number(rawLon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
 }

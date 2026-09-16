@@ -8,9 +8,12 @@ import { PrintToolbar } from "@/components/print-toolbar";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { loadEditionForClient } from "@/lib/offline-editions";
 import {
+  MILANO_FALLBACK,
+  readWeatherGeoOverride,
   refreshWeatherFromGeolocation,
   type WeatherGeoStatus,
 } from "@/lib/refresh-weather-geo";
+import type { SectionResult, WeatherSnapshot } from "@/lib/weather/types";
 
 type Props = {
   /** "today" or YYYY-MM-DD */
@@ -35,21 +38,28 @@ export function DailyPaperApp({
   const [geoStatus, setGeoStatus] = useState<WeatherGeoStatus>({
     kind: "idle",
   });
+  /**
+   * Kept beside the edition, not merged into it: a later edition load
+   * (network, AGGIORNA) must not put the 06:00 snapshot back on screen.
+   */
+  const [geoWeather, setGeoWeather] =
+    useState<SectionResult<WeatherSnapshot> | null>(null);
 
   const refreshWeatherGeo = useCallback(async () => {
     if (dateKey !== "today") return;
     try {
-      await refreshWeatherFromGeolocation(setEdition, setGeoStatus);
+      const outcome = await refreshWeatherFromGeolocation({
+        override:
+          typeof window === "undefined"
+            ? null
+            : readWeatherGeoOverride(window.location.search),
+        onStatus: setGeoStatus,
+      });
+      if (outcome.weather?.data) setGeoWeather(outcome.weather);
     } catch {
       setGeoStatus({
         kind: "fallback",
-        location: {
-          latitude: 45.4642,
-          longitude: 9.19,
-          city: "Milano",
-          source: "default",
-          updatedAt: new Date(0).toISOString(),
-        },
+        location: MILANO_FALLBACK,
         note: "Posizione non aggiornata — meteo dell’edizione.",
       });
     }
@@ -74,7 +84,8 @@ export function DailyPaperApp({
         // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
         setEdition((prev) => result.edition ?? prev);
         setError(result.edition ? null : (result.error ?? null));
-        if (result.edition && dateKey === "today") {
+        // AGGIORNA rebuilds from the stored fix, so take a fresh one too.
+        if (options?.forceRebuild && dateKey === "today") {
           void refreshWeatherGeo();
         }
       } catch (err) {
@@ -88,14 +99,19 @@ export function DailyPaperApp({
     [dateKey, refreshWeatherGeo],
   );
 
+  // Position runs alongside the edition fetch: with permission already granted
+  // the sheet shows the current place as soon as the fix lands, not at 06:00.
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    void refreshWeatherGeo();
+  }, [refresh, refreshWeatherGeo]);
 
+  const sheetEdition =
+    edition && geoWeather?.data ? { ...edition, weather: geoWeather } : edition;
   const showLoading = loading && !edition;
   const geoNote =
     geoStatus.kind === "ok" || geoStatus.kind === "fallback"
-      ? geoStatus.note
+      ? `${geoStatus.note} · ${geoStatus.location.city}`
       : geoStatus.kind === "locating"
         ? "Rilevamento posizione…"
         : null;
@@ -135,10 +151,10 @@ export function DailyPaperApp({
           </p>
         </main>
       ) : null}
-      {edition ? (
+      {sheetEdition ? (
         <>
           <EditionSheet
-            edition={edition}
+            edition={sheetEdition}
             weatherLocationNote={
               geoStatus.kind === "ok" || geoStatus.kind === "fallback"
                 ? geoStatus.note
@@ -147,7 +163,7 @@ export function DailyPaperApp({
           />
           {dateKey === "today" ? (
             <MorningReload
-              editionDateKey={edition.dateKey}
+              editionDateKey={sheetEdition.dateKey}
               timezone={timezone}
             />
           ) : null}

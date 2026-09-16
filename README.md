@@ -125,7 +125,7 @@ Copy `.env.example` to `.env.local` for overrides:
 | `NEWS_MAX_ITEMS` | `6` | Print budget |
 | `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | `auto`\|`caldav`\|`eventkit`\|`mock` |
 | `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
-| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` / `CALENDAR_MAX_EVENTS_PER_DAY` | `auto` / `4` / `2` | `auto`\|`caldav`\|`eventkit`\|`mock` |
+| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | `auto`\|`caldav`\|`eventkit`\|`mock`; all events per day |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP (Mac-off) |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | Edition rollover timezone |

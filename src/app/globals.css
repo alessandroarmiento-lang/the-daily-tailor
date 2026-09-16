@@ -596,7 +596,7 @@ a:hover {
 .weather__precip-hour,
 .weather__precip-pct {
   font-family: var(--font-sans);
-  font-size: 0.62rem;
+  font-size: 0.55rem;
   line-height: 1.05;
   color: var(--ink-muted);
   letter-spacing: 0;
@@ -604,6 +604,7 @@ a:hover {
 
 .weather__precip-pct {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .weather__deg {
@@ -777,9 +778,22 @@ a.headline-list__title:hover {
   border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
 }
 
+/* Drop trailing dotted rule on the last row (incl. bottom-left in 2-col grids). */
 .reminder-list__item:last-child,
 .action-mail-list__item:last-child {
   border-bottom: 0;
+}
+
+@media (min-width: 700px) {
+  .reminder-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
 }
 
 .reminder-list__box {
@@ -854,10 +868,10 @@ a.headline-list__title:hover {
 
 .action-mail-list__cue {
   margin: 0.18rem 0 0;
-  font-size: 0.84rem;
-  line-height: 1.3;
+  font-size: 0.72rem;
+  line-height: 1.28;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1370,8 +1384,13 @@ a.headline-list__title:hover {
   }
 
   .action-mail-list__cue {
-    font-size: 7.5pt;
-    -webkit-line-clamp: 2;
+    font-size: 6.5pt;
+    -webkit-line-clamp: 5;
+  }
+
+  .reminder-list__item:nth-last-child(2):nth-child(odd),
+  .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0 !important;
   }
 
   .section-overflow {

@@ -43,15 +43,7 @@ export async function CalendarSection() {
   }
 
   const briefing = result.data!;
-  const maxPerDay = config.calendar.maxEventsPerDay;
-  const days = briefing.days.map((day) => {
-    const hidden = Math.max(0, day.events.length - maxPerDay);
-    return {
-      ...day,
-      events: day.events.slice(0, maxPerDay),
-      hidden,
-    };
-  });
+  const days = briefing.days;
   const hasAny = days.some((day) => day.events.length > 0);
   if (!hasAny) {
     return (
@@ -103,11 +95,6 @@ export async function CalendarSection() {
                     </li>
                   );
                 })}
-                {day.hidden > 0 ? (
-                  <li className="cal-event cal-event--more">
-                    +{day.hidden} altri
-                  </li>
-                ) : null}
               </ul>
             )}
           </div>

@@ -62,7 +62,9 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
                     />
                   </div>
                   <span className="weather__precip-hour">{h.hourLabel}</span>
-                  <span className="weather__precip-pct">{h.chancePercent}</span>
+                  <span className="weather__precip-pct">
+                    {h.chancePercent}%
+                  </span>
                 </div>
               ))}
             </div>

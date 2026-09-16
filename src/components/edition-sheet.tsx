@@ -18,7 +18,6 @@ import type { NewsItem } from "@/lib/news/types";
 const NEWS_MAX = 6;
 const REMINDERS_MAX = 6;
 const EMAILS_MAX = 4;
-const EVENTS_PER_DAY = 2;
 
 function weatherSourceLabel(source: string): string {
   switch (source) {
@@ -75,7 +74,9 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
                     />
                   </div>
                   <span className="weather__precip-hour">{h.hourLabel}</span>
-                  <span className="weather__precip-pct">{h.chancePercent}</span>
+                  <span className="weather__precip-pct">
+                    {h.chancePercent}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -275,10 +276,7 @@ export function EditionSheet({ edition }: Props) {
             />
           ) : calendarResult.data ? (
             (() => {
-              const days = calendarResult.data.days.map((day) => ({
-                ...day,
-                events: day.events.slice(0, EVENTS_PER_DAY),
-              }));
+              const days = calendarResult.data.days;
               const hasAny = days.some((d) => d.events.length > 0);
               if (!hasAny) {
                 return (

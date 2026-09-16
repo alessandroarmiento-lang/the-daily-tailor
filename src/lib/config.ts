@@ -82,6 +82,5 @@ export const config = {
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "auto",
     horizonDays: Number(process.env.CALENDAR_HORIZON_DAYS ?? "4"),
-    maxEventsPerDay: Number(process.env.CALENDAR_MAX_EVENTS_PER_DAY ?? "2"),
   },
 } as const;

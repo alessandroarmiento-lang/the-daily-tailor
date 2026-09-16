@@ -41,14 +41,17 @@ if [[ -z "$TOKEN" ]]; then
 fi
 
 PAYLOAD="$(mktemp)"
-trap 'rm -f "$PAYLOAD"' EXIT
+EVENTKIT_OUT="$(mktemp)"
+trap 'rm -f "$PAYLOAD" "$EVENTKIT_OUT"' EXIT
 
-"$BIN" "$POOL" | python3 - "$PAYLOAD" <<'PY'
+"$BIN" "$POOL" > "$EVENTKIT_OUT"
+
+python3 - "$EVENTKIT_OUT" "$PAYLOAD" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-raw = json.load(sys.stdin)
+raw = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 if not raw.get("ok"):
     print(raw.get("error", "EventKit fetch fallito"), file=sys.stderr)
     sys.exit(1)
@@ -66,7 +69,7 @@ items = [
     if (r.get("title") or "").strip()
 ]
 
-Path(sys.argv[1]).write_text(
+Path(sys.argv[2]).write_text(
     json.dumps({"device": "Mac", "reminders": items}), encoding="utf-8"
 )
 print(f"{len(items)} promemoria aperti da EventKit", file=sys.stderr)

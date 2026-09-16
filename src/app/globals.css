@@ -569,6 +569,25 @@ a:hover {
   min-height: 0;
 }
 
+.weather__precip-units {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.02rem;
+  padding-right: 0.1rem;
+  min-width: 0.7rem;
+}
+
+.weather__precip-unit {
+  font-family: var(--font-sans);
+  font-size: 0.55rem;
+  line-height: 1.05;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
 .weather__precip-col {
   flex: 1 1 0;
   display: flex;
@@ -1273,7 +1292,8 @@ a.headline-list__title:hover {
   }
 
   .weather__precip-hour,
-  .weather__precip-pct {
+  .weather__precip-pct,
+  .weather__precip-unit {
     font-size: 6.5pt;
   }
 

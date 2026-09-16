@@ -14,6 +14,8 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     senderName: "Chiara Bianchi",
     senderAddress: "chiara.bianchi@studiolegale.example",
     actionCue: "Rileggere e firmare il PDF allegato entro venerdì.",
+    bodyPreview:
+      "Ciao Alessandro, in allegato la bozza aggiornata. Controlla le clausole 4 e 7 e rimandami il PDF firmato entro venerdì sera.",
     receivedAt: yesterdayAt(9, 14),
   },
   {
@@ -22,6 +24,8 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     senderName: "Marco Rossi",
     senderAddress: "marco.rossi@team.example",
     actionCue: "Confermare o declinare la partecipazione al kickoff di mercoledì.",
+    bodyPreview:
+      "Ciao, confermi la tua presenza al kickoff di mercoledì alle 10? Serve il via libera per bloccare la sala e l’ordine del giorno.",
     receivedAt: yesterdayAt(11, 42),
   },
   {
@@ -30,6 +34,8 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     senderName: "Amministrazione",
     senderAddress: "billing@fornitore.example",
     actionCue: "Verificare importo e autorizzare il pagamento entro 48 ore.",
+    bodyPreview:
+      "La fattura #4821 di €1.240 scade dopodomani. Verifica l’importo e autorizza il pagamento SEPA entro 48 ore.",
     receivedAt: yesterdayAt(16, 5),
   },
   {
@@ -38,6 +44,8 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     senderName: "Elena Conti",
     senderAddress: "elena.conti@collaboratori.example",
     actionCue: "Rispondere con 3 punti di feedback sulla bozza di ieri.",
+    bodyPreview:
+      "Ho riletto il brief di ieri. Mi mandi tre punti di feedback (tono, densità, gerarchia) così chiudo la revisione entro stasera?",
     receivedAt: yesterdayAt(18, 30),
   },
 ];

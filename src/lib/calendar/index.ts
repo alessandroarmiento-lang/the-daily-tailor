@@ -22,8 +22,10 @@ function resolveAdapter(): CalendarAdapter {
       return new MockCalendarAdapter();
     case "auto":
     default: {
-      if (hasCalDavCredentials()) return new CalDavCalendarAdapter();
+      // Mac awake: EventKit covers all subscribed calendars (iCloud + Google).
+      // CalDAV iCloud-only missed events like Gmail "Raccolta alimentare".
       if (process.platform === "darwin") return new EventKitCalendarAdapter();
+      if (hasCalDavCredentials()) return new CalDavCalendarAdapter();
       return new CalDavCalendarAdapter();
     }
   }

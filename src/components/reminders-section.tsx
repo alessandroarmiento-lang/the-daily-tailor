@@ -3,6 +3,7 @@ import {
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
+import { reminderDeepLink } from "@/lib/apple/deep-links";
 import { config } from "@/lib/config";
 import { getReminders } from "@/lib/reminders";
 import { remindersOverflowLabel } from "@/lib/section-overflow";
@@ -71,13 +72,21 @@ export async function RemindersSection() {
       <ul className="reminder-list">
         {items.map((item) => {
           const pri = priorityLabel(item.priority);
+          const href = reminderDeepLink(item.id);
+          const title = href ? (
+            <a className="reminder-list__link" href={href}>
+              {item.title}
+            </a>
+          ) : (
+            item.title
+          );
           return (
             <li key={item.id} className="reminder-list__item">
               <span className="reminder-list__box" aria-hidden="true" />
               <div>
-                <p className="reminder-list__title">{item.title}</p>
+                <p className="reminder-list__title">{title}</p>
                 <p className="reminder-list__meta">
-                  {item.listName}
+                  <span className="reminder-list__list">{item.listName}</span>
                   {" · "}
                   {formatDue(item.dueAt)}
                   {pri ? ` · Priorità ${pri}` : ""}

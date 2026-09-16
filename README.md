@@ -123,9 +123,9 @@ Copy `.env.example` to `.env.local` for overrides:
 | `WEATHERKIT_*` | — | Optional Apple WeatherKit |
 | `NEWS_FEED_URL` | Il Post Mondo RSS | trailing slash required |
 | `NEWS_MAX_ITEMS` | `6` | Print budget |
-| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | `auto`\|`caldav`\|`eventkit`\|`mock` |
+| `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | On Mac `auto` prefers EventKit; CalDAV for Mac-off |
 | `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
-| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | `auto`\|`caldav`\|`eventkit`\|`mock`; all events per day |
+| `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | On Mac `auto` prefers EventKit (all calendars); all events per day |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP (Mac-off) |
 | `NEWSPAPER_TIMEZONE` | `Europe/Rome` | Edition rollover timezone |

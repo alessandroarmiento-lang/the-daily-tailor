@@ -49,7 +49,13 @@ export async function readEditionCacheEnvelope<T>(
   const file = path.join(CACHE_ROOT, editionDateKey, `${section}.json`);
   try {
     const raw = await readFile(file, "utf8");
-    return JSON.parse(raw) as CachedEnvelope<T>;
+    const parsed = JSON.parse(raw) as CachedEnvelope<T>;
+    // Empty arrays are not a useful hit — adapters must re-fetch (e.g. CalDAV
+    // wrote [] while EventKit still has open reminders / events).
+    if (Array.isArray(parsed.data) && parsed.data.length === 0) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

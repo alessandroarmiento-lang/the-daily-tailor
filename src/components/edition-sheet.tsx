@@ -5,6 +5,10 @@ import {
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
+import {
+  calendarEventDeepLink,
+  reminderDeepLink,
+} from "@/lib/apple/deep-links";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import {
@@ -61,14 +65,6 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
               key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
               className="weather__precip-chart"
             >
-              <div
-                className="weather__precip-units"
-                aria-hidden="true"
-              >
-                <div className="weather__precip-bar-wrap" />
-                <span className="weather__precip-unit">h</span>
-                <span className="weather__precip-unit">%</span>
-              </div>
               {row.map((h) => (
                 <div
                   key={`${h.hourLabel}-${h.chancePercent}`}
@@ -78,7 +74,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
                     <div
                       className="weather__precip-bar"
                       style={{ height: `${Math.max(4, h.chancePercent)}%` }}
-                      title={`${h.hourLabel}h: ${h.chancePercent}%`}
+                      title={`${h.hourLabel}: ${h.chancePercent}%`}
                     />
                   </div>
                   <span className="weather__precip-hour">{h.hourLabel}</span>
@@ -314,20 +310,33 @@ export function EditionSheet({ edition }: Props) {
                           <p className="cal-day__empty">—</p>
                         ) : (
                           <ul className="cal-day__events">
-                            {day.events.map((event) => (
-                              <li key={event.id} className="cal-event">
-                                <span className="cal-event__time">
-                                  {formatEventTime(
-                                    event.startsAt,
-                                    event.isAllDay,
-                                    tz,
-                                  )}
-                                </span>
-                                <span className="cal-event__title">
+                            {day.events.map((event) => {
+                              const href = calendarEventDeepLink(event.id);
+                              const title = href ? (
+                                <a
+                                  className="cal-event__link"
+                                  href={href}
+                                >
                                   {event.title}
-                                </span>
-                              </li>
-                            ))}
+                                </a>
+                              ) : (
+                                event.title
+                              );
+                              return (
+                                <li key={event.id} className="cal-event">
+                                  <span className="cal-event__time">
+                                    {formatEventTime(
+                                      event.startsAt,
+                                      event.isAllDay,
+                                      tz,
+                                    )}
+                                  </span>
+                                  <span className="cal-event__title">
+                                    {title}
+                                  </span>
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                       </div>
@@ -414,6 +423,14 @@ export function EditionSheet({ edition }: Props) {
                     <ul className="reminder-list">
                       {items.map((item) => {
                         const pri = priorityLabel(item.priority);
+                        const href = reminderDeepLink(item.id);
+                        const title = href ? (
+                          <a className="reminder-list__link" href={href}>
+                            {item.title}
+                          </a>
+                        ) : (
+                          item.title
+                        );
                         return (
                           <li key={item.id} className="reminder-list__item">
                             <span
@@ -421,9 +438,11 @@ export function EditionSheet({ edition }: Props) {
                               aria-hidden="true"
                             />
                             <div>
-                              <p className="reminder-list__title">{item.title}</p>
+                              <p className="reminder-list__title">{title}</p>
                               <p className="reminder-list__meta">
-                                {item.listName}
+                                <span className="reminder-list__list">
+                                  {item.listName}
+                                </span>
                                 {" · "}
                                 {formatDue(item.dueAt, tz)}
                                 {pri ? ` · Priorità ${pri}` : ""}
@@ -490,7 +509,16 @@ export function EditionSheet({ edition }: Props) {
                             {formatReceived(item.receivedAt, tz)}
                           </span>
                         </p>
-                        <p className="action-mail-list__cue">{item.actionCue}</p>
+                        {item.actionCue ? (
+                          <p className="action-mail-list__cue">
+                            {item.actionCue}
+                          </p>
+                        ) : null}
+                        {item.bodyPreview ? (
+                          <p className="action-mail-list__body">
+                            {item.bodyPreview}
+                          </p>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

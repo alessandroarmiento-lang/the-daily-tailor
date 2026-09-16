@@ -10,6 +10,8 @@ export type ActionEmailItem = {
   senderAddress: string;
   /** One-line cue of what the user should do. */
   actionCue: string;
+  /** Compact plain-text body snippet for the sheet preview. */
+  bodyPreview: string;
   receivedAt: string;
   /** Optional Mail.app deep link (message://…). */
   messageUrl?: string;

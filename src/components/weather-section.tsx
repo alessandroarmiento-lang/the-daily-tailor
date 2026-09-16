@@ -49,14 +49,6 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
               key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
               className="weather__precip-chart"
             >
-              <div
-                className="weather__precip-units"
-                aria-hidden="true"
-              >
-                <div className="weather__precip-bar-wrap" />
-                <span className="weather__precip-unit">h</span>
-                <span className="weather__precip-unit">%</span>
-              </div>
               {row.map((h) => (
                 <div
                   key={`${h.hourLabel}-${h.chancePercent}`}
@@ -66,7 +58,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
                     <div
                       className="weather__precip-bar"
                       style={{ height: `${Math.max(4, h.chancePercent)}%` }}
-                      title={`${h.hourLabel}h: ${h.chancePercent}%`}
+                      title={`${h.hourLabel}: ${h.chancePercent}%`}
                     />
                   </div>
                   <span className="weather__precip-hour">{h.hourLabel}</span>

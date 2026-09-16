@@ -3,6 +3,7 @@ import {
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
+import { calendarEventDeepLink } from "@/lib/apple/deep-links";
 import { getCalendar } from "@/lib/calendar";
 import { config } from "@/lib/config";
 
@@ -81,13 +82,21 @@ export async function CalendarSection() {
               <ul className="cal-day__events">
                 {day.events.map((event) => {
                   const hint = calendarHint(event.calendarName);
+                  const href = calendarEventDeepLink(event.id);
+                  const titleNode = href ? (
+                    <a className="cal-event__link" href={href}>
+                      {event.title}
+                    </a>
+                  ) : (
+                    event.title
+                  );
                   return (
                     <li key={event.id} className="cal-event">
                       <span className="cal-event__time">
                         {formatEventTime(event.startsAt, event.isAllDay)}
                       </span>
                       <span className="cal-event__title">
-                        {event.title}
+                        {titleNode}
                         {hint ? (
                           <span className="cal-event__cal"> · {hint}</span>
                         ) : null}

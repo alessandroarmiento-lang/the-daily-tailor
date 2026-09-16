@@ -91,14 +91,16 @@ function parseTodos(
       : null;
 
     let dueAt: string | null = null;
-    let dueOk = true; // undated open todos count as today/open
+    // Open todos: undated, due today, or overdue (still incomplete).
+    let dueOk = true;
 
     if (todo.due) {
       const dueDate =
         todo.due instanceof Date ? todo.due : new Date(String(todo.due));
       if (!Number.isNaN(dueDate.getTime())) {
         dueAt = dueDate.toISOString();
-        dueOk = dueDate >= start && dueDate < end;
+        // Keep undated/overdue/due-today; drop only future-dated beyond today.
+        dueOk = dueDate < end;
       }
     }
 

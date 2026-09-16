@@ -75,7 +75,12 @@ export async function ActionEmailsSection() {
                 {formatReceived(item.receivedAt)}
               </span>
             </p>
-            <p className="action-mail-list__cue">{item.actionCue}</p>
+            {item.actionCue ? (
+              <p className="action-mail-list__cue">{item.actionCue}</p>
+            ) : null}
+            {item.bodyPreview ? (
+              <p className="action-mail-list__body">{item.bodyPreview}</p>
+            ) : null}
           </li>
         ))}
       </ul>

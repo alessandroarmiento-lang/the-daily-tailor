@@ -161,6 +161,18 @@ export function actionCueFromMessage(msg: MailRawMessage): string {
   return `Valutare e rispondere: ${subject.slice(0, 90)}`;
 }
 
+/** Compact plain body for the A4 email slot (a few lines). */
+export function bodyPreviewFromMessage(msg: MailRawMessage): string {
+  const raw = (msg.preview || "").replace(/\s+/g, " ").trim();
+  if (!raw) return "";
+  // Drop leading subject echo / boilerplate markers.
+  const cleaned = raw
+    .replace(/^(re|fw|fwd)\s*:\s*/i, "")
+    .replace(/^[-–—]+\s*/, "")
+    .trim();
+  return cleaned.slice(0, 320);
+}
+
 export function messageUrlFromId(messageId: string): string | undefined {
   const id = messageId.trim();
   if (!id) return undefined;
@@ -236,6 +248,7 @@ export function toActionEmailItemsWithOverflow(
       senderName: name,
       senderAddress: address,
       actionCue: actionCueFromMessage(msg),
+      bodyPreview: bodyPreviewFromMessage(msg),
       receivedAt: msg.receivedAt,
       messageUrl,
       account: msg.account,

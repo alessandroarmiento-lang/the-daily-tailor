@@ -137,10 +137,11 @@ async function fetchAccountYesterday(
             parsed.from?.value?.[0]?.address ||
             "";
           const subject = parsed.subject || "(senza oggetto)";
-          const preview = (parsed.text || "")
+          const preview = (parsed.text || parsed.html || "")
+            .replace(/<[^>]+>/g, " ")
             .replace(/\s+/g, " ")
             .trim()
-            .slice(0, 280);
+            .slice(0, 400);
           const messageId =
             (typeof parsed.messageId === "string" && parsed.messageId) ||
             `imap-${account.id}-${uid}`;

@@ -47,6 +47,10 @@ on run argv
 					set unread to not (read status of m)
 				end try
 				set preview to ""
+				try
+					set rawContent to content of m as text
+					set preview to my firstLines(rawContent, 420)
+				end try
 				set msgId to ""
 				try
 					set msgId to message id of m as text
@@ -111,6 +115,22 @@ on replaceText(t, findText, replaceWith)
 	set AppleScript's text item delimiters to ""
 	return out
 end replaceText
+
+on firstLines(t, maxLen)
+	set cleaned to t as text
+	set cleaned to my replaceText(cleaned, return, " ")
+	set cleaned to my replaceText(cleaned, linefeed, " ")
+	set cleaned to my replaceText(cleaned, tab, " ")
+	-- collapse repeated spaces loosely
+	repeat while cleaned contains "  "
+		set cleaned to my replaceText(cleaned, "  ", " ")
+	end repeat
+	set cleaned to cleaned as text
+	if (length of cleaned) > maxLen then
+		return text 1 thru maxLen of cleaned
+	end if
+	return cleaned
+end firstLines
 
 on objectJson(msgId, subj, snd, iso, flagged, unread, preview, acct)
 	set f to "false"

@@ -28,15 +28,21 @@ type ScriptResult = {
 };
 
 function mapItems(raw: NonNullable<ScriptResult["items"]>): CalendarEventItem[] {
-  return raw.map((e) => ({
-    id: e.id || `cal-${e.startsAt}-${e.title}`,
-    title: e.title,
-    location: e.location,
-    startsAt: e.startsAt,
-    endsAt: e.endsAt,
-    isAllDay: Boolean(e.isAllDay),
-    calendarName: e.calendarName || "Calendar",
-  }));
+  return raw.map((e) => {
+    // EventKit CLI emits local wall time without offset; append Z only when
+    // already UTC-looking. Otherwise keep as-is for Mac local parsing.
+    const startsAt = e.startsAt;
+    const endsAt = e.endsAt;
+    return {
+      id: e.id || `cal-${startsAt}-${e.title}`,
+      title: e.title,
+      location: e.location,
+      startsAt,
+      endsAt,
+      isAllDay: Boolean(e.isAllDay),
+      calendarName: e.calendarName || "Calendar",
+    };
+  });
 }
 
 export class EventKitCalendarAdapter implements CalendarAdapter {

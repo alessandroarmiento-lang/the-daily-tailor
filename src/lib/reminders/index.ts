@@ -24,11 +24,13 @@ function resolveAdapter(): RemindersAdapter {
       return new MockRemindersAdapter();
     case "auto":
     default: {
-      if (hasRemindersCalDavCredentials()) {
-        return new CalDavRemindersAdapter();
-      }
+      // Mac awake: EventKit sees local + iCloud + Google lists. CalDAV alone
+      // often returns empty VTODO and used to cache [] forever.
       if (process.platform === "darwin") {
         return new EventKitRemindersAdapter();
+      }
+      if (hasRemindersCalDavCredentials()) {
+        return new CalDavRemindersAdapter();
       }
       return new CalDavRemindersAdapter();
     }

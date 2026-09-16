@@ -62,20 +62,30 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
                     />
                   </div>
                   <span className="weather__precip-hour">
-                    {colIndex === 0 ? (
-                      <span className="weather__precip-unit" aria-hidden="true">
-                        h
-                      </span>
-                    ) : null}
-                    {h.hourLabel}
+                    <span className="weather__precip-value">
+                      {colIndex === 0 ? (
+                        <span
+                          className="weather__precip-unit"
+                          aria-hidden="true"
+                        >
+                          h
+                        </span>
+                      ) : null}
+                      {h.hourLabel}
+                    </span>
                   </span>
                   <span className="weather__precip-pct">
-                    {colIndex === 0 ? (
-                      <span className="weather__precip-unit" aria-hidden="true">
-                        %
-                      </span>
-                    ) : null}
-                    {h.chancePercent}
+                    <span className="weather__precip-value">
+                      {colIndex === 0 ? (
+                        <span
+                          className="weather__precip-unit"
+                          aria-hidden="true"
+                        >
+                          %
+                        </span>
+                      ) : null}
+                      {h.chancePercent}
+                    </span>
                   </span>
                 </div>
               ))}

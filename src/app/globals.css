@@ -586,6 +586,8 @@ a.cal-event__link:hover {
   align-items: flex-end;
   gap: 0.14rem;
   min-height: 0;
+  /* Room for absolute first-column h/% hanging left of digits. */
+  padding-left: 0.7rem;
 }
 
 .weather__precip-col {
@@ -614,6 +616,11 @@ a.cal-event__link:hover {
 
 .weather__precip-hour,
 .weather__precip-pct {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  width: 100%;
   font-family: var(--font-sans);
   font-size: 0.55rem;
   line-height: 1.05;
@@ -622,22 +629,26 @@ a.cal-event__link:hover {
   font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.22rem;
+}
+
+/* Digits only — keeps bar/number centered; unit hangs outside. */
+.weather__precip-value {
+  position: relative;
+  display: inline-block;
 }
 
 .weather__precip-unit {
-  display: inline-block;
+  position: absolute;
+  right: 100%;
+  top: 0;
+  margin-right: 0.42rem;
   font-family: inherit;
   font-size: inherit;
   font-style: normal;
   font-weight: 700;
   font-synthesis: none;
   letter-spacing: 0;
-  margin: 0;
-  padding: 0;
+  line-height: inherit;
 }
 
 .weather__deg {

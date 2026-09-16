@@ -14,7 +14,7 @@ A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollabl
 
 Sections:
 
-1. **Today’s weather** — Open-Meteo for the user’s location (browser geolocation on iPhone PWA; last known for 06:00 warm; Milano env fallback). WeatherKit adapter optional. Mock fallback on failure.
+1. **Today’s weather** — Open-Meteo for the user’s location (browser geolocation on iPhone PWA, applied to the sheet as soon as the fix lands; last known for 06:00 warm; Milano env fallback). The kicker shows the **comune** from reverse geocoding. WeatherKit adapter optional. Mock fallback on failure.
 2. **Aforisma del giorno** — one curated saying, picked by edition date (rolls at 06:00).
 3. **Agenda** — CalDAV iCloud (Mac-off) or EventKit/Calendar.app (Mac awake). No silent mock.
 4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
@@ -41,6 +41,14 @@ Sections:
 | `GET /api/weather?lat=&lon=&save=1` | Live Open-Meteo for coords; `save=1` stores last known for warm |
 | `POST /api/weather` | Persist last known lat/lon/city from the PWA |
 | `GET /api/weather/location` | Last known weather location (or Milano default) |
+
+Weather location, in short: the PWA asks for GPS on every open (in parallel with the
+edition download) and swaps the live block into the sheet; the same fix is stored
+server-side so the 06:00 warm starts from the reader's last position. The place label is
+re-derived from the coordinates on every read — BigDataCloud's `city` is the *provincia*
+(Legnano answers "Milano"), so the comune (OSM `adminLevel` 8) wins. Open
+`/?lat=45.61&lon=8.93` to render the sheet on a given position from any browser: it does
+not touch the stored fix.
 | `POST /api/reminders/ingest?warm=1` | iPhone Shortcut pushes open reminders (token header); `warm=1` rebuilds now |
 | `GET /api/reminders/ingest` | Snapshot status: age, count, freshness (same token) |
 

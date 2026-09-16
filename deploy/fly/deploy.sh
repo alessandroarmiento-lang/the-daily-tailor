@@ -51,7 +51,7 @@ if ! "${FLY[@]}" apps list 2>/dev/null | grep -q "$APP"; then
 fi
 
 if ! "${FLY[@]}" volumes list --app "$APP" 2>/dev/null | grep -q editions_data; then
-  echo "Creating volume editions_data (1GB) in $REGION…"
+  echo "Creating volume editions_data (1GB) in ${REGION}…"
   "${FLY[@]}" volumes create editions_data --app "$APP" --region "$REGION" --size 1 -y
 fi
 

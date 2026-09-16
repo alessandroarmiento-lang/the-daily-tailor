@@ -53,6 +53,25 @@ a:hover {
   color: var(--accent);
 }
 
+/* Sheet content links: same hover underline as email subjects (no accent shift). */
+a.action-mail-list__link,
+a.headline-list__title,
+a.reminder-list__link,
+a.cal-event__link {
+  color: inherit;
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a.action-mail-list__link:hover,
+a.headline-list__title:hover,
+a.reminder-list__link:hover,
+a.cal-event__link:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .no-print {
   display: block;
 }
@@ -709,10 +728,6 @@ a:hover {
   text-decoration: none;
 }
 
-.cal-event__link:hover {
-  text-decoration: underline;
-}
-
 .headline-list {
   margin: 0;
   padding: 0;
@@ -741,11 +756,6 @@ a:hover {
   overflow: hidden;
   color: inherit;
   -webkit-tap-highlight-color: transparent;
-}
-
-a.headline-list__title:hover {
-  text-decoration: underline;
-  color: inherit;
 }
 
 .headline-list__summary {
@@ -829,10 +839,6 @@ a.headline-list__title:hover {
   text-decoration: none;
 }
 
-.reminder-list__link:hover {
-  text-decoration: underline;
-}
-
 .reminder-list__meta {
   margin: 0.08rem 0 0;
   font-family: var(--font-sans);
@@ -878,10 +884,6 @@ a.headline-list__title:hover {
 .action-mail-list__link {
   color: inherit;
   text-decoration: none;
-}
-
-.action-mail-list__link:hover {
-  text-decoration: underline;
 }
 
 .action-mail-list__from {

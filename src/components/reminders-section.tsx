@@ -10,11 +10,36 @@ import { remindersOverflowLabel } from "@/lib/section-overflow";
 
 function formatDue(iso: string | null): string {
   if (!iso) return "Senza scadenza";
+  const due = new Date(iso);
+  if (Number.isNaN(due.getTime())) return "Senza scadenza";
+  const now = new Date();
+  const sameDay =
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: config.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(due) ===
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: config.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+  if (sameDay) {
+    return new Intl.DateTimeFormat(config.locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: config.timezone,
+    }).format(due);
+  }
   return new Intl.DateTimeFormat(config.locale, {
+    day: "numeric",
+    month: "short",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: config.timezone,
-  }).format(new Date(iso));
+  }).format(due);
 }
 
 function priorityLabel(priority: string): string | null {

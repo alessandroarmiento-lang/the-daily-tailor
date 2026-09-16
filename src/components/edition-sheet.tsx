@@ -91,11 +91,36 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
 
 function formatDue(iso: string | null, timeZone: string): string {
   if (!iso) return "Senza scadenza";
+  const due = new Date(iso);
+  if (Number.isNaN(due.getTime())) return "Senza scadenza";
+  const now = new Date();
+  const sameDay =
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(due) ===
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+  if (sameDay) {
+    return new Intl.DateTimeFormat("it-IT", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone,
+    }).format(due);
+  }
   return new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "short",
     hour: "2-digit",
     minute: "2-digit",
     timeZone,
-  }).format(new Date(iso));
+  }).format(due);
 }
 
 function formatEventTime(

@@ -1,6 +1,8 @@
 #!/usr/bin/env swift
 /**
- * Fetch today's open Reminders via EventKit (fast; AppleScript hangs on iCloud lists).
+ * Fetch open (incomplete) Reminders via EventKit.
+ * Includes undated, overdue, due-today, and future-dated open items.
+ * Soft A4 cap is applied in Node (REMINDERS_MAX_ITEMS).
  * Prints JSON: { ok, error?, items:[{id,title,notes,listName,dueAt,priority}] }
  * Args: optional maxItems (default 20)
  */
@@ -44,10 +46,6 @@ if let authErr {
 
 let cal = Calendar.current
 let start = cal.startOfDay(for: Date())
-guard let end = cal.date(byAdding: .day, value: 1, to: start) else {
-  print("{\"ok\":false,\"error\":\"date bounds\"}")
-  exit(1)
-}
 
 func fetch(_ pred: NSPredicate) -> [EKReminder] {
   var out: [EKReminder] = []
@@ -60,20 +58,45 @@ func fetch(_ pred: NSPredicate) -> [EKReminder] {
   return out
 }
 
-let dueToday = fetch(
-  store.predicateForIncompleteReminders(
-    withDueDateStarting: start, ending: end, calendars: nil))
+// All incomplete reminders (any due date, including nil / future / overdue).
 let incomplete = fetch(
   store.predicateForIncompleteReminders(
     withDueDateStarting: nil, ending: nil, calendars: nil))
-let undated = incomplete.filter { $0.dueDateComponents == nil }
+
+func dueDate(of r: EKReminder) -> Date? {
+  guard let comps = r.dueDateComponents else { return nil }
+  return cal.date(from: comps)
+}
+
+/// Prefer overdue → due today → undated → future, then earlier due, then title.
+func sortKey(_ r: EKReminder) -> (Int, TimeInterval, String) {
+  let title = r.title ?? ""
+  guard let due = dueDate(of: r) else {
+    return (2, Double.greatestFiniteMagnitude, title)
+  }
+  if due < start {
+    return (0, due.timeIntervalSince1970, title)
+  }
+  if cal.isDate(due, inSameDayAs: start) {
+    return (1, due.timeIntervalSince1970, title)
+  }
+  return (3, due.timeIntervalSince1970, title)
+}
+
+let sorted = incomplete.sorted {
+  let a = sortKey($0)
+  let b = sortKey($1)
+  if a.0 != b.0 { return a.0 < b.0 }
+  if a.1 != b.1 { return a.1 < b.1 }
+  return a.2.localizedCaseInsensitiveCompare(b.2) == .orderedAscending
+}
 
 var items: [[String: Any]] = []
 var seen = Set<String>()
 
-func push(_ r: EKReminder) {
+for r in sorted {
   let id = r.calendarItemIdentifier
-  if seen.contains(id) { return }
+  if seen.contains(id) { continue }
   seen.insert(id)
   let prio: String
   switch r.priority {
@@ -83,7 +106,7 @@ func push(_ r: EKReminder) {
   default: prio = "none"
   }
   var due: Any = NSNull()
-  if let comps = r.dueDateComponents, let date = cal.date(from: comps) {
+  if let date = dueDate(of: r) {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US_POSIX")
     f.timeZone = TimeZone.current
@@ -98,12 +121,7 @@ func push(_ r: EKReminder) {
     "dueAt": due,
     "priority": prio,
   ])
-}
-
-for r in dueToday { push(r) }
-for r in undated { push(r) }
-if items.count > maxItems {
-  items = Array(items.prefix(maxItems))
+  if items.count >= maxItems { break }
 }
 
 let payload: [String: Any] = ["ok": true, "items": items]

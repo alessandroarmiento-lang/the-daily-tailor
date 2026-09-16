@@ -42,14 +42,6 @@ export function hasRemindersCalDavCredentials(): boolean {
   return icloudAccount() !== null;
 }
 
-function todayBounds(): { start: Date; end: Date } {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return { start, end };
-}
-
 function priorityFromIcal(n: number | undefined): ReminderItem["priority"] {
   if (n === undefined || n === 0) return "none";
   if (n <= 3) return "high";
@@ -70,8 +62,6 @@ type IcalTodo = {
 function parseTodos(
   ics: string,
   listName: string,
-  start: Date,
-  end: Date,
 ): ReminderItem[] {
   const parsed = ical.sync.parseICS(ics);
   const items: ReminderItem[] = [];
@@ -84,27 +74,21 @@ function parseTodos(
     const status = todo.status ? String(todo.status).toUpperCase() : "";
     if (status === "COMPLETED") continue;
 
-    const title = (todo.summary ? String(todo.summary) : "") || "(senza titolo)";
+    let title = (todo.summary ? String(todo.summary) : "") || "(senza titolo)";
     const uid = (todo.uid ? String(todo.uid) : "") || title;
     const notes = todo.description
       ? String(todo.description).slice(0, 200)
       : null;
 
     let dueAt: string | null = null;
-    // Open todos: undated, due today, or overdue (still incomplete).
-    let dueOk = true;
-
+    // All incomplete todos (undated, overdue, today, future) — soft-capped later.
     if (todo.due) {
       const dueDate =
         todo.due instanceof Date ? todo.due : new Date(String(todo.due));
       if (!Number.isNaN(dueDate.getTime())) {
         dueAt = dueDate.toISOString();
-        // Keep undated/overdue/due-today; drop only future-dated beyond today.
-        dueOk = dueDate < end;
       }
     }
-
-    if (!dueOk) continue;
 
     const prio =
       typeof todo.priority === "number"
@@ -154,7 +138,6 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
     });
 
     const calendars = await client.fetchCalendars();
-    const { start, end } = todayBounds();
     const items: ReminderItem[] = [];
 
     for (const cal of calendars as DAVCalendar[]) {
@@ -173,7 +156,7 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
         for (const obj of objects) {
           const data = typeof obj.data === "string" ? obj.data : "";
           if (!data || !/BEGIN:VTODO/i.test(data)) continue;
-          items.push(...parseTodos(data, name, start, end));
+          items.push(...parseTodos(data, name));
         }
       } catch {
         // skip

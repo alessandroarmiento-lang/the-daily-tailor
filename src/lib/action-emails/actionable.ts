@@ -161,6 +161,42 @@ export function actionCueFromMessage(msg: MailRawMessage): string {
   return `Valutare e rispondere: ${subject.slice(0, 90)}`;
 }
 
+const HTML_NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  quot: '"',
+  apos: "'",
+  lt: "<",
+  gt: ">",
+  agrave: "à",
+  egrave: "è",
+  eacute: "é",
+  igrave: "ì",
+  ograve: "ò",
+  ugrave: "ù",
+  Agrave: "À",
+  Egrave: "È",
+  Eacute: "É",
+  Igrave: "Ì",
+  Ograve: "Ò",
+  Ugrave: "Ù",
+};
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => {
+      const code = Number.parseInt(hex, 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+    })
+    .replace(/&#(\d+);/g, (_, n: string) => {
+      const code = Number(n);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+    })
+    .replace(/&([A-Za-z]+);/g, (match, name: string) => {
+      return HTML_NAMED_ENTITIES[name] ?? HTML_NAMED_ENTITIES[name.toLowerCase()] ?? match;
+    });
+}
+
 /** Compact plain body for the A4 email slot (a few lines). */
 export function bodyPreviewFromMessage(msg: MailRawMessage): string {
   let raw = (msg.preview || "").trim();
@@ -175,11 +211,8 @@ export function bodyPreviewFromMessage(msg: MailRawMessage): string {
     .replace(/\{[^{}]{0,400}\}/g, " ")
     .replace(/https?:\/\/\S+/gi, " ")
     .replace(/\[[^\]]*\]/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
+    .replace(/<[^>]+>/g, " ");
+  raw = decodeHtmlEntities(decodeHtmlEntities(raw))
     .replace(/\s+/g, " ")
     .trim();
 

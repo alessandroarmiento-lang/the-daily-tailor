@@ -40,7 +40,8 @@ function weatherSourceLabel(source: string): string {
   }
 }
 
-const PRECIP_ROW_SIZE = 8;
+/** Six hours per row so iPhone (~390px) can read labels; print stays compact. */
+const PRECIP_ROW_SIZE = 6;
 
 function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
   const hasToday = precip.todayAmountMm != null;

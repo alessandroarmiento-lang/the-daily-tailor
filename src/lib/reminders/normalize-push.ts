@@ -40,9 +40,66 @@ export function reader(raw: Record<string, unknown>): (keys: string[]) => unknow
   };
 }
 
+const ITALIAN_MONTHS: Record<string, number> = {
+  gen: 1,
+  gennaio: 1,
+  feb: 2,
+  febbraio: 2,
+  mar: 3,
+  marzo: 3,
+  apr: 4,
+  aprile: 4,
+  mag: 5,
+  maggio: 5,
+  giu: 6,
+  giugno: 6,
+  lug: 7,
+  luglio: 7,
+  ago: 8,
+  agosto: 8,
+  set: 9,
+  sett: 9,
+  settembre: 9,
+  ott: 10,
+  ottobre: 10,
+  nov: 11,
+  novembre: 11,
+  dic: 12,
+  dicembre: 12,
+};
+
+function composeLocalIso(
+  year: string,
+  month: string,
+  day: string,
+  hour: string,
+  minute: string,
+): string | null {
+  const composed = new Date(
+    `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${hour.padStart(
+      2,
+      "0",
+    )}:${minute.padStart(2, "0")}:00`,
+  );
+  return Number.isNaN(composed.getTime()) ? null : composed.toISOString();
+}
+
 /**
- * ISO 8601 preferred (Shortcuts: Formatta data → `yyyy-MM-dd'T'HH:mm:ssZ`).
- * Also tolerates epoch seconds/ms and the Italian `gg/mm/aaaa, hh:mm` text.
+ * Shortcuts custom format `XXXXX` emits `+01:00:00`; JS Date rejects that.
+ * Collapse to `+01:00`. Also accept `+0100` / `+01`.
+ */
+export function normalizeIsoOffset(text: string): string {
+  return text.replace(
+    /([+-])(\d{2})(?::?(\d{2}))?(?::\d{2})?$/,
+    (_, sign: string, hh: string, mm: string | undefined) =>
+      `${sign}${hh}:${mm ?? "00"}`,
+  );
+}
+
+/**
+ * ISO 8601 preferred (Shortcuts: Formatta data → `yyyy-MM-dd'T'HH:mm:ssXXX`).
+ * Also tolerates epoch, `XXXXX` offsets, `gg/mm/aaaa`, and Italian long dates
+ * (`1 novembre 2026 alle 19:00`) when Format Date falls back to locale text.
  */
 export function parseDueAt(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
@@ -53,41 +110,95 @@ export function parseDueAt(value: unknown): string | null {
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
-  const text = String(value).trim();
-  if (!text) return null;
-
-  const direct = new Date(text);
-  if (!Number.isNaN(direct.getTime())) return direct.toISOString();
-
-  const italian =
-    /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})(?:,?\s+(\d{1,2}):(\d{2}))?/.exec(text);
-  if (italian) {
-    const [, d, m, y, hh, mm] = italian;
-    const composed = new Date(
-      `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}T${(hh ?? "09").padStart(
-        2,
-        "0",
-      )}:${mm ?? "00"}:00`,
-    );
-    if (!Number.isNaN(composed.getTime())) return composed.toISOString();
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
   }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of [
+      "dueAt",
+      "due",
+      "dueDate",
+      "date",
+      "iso",
+      "ISO8601",
+      "stringValue",
+    ]) {
+      if (record[key] !== undefined && record[key] !== value) {
+        const nested = parseDueAt(record[key]);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  const text = String(value).trim();
+  if (!text || text === "[object Object]") return null;
+
+  // dd/mm/yyyy before Date.parse — JS reads 01/11/2026 as 11 January.
+  const slash =
+    /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})(?:,?\s+(\d{1,2}):(\d{2}))?/.exec(text);
+  if (slash) {
+    const [, d, m, y, hh, mm] = slash;
+    return composeLocalIso(y, m, d, hh ?? "09", mm ?? "00");
+  }
+
+  // "sabato 1 novembre 2026 alle ore 19:00" / "1 nov. 2026, 19:00"
+  const named =
+    /^(?:[a-zàèéìòù]+\s+)?(\d{1,2})\s+([a-zàèéìòù.]+)\s+(\d{4})(?:[,\s]+(?:alle?(?:\s+ore)?\s+)?(\d{1,2})[:.](\d{2}))?/i.exec(
+      text,
+    );
+  if (named) {
+    const [, d, monthRaw, y, hh, mm] = named;
+    const month = ITALIAN_MONTHS[monthRaw.replace(/\./g, "").toLowerCase()];
+    if (month) {
+      return composeLocalIso(y, String(month), d, hh ?? "09", mm ?? "00");
+    }
+  }
+
+  const normalized = normalizeIsoOffset(text);
+  const direct = new Date(normalized);
+  if (!Number.isNaN(direct.getTime())) return direct.toISOString();
 
   return null;
 }
 
 function parsePriority(value: unknown): ReminderPriority {
   if (typeof value === "number" && Number.isFinite(value)) {
+    // Apple Reminders: 0 none, 1–4 high, 5–8 medium, 9 low (EventKit).
+    // iCalendar PRIORITY: 1–4 high, 5 medium, 6–9 low, 0 undefined.
     if (value <= 0) return "none";
-    if (value <= 3) return "high";
-    if (value <= 6) return "medium";
+    if (value <= 4) return "high";
+    if (value <= 8) return "medium";
     return "low";
   }
   const text = String(value ?? "").trim().toLowerCase();
   if (!text) return "none";
   if (/^\d+$/.test(text)) return parsePriority(Number(text));
-  if (text.startsWith("alt") || text.startsWith("high")) return "high";
-  if (text.startsWith("med")) return "medium";
-  if (text.startsWith("bas") || text.startsWith("low")) return "low";
+  if (
+    text.startsWith("alt") ||
+    text.startsWith("high") ||
+    text === "!!!" ||
+    text === "urgent"
+  ) {
+    return "high";
+  }
+  if (text.startsWith("med") || text === "!!") return "medium";
+  if (
+    text.startsWith("bas") ||
+    text.startsWith("low") ||
+    text === "!" ||
+    text.startsWith("ness") ||
+    text === "none" ||
+    text === "no"
+  ) {
+    // "nessuna" / none → none; "!" alone is low in some UIs.
+    if (text.startsWith("ness") || text === "none" || text === "no") {
+      return "none";
+    }
+    return "low";
+  }
   return "none";
 }
 
@@ -298,6 +409,7 @@ export function sanitizeReminderItem(item: ReminderItem): ReminderItem {
       item.listName,
     dueAt: nested.dueAt ?? nested.due ?? nested.dueDate ?? item.dueAt,
     notes: nested.notes ?? nested.note ?? item.notes,
+    priority: nested.priority ?? nested.priorita ?? nested.priorità ?? item.priority,
   });
 
   return rebuilt ?? item;
@@ -316,7 +428,8 @@ export function sanitizeReminderItems(items: ReminderItem[]): {
       cleaned.listName !== item.listName ||
       cleaned.dueAt !== item.dueAt ||
       cleaned.notes !== item.notes ||
-      cleaned.id !== item.id
+      cleaned.id !== item.id ||
+      cleaned.priority !== item.priority
     ) {
       changed = true;
     }

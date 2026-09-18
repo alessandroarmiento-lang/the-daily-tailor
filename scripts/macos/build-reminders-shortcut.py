@@ -36,8 +36,9 @@ FFFC = "\ufffc"
 DEFAULT_HOST = "https://the-daily-tailor.fly.dev"
 DEFAULT_OUTPUT = "~/Desktop/Invia promemoria al giornale.shortcut"
 
-# ISO-8601-ish; ingest-store accepts this and Italian gg/mm/aaaa text.
-DUE_AT_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXXXX"
+# ISO-8601 with offset +HH:MM (XXX). Do NOT use XXXXX (+HH:MM:SS): JS Date
+# rejects it → dueAt null on ingest. Prefer XXX over Z so local wall time stays.
+DUE_AT_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
 
 
 def read_token(env_file: Path) -> str:
@@ -173,6 +174,7 @@ def reminder_detail(
 
 
 def format_due_at(date_ref: dict, action_uuid: str) -> dict:
+    """Format Due Date as ISO-8601 with +HH:MM offset (JS-parseable)."""
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.format.date",
         "WFWorkflowActionParameters": {
@@ -181,6 +183,7 @@ def format_due_at(date_ref: dict, action_uuid: str) -> dict:
             "WFDate": attachment(date_ref),
             "WFDateFormatStyle": "Custom",
             "WFDateFormat": "Custom",
+            "WFTimeFormatStyle": "Custom",
             "WFDateFormatString": DUE_AT_FORMAT,
         },
     }
@@ -245,6 +248,7 @@ def build_workflow(host: str, token: str) -> dict:
     due_raw_uuid = uid()
     due_fmt_uuid = uid()
     notes_uuid = uid()
+    priority_uuid = uid()
     id_text_uuid = uid()
     dict_uuid = uid()
     end_uuid = uid()
@@ -255,6 +259,7 @@ def build_workflow(host: str, token: str) -> dict:
     due_raw_name = "Reminder DueRaw"
     due_name = "Reminder DueAt"
     notes_name = "Reminder Notes"
+    priority_name = "Reminder Priority"
     id_name = "Reminder Id"
 
     actions = [
@@ -265,6 +270,7 @@ def build_workflow(host: str, token: str) -> dict:
         reminder_detail("Due Date", due_raw_uuid, due_raw_name),
         format_due_at(action_output(due_raw_uuid, due_raw_name), due_fmt_uuid),
         reminder_detail("Notes", notes_uuid, notes_name),
+        reminder_detail("Priority", priority_uuid, priority_name),
         # No Identifier property in Shortcuts Reminder details — Italian UI was
         # binding Dictionary.id to Elenco (List). Stable key instead.
         stable_id_text(
@@ -278,6 +284,9 @@ def build_workflow(host: str, token: str) -> dict:
                 text_field("listName", [action_output(list_uuid, list_name)]),
                 text_field("dueAt", [action_output(due_fmt_uuid, due_name)]),
                 text_field("notes", [action_output(notes_uuid, notes_name)]),
+                text_field(
+                    "priority", [action_output(priority_uuid, priority_name)]
+                ),
                 text_field("id", [action_output(id_text_uuid, id_name)]),
             ],
             dict_uuid,
@@ -373,7 +382,10 @@ def main() -> None:
             raise SystemExit("shortcut v2: expected Get Details of Reminders")
         if "is.workflow.actions.gettext" not in action_ids:
             raise SystemExit("shortcut v2: expected Text action for stable id")
+        if "is.workflow.actions.format.date" not in action_ids:
+            raise SystemExit("shortcut v2: expected Format Date for dueAt ISO")
         # Guard: invalid "Identifier" detail remaps to Elenco on Italian iOS.
+        reminder_props: set[str] = set()
         for action in workflow["WFWorkflowActions"]:
             if action["WFWorkflowActionIdentifier"] != (
                 "is.workflow.actions.properties.reminders"
@@ -386,6 +398,24 @@ def main() -> None:
                 raise SystemExit(
                     "shortcut v2: do not use Reminder Identifier detail "
                     "(Italian UI binds it to Elenco)"
+                )
+            if isinstance(prop, str):
+                reminder_props.add(prop)
+        for required in ("Title", "List", "Due Date", "Notes", "Priority"):
+            if required not in reminder_props:
+                raise SystemExit(
+                    f"shortcut v2: missing Reminder detail {required!r}"
+                )
+        for action in workflow["WFWorkflowActions"]:
+            if action["WFWorkflowActionIdentifier"] != (
+                "is.workflow.actions.format.date"
+            ):
+                continue
+            fmt = action["WFWorkflowActionParameters"].get("WFDateFormatString")
+            if isinstance(fmt, str) and "XXXXX" in fmt:
+                raise SystemExit(
+                    "shortcut v2: dueAt format must use XXX (+HH:MM), "
+                    "not XXXXX (+HH:MM:SS) — JS Date rejects the latter"
                 )
 
         if output.exists():

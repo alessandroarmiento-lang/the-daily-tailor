@@ -34,7 +34,11 @@ if [[ "$src" == "HEAD" ]]; then
 fi
 
 PUSH_HELPER=()
-if command -v gh >/dev/null 2>&1; then
+origin_url="$(git remote get-url origin 2>/dev/null || true)"
+if [[ "$origin_url" == *origin.cursor.com* ]] && command -v origin >/dev/null 2>&1; then
+  ORIGIN_BIN="$(command -v origin)"
+  PUSH_HELPER=(-c "credential.helper=" -c "credential.helper=!${ORIGIN_BIN} credential-helper")
+elif command -v gh >/dev/null 2>&1; then
   PUSH_HELPER=(-c "credential.helper=" -c "credential.helper=!$(command -v gh) auth git-credential")
 fi
 

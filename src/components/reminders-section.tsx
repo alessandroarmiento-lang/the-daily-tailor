@@ -1,9 +1,13 @@
+import { NativeOpenLink } from "@/components/native-open-link";
 import {
   SectionEmpty,
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
-import { reminderDeepLink } from "@/lib/apple/deep-links";
+import {
+  reminderDeepLink,
+  reminderOpenPayload,
+} from "@/lib/apple/deep-links";
 import { config } from "@/lib/config";
 import { getReminders } from "@/lib/reminders";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
@@ -101,12 +105,14 @@ export async function RemindersSection() {
           const item = sanitizeReminderItem(raw);
           const pri = priorityLabel(item.priority);
           const href = reminderDeepLink(item.id);
-          const title = href ? (
-            <a className="reminder-list__link" href={href}>
+          const title = (
+            <NativeOpenLink
+              className="reminder-list__link"
+              href={href}
+              payload={reminderOpenPayload(item)}
+            >
               {item.title}
-            </a>
-          ) : (
-            item.title
+            </NativeOpenLink>
           );
           return (
             <li key={item.id} className="reminder-list__item">

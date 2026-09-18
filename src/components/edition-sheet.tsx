@@ -1,5 +1,6 @@
 "use client";
 
+import { NativeOpenLink } from "@/components/native-open-link";
 import {
   SectionEmpty,
   SectionError,
@@ -7,7 +8,10 @@ import {
 } from "@/components/section-shell";
 import {
   calendarEventDeepLink,
+  eventOpenPayload,
+  mailOpenPayload,
   reminderDeepLink,
+  reminderOpenPayload,
 } from "@/lib/apple/deep-links";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
@@ -366,16 +370,18 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         ) : (
                           <ul className="cal-day__events">
                             {day.events.map((event) => {
-                              const href = calendarEventDeepLink(event.id);
-                              const title = href ? (
-                                <a
+                              const href = calendarEventDeepLink(event.id, {
+                                title: event.title,
+                                calendarName: event.calendarName,
+                              });
+                              const title = (
+                                <NativeOpenLink
                                   className="cal-event__link"
                                   href={href}
+                                  payload={eventOpenPayload(event)}
                                 >
                                   {event.title}
-                                </a>
-                              ) : (
-                                event.title
+                                </NativeOpenLink>
                               );
                               return (
                                 <li key={event.id} className="cal-event">
@@ -480,12 +486,14 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         const item = sanitizeReminderItem(raw);
                         const pri = priorityLabel(item.priority);
                         const href = reminderDeepLink(item.id);
-                        const title = href ? (
-                          <a className="reminder-list__link" href={href}>
+                        const title = (
+                          <NativeOpenLink
+                            className="reminder-list__link"
+                            href={href}
+                            payload={reminderOpenPayload(item)}
+                          >
                             {item.title}
-                          </a>
-                        ) : (
-                          item.title
+                          </NativeOpenLink>
                         );
                         return (
                           <li key={item.id} className="reminder-list__item">
@@ -549,12 +557,13 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       <li key={item.id} className="action-mail-list__item">
                         <p className="action-mail-list__subject">
                           {item.messageUrl ? (
-                            <a
+                            <NativeOpenLink
                               href={item.messageUrl}
                               className="action-mail-list__link"
+                              payload={mailOpenPayload(item)}
                             >
                               {item.subject}
-                            </a>
+                            </NativeOpenLink>
                           ) : (
                             item.subject
                           )}

@@ -1,9 +1,13 @@
+import { NativeOpenLink } from "@/components/native-open-link";
 import {
   SectionEmpty,
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
-import { calendarEventDeepLink } from "@/lib/apple/deep-links";
+import {
+  calendarEventDeepLink,
+  eventOpenPayload,
+} from "@/lib/apple/deep-links";
 import { getCalendar } from "@/lib/calendar";
 import { config } from "@/lib/config";
 
@@ -82,13 +86,18 @@ export async function CalendarSection() {
               <ul className="cal-day__events">
                 {day.events.map((event) => {
                   const hint = calendarHint(event.calendarName);
-                  const href = calendarEventDeepLink(event.id);
-                  const titleNode = href ? (
-                    <a className="cal-event__link" href={href}>
+                  const href = calendarEventDeepLink(event.id, {
+                    title: event.title,
+                    calendarName: event.calendarName,
+                  });
+                  const titleNode = (
+                    <NativeOpenLink
+                      className="cal-event__link"
+                      href={href}
+                      payload={eventOpenPayload(event)}
+                    >
                       {event.title}
-                    </a>
-                  ) : (
-                    event.title
+                    </NativeOpenLink>
                   );
                   return (
                     <li key={event.id} className="cal-event">

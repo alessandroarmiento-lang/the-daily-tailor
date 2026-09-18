@@ -1,8 +1,10 @@
+import { NativeOpenLink } from "@/components/native-open-link";
 import {
   SectionEmpty,
   SectionError,
   SectionShell,
 } from "@/components/section-shell";
+import { mailOpenPayload } from "@/lib/apple/deep-links";
 import { getActionEmails } from "@/lib/action-emails";
 import { config } from "@/lib/config";
 import { emailsOverflowLabel } from "@/lib/section-overflow";
@@ -60,9 +62,13 @@ export async function ActionEmailsSection() {
           <li key={item.id} className="action-mail-list__item">
             <p className="action-mail-list__subject">
               {item.messageUrl ? (
-                <a href={item.messageUrl} className="action-mail-list__link">
+                <NativeOpenLink
+                  href={item.messageUrl}
+                  className="action-mail-list__link"
+                  payload={mailOpenPayload(item)}
+                >
                   {item.subject}
-                </a>
+                </NativeOpenLink>
               ) : (
                 item.subject
               )}

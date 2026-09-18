@@ -24,6 +24,12 @@ export type PushedRemindersSnapshot = {
   receivedAt: string;
   deviceLabel: string;
   items: ReminderItem[];
+  /** Last ingest dueAt diagnostics (no reminder bodies). */
+  dueAtDiagnostics?: {
+    rawPresent: number;
+    parsed: number;
+    samples: string[];
+  };
 };
 
 export type { NormalizedPush };
@@ -48,12 +54,14 @@ export function pushedSnapshotMaxAgeHours(): number {
 export async function savePushedReminders(
   items: ReminderItem[],
   deviceLabel = PUSHED_DEVICE_LABEL,
+  dueAtDiagnostics?: PushedRemindersSnapshot["dueAtDiagnostics"],
 ): Promise<PushedRemindersSnapshot> {
   const snapshot: PushedRemindersSnapshot = {
     schemaVersion: PUSHED_REMINDERS_SCHEMA_VERSION,
     receivedAt: new Date().toISOString(),
     deviceLabel: clampText(deviceLabel, 40) || PUSHED_DEVICE_LABEL,
     items,
+    ...(dueAtDiagnostics ? { dueAtDiagnostics } : {}),
   };
 
   const root = snapshotRoot();
@@ -79,6 +87,9 @@ export async function loadPushedReminders(): Promise<PushedRemindersSnapshot | n
       receivedAt: parsed.receivedAt,
       deviceLabel: parsed.deviceLabel || PUSHED_DEVICE_LABEL,
       items,
+      ...(parsed.dueAtDiagnostics
+        ? { dueAtDiagnostics: parsed.dueAtDiagnostics }
+        : {}),
     };
 
     // Persist repair so the next warm / UI read sees clean titles.

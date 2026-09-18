@@ -173,21 +173,33 @@ def reminder_detail(
     }
 
 
-def format_due_at(date_ref: dict, action_uuid: str) -> dict:
-    """Format Due Date as ISO-8601 (built-in style).
+def due_date_as_text(date_ref: dict, action_uuid: str) -> dict:
+    """Force Due Date → string without Format Date.
 
-    Do not set WFTimeFormatStyle=Custom without a time string: on iOS that
-    blanks the Format Date output and the ingest stores dueAt=null while
-    priority/title still arrive.
+    Format Date (Custom / ISO 8601) has blanked on iPhone while Priority still
+    arrived; a Text action with the date magic variable stringifies via locale
+    (Italian long form or ISO). Ingest parseDueAt accepts both.
     """
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "CustomOutputName": "Reminder DueAt",
+            "WFTextActionText": token_string([date_ref]),
+        },
+    }
+
+
+def format_due_at(date_ref: dict, action_uuid: str) -> dict:
+    """Legacy Format Date helper — prefer due_date_as_text on iPhone."""
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.format.date",
         "WFWorkflowActionParameters": {
             "UUID": action_uuid,
-            "CustomOutputName": "Reminder DueAt",
+            "CustomOutputName": "Reminder DueAt Formatted",
             "WFDate": attachment(date_ref),
-            "WFDateFormatStyle": "ISO 8601",
-            "WFISO8601FormatStyle": "ISO 8601",
+            "WFDateFormatStyle": "Custom",
+            "WFTimeFormatStyle": "None",
             "WFDateFormatString": DUE_AT_FORMAT,
         },
     }
@@ -250,7 +262,7 @@ def build_workflow(host: str, token: str) -> dict:
     title_uuid = uid()
     list_uuid = uid()
     due_raw_uuid = uid()
-    due_fmt_uuid = uid()
+    due_text_uuid = uid()
     notes_uuid = uid()
     priority_uuid = uid()
     id_text_uuid = uid()
@@ -272,7 +284,8 @@ def build_workflow(host: str, token: str) -> dict:
         reminder_detail("Title", title_uuid, title_name),
         reminder_detail("List", list_uuid, list_name),
         reminder_detail("Due Date", due_raw_uuid, due_raw_name),
-        format_due_at(action_output(due_raw_uuid, due_raw_name), due_fmt_uuid),
+        # Text coercion — not Format Date (blanked on iPhone builds).
+        due_date_as_text(action_output(due_raw_uuid, due_raw_name), due_text_uuid),
         reminder_detail("Notes", notes_uuid, notes_name),
         reminder_detail("Priority", priority_uuid, priority_name),
         # No Identifier property in Shortcuts Reminder details — Italian UI was
@@ -286,7 +299,7 @@ def build_workflow(host: str, token: str) -> dict:
             [
                 text_field("title", [action_output(title_uuid, title_name)]),
                 text_field("listName", [action_output(list_uuid, list_name)]),
-                text_field("dueAt", [action_output(due_fmt_uuid, due_name)]),
+                text_field("dueAt", [action_output(due_text_uuid, due_name)]),
                 text_field("notes", [action_output(notes_uuid, notes_name)]),
                 text_field(
                     "priority", [action_output(priority_uuid, priority_name)]
@@ -297,7 +310,8 @@ def build_workflow(host: str, token: str) -> dict:
         ),
         repeat_each_end(group_id, end_uuid),
         post_reminders(
-            f"{host.rstrip('/')}/api/reminders/ingest",
+            # warm=1 so a manual/automation run refreshes the edition now.
+            f"{host.rstrip('/')}/api/reminders/ingest?warm=1",
             token,
             action_output(end_uuid, "Repeat Results"),
             post_uuid,
@@ -386,8 +400,20 @@ def main() -> None:
             raise SystemExit("shortcut v2: expected Get Details of Reminders")
         if "is.workflow.actions.gettext" not in action_ids:
             raise SystemExit("shortcut v2: expected Text action for stable id")
-        if "is.workflow.actions.format.date" not in action_ids:
-            raise SystemExit("shortcut v2: expected Format Date for dueAt ISO")
+        # DueAt must be Text-coerced (or Format Date) — never leave a bare Date
+        # in the Dictionary (JSON body drops non-string date values).
+        due_text_actions = [
+            a
+            for a in workflow["WFWorkflowActions"]
+            if a["WFWorkflowActionIdentifier"] == "is.workflow.actions.gettext"
+            and a["WFWorkflowActionParameters"].get("CustomOutputName")
+            == "Reminder DueAt"
+        ]
+        if not due_text_actions:
+            raise SystemExit(
+                "shortcut v2: expected Text action 'Reminder DueAt' "
+                "(coerce Due Date to string; do not use Format Date alone)"
+            )
         # Guard: invalid "Identifier" detail remaps to Elenco on Italian iOS.
         reminder_props: set[str] = set()
         for action in workflow["WFWorkflowActions"]:
@@ -420,6 +446,11 @@ def main() -> None:
                 raise SystemExit(
                     "shortcut v2: dueAt format must use XXX (+HH:MM), "
                     "not XXXXX (+HH:MM:SS) — JS Date rejects the latter"
+                )
+            style = action["WFWorkflowActionParameters"].get("WFTimeFormatStyle")
+            if style == "Custom":
+                raise SystemExit(
+                    "shortcut v2: WFTimeFormatStyle=Custom blanks dueAt on iPhone"
                 )
 
         if output.exists():

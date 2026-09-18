@@ -18,6 +18,12 @@ export type NormalizedPush = {
   received: number;
   /** Dropped: completed, untitled, or duplicated. */
   skipped: number;
+  /** Raw dueAt present (non-empty) before parse. */
+  dueAtRawPresent: number;
+  /** Items whose dueAt parsed to ISO. */
+  dueAtParsed: number;
+  /** Up to 3 raw dueAt samples for diagnosis (truncated). */
+  dueAtSamples: string[];
 };
 
 export function clampText(value: unknown, max: number): string {
@@ -338,6 +344,36 @@ function reminderFromRecord(record: Record<string, unknown>): ReminderItem | nul
   };
 }
 
+function emptyNormalized(valid: boolean): NormalizedPush {
+  return {
+    valid,
+    items: [],
+    received: 0,
+    skipped: 0,
+    dueAtRawPresent: 0,
+    dueAtParsed: 0,
+    dueAtSamples: [],
+  };
+}
+
+function sampleDueRaw(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "string") {
+    const t = value.trim();
+    return t ? t.slice(0, 80) : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value).slice(0, 80);
+    } catch {
+      return "[object]";
+    }
+  }
+  const t = String(value).trim();
+  return t ? t.slice(0, 80) : null;
+}
+
 /**
  * Accept a bare array, `{ reminders: [...] }`, or a JSON string of either —
  * Shortcuts wraps the body differently depending on how it is built.
@@ -348,16 +384,19 @@ export function normalizePushedReminders(payload: unknown): NormalizedPush {
     try {
       source = JSON.parse(source) as unknown;
     } catch {
-      return { valid: false, items: [], received: 0, skipped: 0 };
+      return emptyNormalized(false);
     }
   }
 
   const list = coerceList(source);
-  if (!list) return { valid: false, items: [], received: 0, skipped: 0 };
+  if (!list) return emptyNormalized(false);
 
   const items: ReminderItem[] = [];
   const seen = new Set<string>();
   let skipped = 0;
+  let dueAtRawPresent = 0;
+  let dueAtParsed = 0;
+  const dueAtSamples: string[] = [];
 
   for (const entry of list) {
     const record = coerceReminderEntry(entry);
@@ -366,11 +405,21 @@ export function normalizePushedReminders(payload: unknown): NormalizedPush {
       continue;
     }
 
+    const get = reader(peelStringifiedTitleFields(record));
+    const rawDue = get(["dueat", "due", "duedate", "scadenza", "data"]);
+    const rawSample = sampleDueRaw(rawDue);
+    if (rawSample) {
+      dueAtRawPresent += 1;
+      if (dueAtSamples.length < 3) dueAtSamples.push(rawSample);
+    }
+
     const item = reminderFromRecord(record);
     if (!item) {
       skipped += 1;
       continue;
     }
+
+    if (item.dueAt) dueAtParsed += 1;
 
     const dedupeKey = item.id.toLowerCase();
     if (seen.has(dedupeKey)) {
@@ -383,7 +432,15 @@ export function normalizePushedReminders(payload: unknown): NormalizedPush {
     if (items.length >= MAX_ITEMS) break;
   }
 
-  return { valid: true, items, received: list.length, skipped };
+  return {
+    valid: true,
+    items,
+    received: list.length,
+    skipped,
+    dueAtRawPresent,
+    dueAtParsed,
+    dueAtSamples,
+  };
 }
 
 /**

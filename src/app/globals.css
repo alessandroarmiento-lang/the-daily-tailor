@@ -990,7 +990,7 @@ a.cal-event__link:hover {
   line-height: 1.28;
   color: var(--ink-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1525,7 +1525,7 @@ a.cal-event__link:hover {
 
   .action-mail-list__body {
     font-size: 5.75pt;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 3;
     border-top-color: #000000 !important;
   }
 

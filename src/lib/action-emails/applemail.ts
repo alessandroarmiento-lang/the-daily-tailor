@@ -55,7 +55,7 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
     const contacts = await loadContactEmails();
     const raw = (result.items ?? []).map((m) => ({
       ...m,
-      messageUrl: m.messageUrl || messageUrlFromId(m.id),
+      messageUrl: m.messageUrl || messageUrlFromId(m.id, m.account),
     }));
 
     // Keep full ranked actionable pool (not just A4 visible slot).

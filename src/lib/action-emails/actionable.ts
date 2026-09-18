@@ -235,16 +235,32 @@ export function bodyPreviewFromMessage(msg: MailRawMessage): string {
   return picked.slice(0, 320);
 }
 
-export function messageUrlFromId(messageId: string): string | undefined {
+/**
+ * Deep link to open a message. Gmail → web search by rfc822msgid (works from
+ * the browser). iCloud / other → Mail.app `message://` in the format Apple
+ * Script generates: only `<`/`>` (and `%`) encoded — do NOT encode `@` or
+ * `+` via encodeURIComponent or Mail returns MCMailErrorDomain 1030.
+ */
+export function messageUrlFromId(
+  messageId: string,
+  account?: string | null,
+): string | undefined {
   const id = messageId.trim();
   if (!id) return undefined;
-  // Mail.app message:// deep link uses angle-bracket Message-ID, URL-encoded.
-  const bare = id.replace(/^<|>$/g, "");
+  const bare = id.replace(/^<|>$/g, "").trim();
+  if (!bare || bare.startsWith("imap-")) return undefined;
   if (!bare.includes("@") && !bare.includes(".")) {
     // Not an RFC Message-ID — skip fragile deep link.
     return undefined;
   }
-  return `message://%3C${encodeURIComponent(bare)}%3E`;
+
+  const accountLabel = (account ?? "").toLowerCase();
+  if (accountLabel.includes("gmail") || accountLabel.includes("google")) {
+    return `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(bare)}`;
+  }
+
+  const escaped = bare.replace(/%/g, "%25");
+  return `message://%3C${escaped}%3E`;
 }
 
 /** Higher = more important for the A4 Email slot. */
@@ -303,7 +319,7 @@ export function toActionEmailItemsWithOverflow(
   const items = picked.map((msg, i) => {
     const { name, address } = parseSender(msg.sender);
     const messageUrl =
-      msg.messageUrl || messageUrlFromId(msg.id) || undefined;
+      messageUrlFromId(msg.id, msg.account) ?? msg.messageUrl ?? undefined;
     return {
       id: msg.id || `mail-${i}-${msg.receivedAt}`,
       subject: msg.subject || "(senza oggetto)",

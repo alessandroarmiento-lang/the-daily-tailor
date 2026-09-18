@@ -92,6 +92,7 @@ export async function GET(request: Request) {
       : null,
     fresh: snapshot ? isPushedSnapshotFresh(snapshot) : false,
     staleAfterHours: pushedSnapshotMaxAgeHours(),
+    dueAtDiagnostics: snapshot?.dueAtDiagnostics ?? null,
   });
 }
 
@@ -142,7 +143,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const snapshot = await savePushedReminders(normalized.items, deviceLabel);
+  const snapshot = await savePushedReminders(normalized.items, deviceLabel, {
+    rawPresent: normalized.dueAtRawPresent,
+    parsed: normalized.dueAtParsed,
+    samples: normalized.dueAtSamples,
+  });
 
   const url = new URL(request.url);
   const bodyWarm =
@@ -167,6 +172,9 @@ export async function POST(request: Request) {
     stored: snapshot.items.length,
     received: normalized.received,
     skipped: normalized.skipped,
+    dueAtRawPresent: normalized.dueAtRawPresent,
+    dueAtParsed: normalized.dueAtParsed,
+    dueAtSamples: normalized.dueAtSamples,
     receivedAt: snapshot.receivedAt,
     deviceLabel: snapshot.deviceLabel,
     staleAfterHours: pushedSnapshotMaxAgeHours(),

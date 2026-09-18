@@ -36,8 +36,8 @@ FFFC = "\ufffc"
 DEFAULT_HOST = "https://the-daily-tailor.fly.dev"
 DEFAULT_OUTPUT = "~/Desktop/Invia promemoria al giornale.shortcut"
 
-# ISO-8601 with offset +HH:MM (XXX). Do NOT use XXXXX (+HH:MM:SS): JS Date
-# rejects it → dueAt null on ingest. Prefer XXX over Z so local wall time stays.
+# ISO-8601 with +HH:MM (XXX). Never XXXXX (+HH:MM:SS) — JS Date rejects it.
+# Prefer Shortcuts built-in "ISO 8601" style; custom string is a fallback.
 DUE_AT_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
 
 
@@ -174,16 +174,20 @@ def reminder_detail(
 
 
 def format_due_at(date_ref: dict, action_uuid: str) -> dict:
-    """Format Due Date as ISO-8601 with +HH:MM offset (JS-parseable)."""
+    """Format Due Date as ISO-8601 (built-in style).
+
+    Do not set WFTimeFormatStyle=Custom without a time string: on iOS that
+    blanks the Format Date output and the ingest stores dueAt=null while
+    priority/title still arrive.
+    """
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.format.date",
         "WFWorkflowActionParameters": {
             "UUID": action_uuid,
             "CustomOutputName": "Reminder DueAt",
             "WFDate": attachment(date_ref),
-            "WFDateFormatStyle": "Custom",
-            "WFDateFormat": "Custom",
-            "WFTimeFormatStyle": "Custom",
+            "WFDateFormatStyle": "ISO 8601",
+            "WFISO8601FormatStyle": "ISO 8601",
             "WFDateFormatString": DUE_AT_FORMAT,
         },
     }

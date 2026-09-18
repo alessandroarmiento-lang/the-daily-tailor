@@ -236,10 +236,12 @@ export function bodyPreviewFromMessage(msg: MailRawMessage): string {
 }
 
 /**
- * Deep link to open a message. Gmail → web search by rfc822msgid (works from
- * the browser). iCloud / other → Mail.app `message://` in the format Apple
- * Script generates: only `<`/`>` (and `%`) encoded — do NOT encode `@` or
- * `+` via encodeURIComponent or Mail returns MCMailErrorDomain 1030.
+ * Deep link to open a message.
+ * - Gmail → web search by rfc822msgid (https works in the browser).
+ * - iCloud / other → Mail.app via opaque `message:` URL (no `//`).
+ *   `message://…@…` is parsed as URL authority by browsers, so the click
+ *   silently does nothing. AppleScript’s unencoded `@` is fine once there is
+ *   no authority section; still escape literal `%`.
  */
 export function messageUrlFromId(
   messageId: string,
@@ -260,7 +262,7 @@ export function messageUrlFromId(
   }
 
   const escaped = bare.replace(/%/g, "%25");
-  return `message://%3C${escaped}%3E`;
+  return `message:%3C${escaped}%3E`;
 }
 
 /** Higher = more important for the A4 Email slot. */

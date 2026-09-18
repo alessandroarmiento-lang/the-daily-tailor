@@ -3,7 +3,7 @@
 import {
   type GeoPermissionOutcome,
   readLocalWeatherLocation,
-  requestBrowserGeolocation,
+  resolveBrowserGeolocation,
   saveLocalWeatherLocation,
 } from "@/lib/client-weather-location";
 import type { WeatherLocation } from "@/lib/weather/location-types";
@@ -125,7 +125,7 @@ export async function refreshWeatherFromGeolocation(options?: {
   }
 
   report({ kind: "locating" });
-  const geo = await requestBrowserGeolocation();
+  const geo = await resolveBrowserGeolocation();
 
   if (geo.ok) {
     const body = await fetchWeatherForCoords({
@@ -138,7 +138,9 @@ export async function refreshWeatherFromGeolocation(options?: {
       const status: WeatherGeoStatus = {
         kind: "ok",
         location: body.location,
-        note: "Posizione GPS",
+        note: "fromCache" in geo && geo.fromCache
+          ? "Ultima posizione nota"
+          : "Posizione GPS",
       };
       report(status);
       return { weather: body.weather, status };

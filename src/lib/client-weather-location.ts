@@ -110,6 +110,7 @@ export type GeoPermissionOutcome =
     };
 
 const DENIED_SESSION_KEY = "tdt-geo-denied";
+const GRANTED_KEY = "tdt-geo-granted";
 
 function readDeniedThisSession(): boolean {
   try {
@@ -122,6 +123,22 @@ function readDeniedThisSession(): boolean {
 function markDeniedThisSession(): void {
   try {
     sessionStorage.setItem(DENIED_SESSION_KEY, "1");
+  } catch {
+    // Best-effort only.
+  }
+}
+
+function readGrantedFlag(): boolean {
+  try {
+    return localStorage.getItem(GRANTED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markGranted(): void {
+  try {
+    localStorage.setItem(GRANTED_KEY, "1");
   } catch {
     // Best-effort only.
   }
@@ -149,6 +166,67 @@ async function permissionAlreadyDenied(): Promise<boolean> {
   return false;
 }
 
+async function permissionAlreadyGranted(): Promise<boolean> {
+  if (readGrantedFlag()) return true;
+  try {
+    const permissions = navigator.permissions;
+    if (!permissions?.query) return false;
+    const status = await permissions.query({
+      name: "geolocation" as PermissionName,
+    });
+    if (status.state === "granted") {
+      markGranted();
+      return true;
+    }
+  } catch {
+    // iOS Safari may reject the query.
+  }
+  return false;
+}
+
+/**
+ * Ask the OS for GPS at most once per browser profile.
+ * After a successful Consenti we persist coords + a grant flag; later opens
+ * reuse IndexedDB and never call getCurrentPosition again (Safari/iOS would
+ * otherwise re-show the sheet even when the user already allowed).
+ */
+export async function resolveBrowserGeolocation(
+  timeoutMs = 12_000,
+): Promise<
+  | (GeoPermissionOutcome & { fromCache?: boolean })
+  | {
+      ok: true;
+      latitude: number;
+      longitude: number;
+      accuracy: number | null;
+      fromCache: true;
+    }
+> {
+  const local = await readLocalWeatherLocation();
+  if (local) {
+    markGranted();
+    return {
+      ok: true,
+      latitude: local.latitude,
+      longitude: local.longitude,
+      accuracy: null,
+      fromCache: true,
+    };
+  }
+
+  // Grant flag without coords (IDB cleared): do not re-prompt — caller falls back.
+  if (readGrantedFlag() || (await permissionAlreadyGranted())) {
+    return {
+      ok: false,
+      reason: "unavailable",
+      message: "Posizione già consentita; uso l’ultima nota sul server.",
+    };
+  }
+
+  // First visit only — may show Consenti once.
+  return requestBrowserGeolocation(timeoutMs);
+}
+
 /** Browser geolocation with a short timeout suited to PWA open. */
 export async function requestBrowserGeolocation(
   timeoutMs = 12_000,
@@ -173,6 +251,7 @@ export async function requestBrowserGeolocation(
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        markGranted();
         resolve({
           ok: true,
           latitude: pos.coords.latitude,
@@ -211,8 +290,13 @@ export async function requestBrowserGeolocation(
       {
         enableHighAccuracy: false,
         timeout: timeoutMs,
-        maximumAge: 5 * 60_000,
+        maximumAge: grantedMaximumAgeMs(),
       },
     );
   });
+}
+
+function grantedMaximumAgeMs(): number {
+  // After a prior grant, accept a stale fix so Safari does not re-prompt.
+  return readGrantedFlag() ? 24 * 60 * 60_000 : 5 * 60_000;
 }

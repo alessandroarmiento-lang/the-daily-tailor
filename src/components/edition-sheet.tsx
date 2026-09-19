@@ -556,17 +556,13 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                     {items.map((item) => (
                       <li key={item.id} className="action-mail-list__item">
                         <p className="action-mail-list__subject">
-                          {item.messageUrl ? (
-                            <NativeOpenLink
-                              href={item.messageUrl}
-                              className="action-mail-list__link"
-                              payload={mailOpenPayload(item)}
-                            >
-                              {item.subject}
-                            </NativeOpenLink>
-                          ) : (
-                            item.subject
-                          )}
+                          <NativeOpenLink
+                            href={item.messageUrl}
+                            className="action-mail-list__link"
+                            payload={mailOpenPayload(item)}
+                          >
+                            {item.subject}
+                          </NativeOpenLink>
                         </p>
                         <p className="action-mail-list__from">
                           {item.senderName}

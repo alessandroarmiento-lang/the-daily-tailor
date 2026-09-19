@@ -236,12 +236,28 @@ export function bodyPreviewFromMessage(msg: MailRawMessage): string {
 }
 
 /**
+ * RFC Message-ID local@domain. Rejects placeholders like `ADR…@*` that Mail
+ * cannot resolve (MCMailErrorDomain 1030).
+ */
+export function isValidRfcMessageId(messageId: string): boolean {
+  const bare = messageId.replace(/^<|>$/g, "").trim();
+  if (!bare || bare.startsWith("imap-")) return false;
+  if (/[*?\s<>]/.test(bare)) return false;
+  const at = bare.lastIndexOf("@");
+  if (at <= 0 || at >= bare.length - 1) return false;
+  const domain = bare.slice(at + 1);
+  // Require a real hostname (letter/digit, optional dots), not `*` / bare TLD.
+  return /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(domain);
+}
+
+/**
  * Deep link to open a message.
  * - Gmail → web search by rfc822msgid (https works in the browser).
  * - iCloud / other → Mail.app via opaque `message:` URL (no `//`).
  *   `message://…@…` is parsed as URL authority by browsers, so the click
  *   silently does nothing. AppleScript’s unencoded `@` is fine once there is
  *   no authority section; still escape literal `%`.
+ * Invalid Message-IDs return undefined — Mac helper opens by subject instead.
  */
 export function messageUrlFromId(
   messageId: string,
@@ -250,11 +266,7 @@ export function messageUrlFromId(
   const id = messageId.trim();
   if (!id) return undefined;
   const bare = id.replace(/^<|>$/g, "").trim();
-  if (!bare || bare.startsWith("imap-")) return undefined;
-  if (!bare.includes("@") && !bare.includes(".")) {
-    // Not an RFC Message-ID — skip fragile deep link.
-    return undefined;
-  }
+  if (!isValidRfcMessageId(bare)) return undefined;
 
   const accountLabel = (account ?? "").toLowerCase();
   if (accountLabel.includes("gmail") || accountLabel.includes("google")) {
@@ -320,8 +332,11 @@ export function toActionEmailItemsWithOverflow(
   const picked = ranked.slice(0, maxItems);
   const items = picked.map((msg, i) => {
     const { name, address } = parseSender(msg.sender);
+    const fromId = messageUrlFromId(msg.id, msg.account);
+    // Never keep a stale/broken `message:` URL (e.g. `@*` Message-IDs).
     const messageUrl =
-      messageUrlFromId(msg.id, msg.account) ?? msg.messageUrl ?? undefined;
+      fromId ??
+      (msg.messageUrl?.startsWith("https://") ? msg.messageUrl : undefined);
     return {
       id: msg.id || `mail-${i}-${msg.receivedAt}`,
       subject: msg.subject || "(senza oggetto)",

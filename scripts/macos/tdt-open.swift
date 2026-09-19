@@ -172,25 +172,113 @@ func openEvent(title: String, startRaw: String?) -> [String: Any] {
   return ["ok": true, "detail": "OK", "url": url]
 }
 
-@discardableResult
-func openMail(messageId: String) -> [String: Any] {
-  let bare = messageId.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
-    .replacingOccurrences(of: "%", with: "%25")
-  guard !bare.isEmpty else {
-    return ["ok": false, "detail": "missing messageId"]
+func isValidMessageId(_ bare: String) -> Bool {
+  if bare.isEmpty || bare.hasPrefix("imap-") { return false }
+  if bare.range(of: "[*?\\s<>]", options: .regularExpression) != nil { return false }
+  guard let at = bare.lastIndex(of: "@"), at > bare.startIndex,
+        at < bare.index(before: bare.endIndex) else { return false }
+  let domain = String(bare[bare.index(after: at)...])
+  return domain.range(
+    of: "^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$",
+    options: .regularExpression,
+  ) != nil
+}
+
+func runAppleScript(_ source: String) -> (ok: Bool, output: String) {
+  var error: NSDictionary?
+  guard let script = NSAppleScript(source: source) else {
+    return (false, "script")
   }
-  let url = "message:%3C\(bare)%3E"
-  _ = openURL(url)
+  let result = script.executeAndReturnError(&error)
+  if let error {
+    let msg = error[NSAppleScript.errorMessage] as? String ?? "\(error)"
+    return (false, msg)
+  }
+  return (true, result.stringValue ?? "OK")
+}
+
+func appleScriptEscape(_ value: String) -> String {
+  value
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
+}
+
+@discardableResult
+func openMailBySubject(_ subject: String) -> [String: Any] {
+  let escaped = appleScriptEscape(subject)
+  let source = """
+  tell application "Mail"
+    set theSubject to "\(escaped)"
+    set foundMessage to missing value
+    repeat with anAccount in accounts
+      try
+        set inb to inbox of anAccount
+        set hits to (messages of inb whose subject is theSubject)
+        if (count of hits) > 0 then
+          set foundMessage to item 1 of hits
+          exit repeat
+        end if
+      end try
+    end repeat
+    if foundMessage is missing value then
+      repeat with anAccount in accounts
+        try
+          set inb to inbox of anAccount
+          set hits to (messages of inb whose subject contains theSubject)
+          if (count of hits) > 0 then
+            set foundMessage to item 1 of hits
+            exit repeat
+          end if
+        end try
+      end repeat
+    end if
+    if foundMessage is not missing value then
+      open foundMessage
+      activate
+      return "OK"
+    else
+      activate
+      return "NOT_FOUND"
+    end if
+  end tell
+  """
+  let (ok, output) = runAppleScript(source)
+  if ok && output == "OK" {
+    return ["ok": true, "detail": "OK", "via": "subject"]
+  }
+  if output == "NOT_FOUND" {
+    activateApp("com.apple.mail")
+    return ["ok": false, "detail": "NOT_FOUND"]
+  }
   activateApp("com.apple.mail")
-  return ["ok": true, "detail": "OK", "url": url]
+  return ["ok": false, "detail": output]
+}
+
+@discardableResult
+func openMail(messageId: String, subject: String = "") -> [String: Any] {
+  let bare = messageId.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
+  if isValidMessageId(bare) {
+    let escaped = bare.replacingOccurrences(of: "%", with: "%25")
+    let url = "message:%3C\(escaped)%3E"
+    _ = openURL(url)
+    activateApp("com.apple.mail")
+    return ["ok": true, "detail": "OK", "url": url]
+  }
+  let title = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+  if !title.isEmpty {
+    return openMailBySubject(title)
+  }
+  activateApp("com.apple.mail")
+  return ["ok": true, "detail": "opened Mail (no id/subject)"]
 }
 
 func handleOpenBody(_ body: [String: Any]) -> [String: Any] {
   let kind = (body["kind"] as? String ?? "").lowercased()
   switch kind {
   case "mail":
-    let mid = (body["messageId"] as? String) ?? (body["id"] as? String) ?? ""
-    return openMail(messageId: mid)
+    let mid = (body["messageId"] as? String) ?? ""
+    let title = (body["title"] as? String) ?? (body["subject"] as? String) ?? ""
+    return openMail(messageId: mid, subject: title)
   case "reminder":
     let title = body["title"] as? String ?? ""
     let list = body["listName"] as? String ?? body["list"] as? String
@@ -327,7 +415,11 @@ if args.count < 2 || args[1] == "serve" {
   case "event":
     jsonOut(openEvent(title: argValue("--title") ?? "", startRaw: argValue("--start")))
   case "mail":
-    jsonOut(openMail(messageId: argValue("--id") ?? ""))
+    jsonOut(
+      openMail(
+        messageId: argValue("--id") ?? "",
+        subject: argValue("--subject") ?? "",
+      ))
   default:
     jsonOut(["ok": false, "detail": "unknown kind"])
     exit(1)

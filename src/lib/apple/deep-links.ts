@@ -3,6 +3,8 @@
  * Fallback hrefs when the helper is offline (iPhone / helper not installed).
  */
 
+import { isValidRfcMessageId } from "@/lib/action-emails/actionable";
+
 const REMINDER_UUID_RE =
   /^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/;
 
@@ -90,6 +92,7 @@ export function eventOpenPayload(event: {
 
 export function mailOpenPayload(item: {
   id: string;
+  subject?: string;
   messageUrl?: string;
   account?: string;
 }): NativeOpenPayload {
@@ -97,7 +100,9 @@ export function mailOpenPayload(item: {
   return {
     kind: "mail",
     id: item.id,
-    messageId: bare,
+    title: item.subject,
+    // Only pass Message-IDs Mail can resolve; otherwise helper uses subject.
+    messageId: isValidRfcMessageId(bare) ? bare : undefined,
   };
 }
 

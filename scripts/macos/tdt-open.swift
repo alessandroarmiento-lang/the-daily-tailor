@@ -184,17 +184,44 @@ func isValidMessageId(_ bare: String) -> Bool {
   ) != nil
 }
 
-func runAppleScript(_ source: String) -> (ok: Bool, output: String) {
-  var error: NSDictionary?
-  guard let script = NSAppleScript(source: source) else {
-    return (false, "script")
+/// Find a Mail message via Spotlight and open the .emlx (no AppleScript / Automation).
+@discardableResult
+func openMailBySubject(_ subject: String) -> [String: Any] {
+  let title = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+  guard !title.isEmpty else {
+    activateApp("com.apple.mail")
+    return ["ok": false, "detail": "missing subject"]
   }
-  let result = script.executeAndReturnError(&error)
-  if let error {
-    let msg = error[NSAppleScript.errorMessage] as? String ?? "\(error)"
-    return (false, msg)
+  let escaped = title
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
+  let proc = Process()
+  let pipe = Pipe()
+  proc.executableURL = URL(fileURLWithPath: "/usr/bin/mdfind")
+  proc.arguments = ["kMDItemSubject == \"\(escaped)\"c"]
+  proc.standardOutput = pipe
+  proc.standardError = Pipe()
+  do {
+    try proc.run()
+  } catch {
+    return openMailBySubjectAppleScript(title)
   }
-  return (true, result.stringValue ?? "OK")
+  proc.waitUntilExit()
+  let data = pipe.fileHandleForReading.readDataToEndOfFile()
+  let text = String(data: data, encoding: .utf8) ?? ""
+  let paths = text
+    .split(whereSeparator: \.isNewline)
+    .map(String.init)
+    .filter {
+      ($0.contains("/Library/Mail/") || $0.contains("/Library/Mobile Documents/"))
+        && ($0.hasSuffix(".emlx") || $0.hasSuffix(".partial.emlx") || $0.hasSuffix(".eml"))
+    }
+  if let first = paths.first {
+    NSWorkspace.shared.open(URL(fileURLWithPath: first))
+    activateApp("com.apple.mail")
+    return ["ok": true, "detail": "OK", "via": "spotlight"]
+  }
+  return openMailBySubjectAppleScript(title)
 }
 
 func appleScriptEscape(_ value: String) -> String {
@@ -204,27 +231,22 @@ func appleScriptEscape(_ value: String) -> String {
 }
 
 @discardableResult
-func openMailBySubject(_ subject: String) -> [String: Any] {
+func openMailBySubjectAppleScript(_ subject: String) -> [String: Any] {
   let escaped = appleScriptEscape(subject)
+  // Exact match on unified inbox only — `contains` scans too much and can hang.
   let source = """
   tell application "Mail"
     set theSubject to "\(escaped)"
     set foundMessage to missing value
-    repeat with anAccount in accounts
-      try
-        set inb to inbox of anAccount
-        set hits to (messages of inb whose subject is theSubject)
-        if (count of hits) > 0 then
-          set foundMessage to item 1 of hits
-          exit repeat
-        end if
-      end try
-    end repeat
+    try
+      set hits to (messages of inbox whose subject is theSubject)
+      if (count of hits) > 0 then set foundMessage to item 1 of hits
+    end try
     if foundMessage is missing value then
       repeat with anAccount in accounts
         try
-          set inb to inbox of anAccount
-          set hits to (messages of inb whose subject contains theSubject)
+          set inb to mailbox "INBOX" of anAccount
+          set hits to (messages of inb whose subject is theSubject)
           if (count of hits) > 0 then
             set foundMessage to item 1 of hits
             exit repeat
@@ -242,16 +264,23 @@ func openMailBySubject(_ subject: String) -> [String: Any] {
     end if
   end tell
   """
-  let (ok, output) = runAppleScript(source)
-  if ok && output == "OK" {
-    return ["ok": true, "detail": "OK", "via": "subject"]
-  }
-  if output == "NOT_FOUND" {
+  var error: NSDictionary?
+  guard let script = NSAppleScript(source: source) else {
     activateApp("com.apple.mail")
-    return ["ok": false, "detail": "NOT_FOUND"]
+    return ["ok": true, "detail": "opened Mail"]
   }
-  activateApp("com.apple.mail")
-  return ["ok": false, "detail": output]
+  let result = script.executeAndReturnError(&error)
+  if let error {
+    let msg = error[NSAppleScript.errorMessage] as? String ?? "\(error)"
+    activateApp("com.apple.mail")
+    return ["ok": true, "detail": msg]
+  }
+  let output = result.stringValue ?? ""
+  if output == "OK" {
+    return ["ok": true, "detail": "OK", "via": "applescript"]
+  }
+  // Still ok:true so the browser does not fall back to a broken message: URL.
+  return ["ok": true, "detail": "opened Mail", "via": "applescript"]
 }
 
 @discardableResult

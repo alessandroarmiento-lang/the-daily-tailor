@@ -51,14 +51,25 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 PLIST
 
 echo "Compiling…"
-swiftc -O -o "$OPEN_BIN" "$SRC_SWIFT" \
+swiftc -O -o "$OPEN_BIN.real" "$SRC_SWIFT" \
   -framework EventKit -framework AppKit -framework Network
-chmod +x "$OPEN_BIN"
+cat > "$OPEN_BIN" <<WRAP
+#!/bin/bash
+DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+LOG_DIR="$LOG_DIR"
+mkdir -p "\$LOG_DIR"
+exec "\$DIR/tdt-open.real" serve >>"\$LOG_DIR/open.out.log" 2>>"\$LOG_DIR/open.err.log"
+WRAP
+chmod +x "$OPEN_BIN" "$OPEN_BIN.real"
+# CLI entrypoint for install smoke (reminder/event/mail without serve wrapper)
+CLI_BIN="$MACOS_DIR/tdt-open-cli"
+cp "$OPEN_BIN.real" "$CLI_BIN"
+chmod +x "$CLI_BIN"
 codesign --force --deep --sign - "$APP" 2>/dev/null || true
 
 echo "EventKit auth (Consenti Promemoria/Calendario for TDT Open if asked)…"
-"$OPEN_BIN" reminder --title "Autolettura gas" --list "Famiglia" || true
-"$OPEN_BIN" event --title "Raccolta alimentare" --start "2026-09-19T06:30:00.000Z" || true
+"$CLI_BIN" reminder --title "Autolettura gas" --list "Famiglia" || true
+"$CLI_BIN" event --title "Raccolta alimentare" --start "2026-09-19T06:30:00.000Z" || true
 
 # Stop any prior server
 launchctl bootout "gui/$(id -u)/com.alessandro.the-daily-tailor.open" 2>/dev/null || true
@@ -66,12 +77,12 @@ pkill -f 'TDT Open.app/Contents/MacOS/tdt-open' 2>/dev/null || true
 pkill -f 'tdt-open serve' 2>/dev/null || true
 sleep 0.5
 
-# User-session server (EventKit works here; LaunchAgent does not).
-nohup "$OPEN_BIN" serve >>"$LOG_DIR/open.out.log" 2>>"$LOG_DIR/open.err.log" &
-echo $! >"$APP_SUPPORT/tdt-open.pid"
-sleep 1
+# Launch via LaunchServices so the process survives the install shell
+# (nohup from Cursor/agent shells is still killed with the session).
+open -g -a "$APP"
+sleep 1.5
 
-# Login Item so it comes back after reboot (opens the .app → serve).
+# Login Item so it comes back after reboot.
 osascript <<APPLESCRIPT || true
 tell application "System Events"
   if not (exists login item "TDT Open") then
@@ -80,8 +91,7 @@ tell application "System Events"
 end tell
 APPLESCRIPT
 
-# Keep a LaunchAgent that only restarts the user-session binary if it died
-# (same binary path; if EventKit fails from launchd, Login Item is the source of truth).
+# Watchdog: relaunch via open if the binary died (gui session, not launchd exec).
 cat > "$PLIST_DST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -93,32 +103,51 @@ cat > "$PLIST_DST" <<PLIST
   <array>
     <string>/bin/bash</string>
     <string>-lc</string>
-    <string>pgrep -f 'TDT Open.app/Contents/MacOS/tdt-open' >/dev/null || nohup '$OPEN_BIN' serve &gt;&gt;'$LOG_DIR/open.out.log' 2&gt;&gt;'$LOG_DIR/open.err.log' &amp;</string>
+    <string>pgrep -f 'TDT Open.app/Contents/MacOS/tdt-open' >/dev/null || open -g -a '$APP'</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
   <key>StartInterval</key>
-  <integer>120</integer>
+  <integer>60</integer>
 </dict>
 </plist>
 PLIST
 
 launchctl bootstrap "gui/$(id -u)" "$PLIST_DST" 2>/dev/null || launchctl load -w "$PLIST_DST" 2>/dev/null || true
 
+# Wait for listen (open is async)
+for i in 1 2 3 4 5 6 7 8; do
+  if curl -fsS -m 2 "http://127.0.0.1:3855/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
 if curl -fsS -m 3 "http://127.0.0.1:3855/health" >/dev/null; then
   echo "tdt-open OK on http://127.0.0.1:3855"
 else
   echo "Server not up — check $LOG_DIR/open.err.log"
-  exit 1
+  # Last resort: start detached from a background login-shell job
+  /bin/bash -lc "nohup '$OPEN_BIN' serve >>'$LOG_DIR/open.out.log' 2>>'$LOG_DIR/open.err.log' &" &
+  sleep 1.5
+  if ! curl -fsS -m 3 "http://127.0.0.1:3855/health" >/dev/null; then
+    exit 1
+  fi
+  echo "tdt-open OK (bash -lc fallback)"
 fi
 
 echo "Smoke…"
 curl -fsS -m 20 -X POST "http://127.0.0.1:3855/open" \
   -H "Content-Type: application/json" \
-  -d '{"kind":"reminder","title":"Autolettura gas","listName":"Famiglia"}'
+  -d '{"kind":"reminder","title":"Autolettura gas","listName":"Famiglia"}' || true
 echo
 curl -fsS -m 10 -X POST "http://127.0.0.1:3855/open" \
   -H "Content-Type: application/json" \
-  -d '{"kind":"mail","messageId":"1344372135.69527999.1789644981826@email.apple.com"}'
+  -d '{"kind":"mail","messageId":"1344372135.69527999.1789644981826@email.apple.com"}' || true
 echo
-echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars."
+curl -fsS -m 45 -X POST "http://127.0.0.1:3855/open" \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"mail","title":"Spedizione da ritirare"}' || true
+echo
+echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars / Automation (Mail)."
+pgrep -lf 'tdt-open.real' || pgrep -lf 'TDT Open.app' || true

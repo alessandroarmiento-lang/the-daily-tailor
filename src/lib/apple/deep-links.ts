@@ -100,12 +100,22 @@ export function mailOpenPayload(item: {
   account?: string;
 }): NativeOpenPayload {
   const bare = item.id.replace(/^<|>$/g, "").trim();
+  const account = (item.account ?? "").toLowerCase();
+  const isGmail =
+    account.includes("gmail") ||
+    account.includes("google") ||
+    (item.messageUrl?.startsWith("https://mail.google.com") ?? false);
   return {
     kind: "mail",
     id: item.id,
     title: item.subject,
-    // Only pass Message-IDs Mail can resolve; otherwise helper uses subject.
-    messageId: isValidRfcMessageId(bare) ? bare : undefined,
+    // Gmail opens via https in the browser (NativeOpenLink). Helper is for
+    // Apple Mail / iCloud only — pass Message-ID when Mail can resolve it.
+    messageId: isGmail
+      ? undefined
+      : isValidRfcMessageId(bare)
+        ? bare
+        : undefined,
   };
 }
 

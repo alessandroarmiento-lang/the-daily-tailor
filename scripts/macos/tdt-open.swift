@@ -290,12 +290,24 @@ func isValidMessageId(_ bare: String) -> Bool {
   ) != nil
 }
 
+func frontmostMail() {
+  activateApp("com.apple.mail")
+  _ = runOsascript("""
+  tell application "Mail" to activate
+  tell application "System Events"
+    try
+      set frontmost of first process whose bundle identifier is "com.apple.mail" to true
+    end try
+  end tell
+  """)
+}
+
 /// Find a Mail message via Spotlight and open the .emlx (no AppleScript / Automation).
 @discardableResult
 func openMailBySubject(_ subject: String) -> [String: Any] {
   let title = subject.trimmingCharacters(in: .whitespacesAndNewlines)
   guard !title.isEmpty else {
-    activateApp("com.apple.mail")
+    frontmostMail()
     return ["ok": false, "detail": "missing subject"]
   }
   let escaped = title
@@ -324,7 +336,7 @@ func openMailBySubject(_ subject: String) -> [String: Any] {
     }
   if let first = paths.first {
     NSWorkspace.shared.open(URL(fileURLWithPath: first))
-    activateApp("com.apple.mail")
+    frontmostMail()
     return ["ok": true, "detail": "OK", "via": "spotlight"]
   }
   return openMailBySubjectAppleScript(title)
@@ -333,8 +345,16 @@ func openMailBySubject(_ subject: String) -> [String: Any] {
 @discardableResult
 func openMailBySubjectAppleScript(_ subject: String) -> [String: Any] {
   let escaped = appleScriptEscape(subject)
-  // Exact match on unified inbox only — `contains` scans too much and can hang.
+  // Exact match on unified / per-account inbox — avoid `contains` (hangs).
   let source = """
+  tell application "Mail"
+    activate
+  end tell
+  tell application "System Events"
+    try
+      set frontmost of first process whose bundle identifier is "com.apple.mail" to true
+    end try
+  end tell
   tell application "Mail"
     set theSubject to "\(escaped)"
     set foundMessage to missing value
@@ -364,23 +384,12 @@ func openMailBySubjectAppleScript(_ subject: String) -> [String: Any] {
     end if
   end tell
   """
-  var error: NSDictionary?
-  guard let script = NSAppleScript(source: source) else {
-    activateApp("com.apple.mail")
-    return ["ok": true, "detail": "opened Mail"]
-  }
-  let result = script.executeAndReturnError(&error)
-  if let error {
-    let msg = error[NSAppleScript.errorMessage] as? String ?? "\(error)"
-    activateApp("com.apple.mail")
-    return ["ok": true, "detail": msg]
-  }
-  let output = result.stringValue ?? ""
-  if output == "OK" {
+  let (ok, output) = runOsascript(source)
+  if ok && output == "OK" {
     return ["ok": true, "detail": "OK", "via": "applescript"]
   }
-  // Still ok:true so the browser does not fall back to a broken message: URL.
-  return ["ok": true, "detail": "opened Mail", "via": "applescript"]
+  frontmostMail()
+  return ["ok": true, "detail": output.isEmpty ? "opened Mail" : output, "via": "applescript"]
 }
 
 @discardableResult
@@ -390,14 +399,18 @@ func openMail(messageId: String, subject: String = "") -> [String: Any] {
     let escaped = bare.replacingOccurrences(of: "%", with: "%25")
     let url = "message:%3C\(escaped)%3E"
     _ = openURL(url)
-    activateApp("com.apple.mail")
+    frontmostMail()
+    // Second frontmost — message: often leaves Safari focused when Mail is open.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+      frontmostMail()
+    }
     return ["ok": true, "detail": "OK", "url": url]
   }
   let title = subject.trimmingCharacters(in: .whitespacesAndNewlines)
   if !title.isEmpty {
     return openMailBySubject(title)
   }
-  activateApp("com.apple.mail")
+  frontmostMail()
   return ["ok": true, "detail": "opened Mail (no id/subject)"]
 }
 

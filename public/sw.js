@@ -3,6 +3,8 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v9: toolbar lang/actions single-row alignment on iPhone.
+ * v8: shell cache bump after layout/CSS deploys.
  * v7: calendar in-flow (no clipped day borders); news still fills remaining height.
  * v6: max-content rows + hide overflow news/days so sections never overlap.
  * v5: layout fix — in-flow rows must not crush (overlap) under A4 height.
@@ -10,7 +12,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v8";
+const SHELL_CACHE = "daily-tailor-shell-v9";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

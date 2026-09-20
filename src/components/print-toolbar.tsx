@@ -63,7 +63,6 @@ export function PrintToolbar({
           EN
         </button>
       </div>
-      <span className="toolbar__spacer" aria-hidden="true" />
       <div className="toolbar__actions">
         {historyHref ? (
           <Link className="toolbar__btn toolbar__btn--ghost" href={historyHref}>

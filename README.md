@@ -8,7 +8,7 @@ Personal one-page morning paper, tailored to you — web app for Alessandro Armi
 
 **Non è un’idea originale.** The Daily Tailor nasce da un post visto su Instagram: una ragazza aveva realizzato una sorta di giornale personale quotidiano. Alessandro ha voluto **replicare** quell’idea su Cursor, con le proprie sezioni e integrazioni (meteo, agenda, mail, promemoria, notizie).
 
-Questo repository non rivendica l’invenzione del formato “giornale del mattino in una pagina”: è un remake personale. Uso **solo non commerciale**; i crediti in `CREDITS.md` devono restare visibili (vedi `LICENSE`).
+Questo repository non rivendica l’invenzione del formato “giornale del mattino in una pagina”: è un remake personale. Licensed under **[ANCA 1.0](https://github.com/alessandroarmiento-lang/ANCA)** (Armiento Non-Commercial Attribution): personal / educational / research use; **no commercial use**; credits in `CREDITS.md` must stay visible in the UI (see [`LICENSE`](LICENSE)).
 
 ## What it is
 

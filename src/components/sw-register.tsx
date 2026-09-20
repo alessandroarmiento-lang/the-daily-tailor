@@ -28,7 +28,7 @@ export function ServiceWorkerRegister() {
             .filter(
               (k) =>
                 k.startsWith("daily-tailor-") &&
-                k !== "daily-tailor-shell-v6" &&
+                k !== "daily-tailor-shell-v7" &&
                 k !== "daily-tailor-data-v2",
             )
             .map((k) => caches.delete(k)),

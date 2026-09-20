@@ -397,7 +397,9 @@ a.cal-event__link:hover {
     align-content: start;
   }
 
+  /* In-flow sections size the rows. News alone is absolute and fills the span. */
   .area-weather,
+  .area-calendar,
   .area-reminders,
   .area-emails {
     min-width: 0;
@@ -411,6 +413,7 @@ a.cal-event__link:hover {
   }
 
   .area-weather > .sheet-section,
+  .area-calendar > .sheet-section,
   .area-reminders > .sheet-section,
   .area-emails > .sheet-section {
     position: relative;
@@ -422,13 +425,13 @@ a.cal-event__link:hover {
   }
 
   .area-weather .sheet-section__body,
+  .area-calendar .sheet-section__body,
   .area-reminders .sheet-section__body,
   .area-emails .sheet-section__body {
     flex: 0 0 auto;
     overflow: visible;
   }
 
-  .area-calendar,
   .area-news {
     min-width: 0;
     min-height: 0;
@@ -438,7 +441,6 @@ a.cal-event__link:hover {
     z-index: 0;
   }
 
-  .area-calendar > .sheet-section,
   .area-news > .sheet-section {
     position: absolute;
     inset: 0;
@@ -448,17 +450,10 @@ a.cal-event__link:hover {
     overflow: hidden;
   }
 
-  .area-calendar .sheet-section__body,
   .area-news .sheet-section__body {
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-  }
-
-  /* Author CSS `display` would otherwise override the HTML hidden attribute. */
-  .cal-day[hidden],
-  .headline-list__item[hidden] {
-    display: none !important;
   }
 
   .area-weather {
@@ -515,6 +510,7 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .area-weather,
+.sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-reminders,
 .sheet-page.is-pdf-capture .area-emails {
   position: relative !important;
@@ -528,6 +524,7 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .area-weather > .sheet-section,
+.sheet-page.is-pdf-capture .area-calendar > .sheet-section,
 .sheet-page.is-pdf-capture .area-reminders > .sheet-section,
 .sheet-page.is-pdf-capture .area-emails > .sheet-section {
   position: relative !important;
@@ -540,13 +537,13 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .area-weather .sheet-section__body,
+.sheet-page.is-pdf-capture .area-calendar .sheet-section__body,
 .sheet-page.is-pdf-capture .area-reminders .sheet-section__body,
 .sheet-page.is-pdf-capture .area-emails .sheet-section__body {
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important;
   overflow: visible !important;
 }
 
-.sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-news {
   position: relative !important;
   min-height: 0 !important;
@@ -556,7 +553,6 @@ a.cal-event__link:hover {
   z-index: 0 !important;
 }
 
-.sheet-page.is-pdf-capture .area-calendar > .sheet-section,
 .sheet-page.is-pdf-capture .area-news > .sheet-section {
   position: absolute !important;
   inset: 0 !important;
@@ -566,7 +562,6 @@ a.cal-event__link:hover {
   overflow: hidden !important;
 }
 
-.sheet-page.is-pdf-capture .area-calendar .sheet-section__body,
 .sheet-page.is-pdf-capture .area-news .sheet-section__body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -885,7 +880,7 @@ a.cal-event__link:hover {
 
 .headline-list__item {
   display: block;
-  padding: 0.28rem 0;
+  padding: 0.2rem 0;
   border-bottom: 1px dotted rgba(0, 0, 0, 0.22);
 }
 
@@ -1308,6 +1303,7 @@ a.cal-event__link:hover {
   }
 
   .area-weather,
+  .area-calendar,
   .area-reminders,
   .area-emails {
     position: relative !important;
@@ -1321,6 +1317,7 @@ a.cal-event__link:hover {
   }
 
   .area-weather > .sheet-section,
+  .area-calendar > .sheet-section,
   .area-reminders > .sheet-section,
   .area-emails > .sheet-section {
     position: relative !important;
@@ -1334,13 +1331,13 @@ a.cal-event__link:hover {
   }
 
   .area-weather .sheet-section__body,
+  .area-calendar .sheet-section__body,
   .area-reminders .sheet-section__body,
   .area-emails .sheet-section__body {
-    flex: 0 1 auto !important;
+    flex: 0 0 auto !important;
     overflow: visible !important;
   }
 
-  .area-calendar,
   .area-news {
     position: relative !important;
     min-height: 0 !important;
@@ -1350,7 +1347,6 @@ a.cal-event__link:hover {
     z-index: 0 !important;
   }
 
-  .area-calendar > .sheet-section,
   .area-news > .sheet-section {
     position: absolute !important;
     inset: 0 !important;
@@ -1360,7 +1356,6 @@ a.cal-event__link:hover {
     overflow: hidden !important;
   }
 
-  .area-calendar .sheet-section__body,
   .area-news .sheet-section__body {
     flex: 1 1 auto !important;
     min-height: 0 !important;

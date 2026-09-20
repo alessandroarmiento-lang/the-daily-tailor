@@ -28,7 +28,6 @@ import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
 const NEWS_MIN = 1;
-const CALENDAR_MIN_DAYS = 2;
 
 function weatherSourceLabel(source: string): string {
   switch (source) {
@@ -331,12 +330,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   kicker="Prossimi giorni"
                   tone={calendarResult.status === "error" ? "error" : "ok"}
                 >
-                  <AdaptiveFill
-                    className="cal-widget"
-                    role="list"
-                    minCount={CALENDAR_MIN_DAYS}
-                    step={2}
-                  >
+                  <div className="cal-widget" role="list">
                     {days.map((day) => (
                       <div
                         key={day.dateKey}
@@ -382,7 +376,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         )}
                       </div>
                     ))}
-                  </AdaptiveFill>
+                  </div>
                 </SectionShell>
               );
             })()

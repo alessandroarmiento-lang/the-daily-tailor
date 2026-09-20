@@ -389,7 +389,7 @@ a.cal-event__link:hover {
      * Row height follows content for weather + reminders; emails take the
      * leftover A4 budget. Calendar/news are absolute so they never inflate rows.
      */
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
     grid-template-areas:
       "weather calendar news"
       "reminders reminders news"
@@ -428,22 +428,22 @@ a.cal-event__link:hover {
     overflow: visible;
   }
 
-  /* Emails fill leftover sheet height; AdaptiveFill drops whole cards. */
+  /* Emails: always show up to 4; height follows content, never trim. */
   .area-emails {
-    align-self: stretch;
+    align-self: start;
     min-height: 0;
-    height: 100%;
+    height: auto;
   }
   .area-emails > .sheet-section {
-    flex: 1 1 auto;
-    height: 100%;
+    flex: 0 1 auto;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
   .area-emails .sheet-section__body {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .area-calendar,
@@ -513,7 +513,7 @@ a.cal-event__link:hover {
   min-height: 0 !important;
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  grid-template-rows: auto auto minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
   grid-template-areas:
     "weather calendar news"
     "reminders reminders news"
@@ -538,11 +538,11 @@ a.cal-event__link:hover {
 .sheet-page.is-pdf-capture .area-emails {
   position: relative !important;
   min-height: 0 !important;
-  overflow: hidden !important;
-  align-self: stretch !important;
+  overflow: visible !important;
+  align-self: start !important;
   display: flex !important;
   flex-direction: column !important;
-  height: 100% !important;
+  height: auto !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather > .sheet-section,
@@ -561,16 +561,16 @@ a.cal-event__link:hover {
   inset: auto !important;
   display: flex !important;
   flex-direction: column !important;
-  flex: 1 1 auto !important;
-  height: 100% !important;
+  flex: 0 1 auto !important;
+  height: auto !important;
   min-height: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .sheet-page.is-pdf-capture .area-emails .sheet-section__body {
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
   min-height: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .sheet-page.is-pdf-capture .area-calendar,
@@ -1314,7 +1314,7 @@ a.cal-event__link:hover {
     min-height: 0 !important;
     display: grid !important;
     grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
     grid-template-areas:
       "weather calendar news"
       "reminders reminders news"
@@ -1339,11 +1339,11 @@ a.cal-event__link:hover {
   .area-emails {
     position: relative !important;
     min-height: 0 !important;
-    overflow: hidden !important;
-    align-self: stretch !important;
+    overflow: visible !important;
+    align-self: start !important;
     display: flex !important;
     flex-direction: column !important;
-    height: 100% !important;
+    height: auto !important;
   }
 
   .area-weather > .sheet-section,
@@ -1364,10 +1364,10 @@ a.cal-event__link:hover {
     inset: auto !important;
     display: flex !important;
     flex-direction: column !important;
-    flex: 1 1 auto !important;
-    height: 100% !important;
+    flex: 0 1 auto !important;
+    height: auto !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   .area-weather .sheet-section__body,
@@ -1378,9 +1378,9 @@ a.cal-event__link:hover {
   }
 
   .area-emails .sheet-section__body {
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   .area-calendar,

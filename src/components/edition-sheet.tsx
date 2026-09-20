@@ -19,6 +19,7 @@ import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
+import { emailsOverflowLabel } from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
@@ -26,7 +27,6 @@ import type { NewsItem } from "@/lib/news/types";
 const NEWS_MIN = 1;
 const CALENDAR_MIN_DAYS = 2;
 const REMINDERS_MIN = 1;
-const EMAILS_MIN = 1;
 const PRECIP_MIN_ROWS = 1;
 
 function weatherSourceLabel(source: string): string {
@@ -540,23 +540,18 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 0,
                 config.actionEmails.maxItems,
               );
-              const priorHidden =
+              const hidden =
                 typeof emailsResult.data.hiddenCount === "number"
                   ? emailsResult.data.hiddenCount
                   : 0;
+              const overflow = emailsOverflowLabel(hidden);
               return (
                 <SectionShell
                   title="Email"
                   kicker="Ieri · richieste d’azione"
                   tone={emailsResult.status === "error" ? "error" : "ok"}
                 >
-                  <AdaptiveFill
-                    as="ul"
-                    className="action-mail-list"
-                    minCount={EMAILS_MIN}
-                    showOverflow
-                    priorHidden={priorHidden}
-                  >
+                  <ul className="action-mail-list">
                     {items.map((item) => (
                       <li key={item.id} className="action-mail-list__item">
                         <p className="action-mail-list__subject">
@@ -588,7 +583,10 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         ) : null}
                       </li>
                     ))}
-                  </AdaptiveFill>
+                  </ul>
+                  {overflow ? (
+                    <p className="section-overflow">{overflow}</p>
+                  ) : null}
                 </SectionShell>
               );
             })()

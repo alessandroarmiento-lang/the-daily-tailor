@@ -19,18 +19,15 @@ import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
-import {
-  emailsOverflowLabel,
-  remindersOverflowLabel,
-} from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
-const NEWS_MIN = 6;
-const CALENDAR_MIN_DAYS = 4;
-const REMINDERS_MAX = 6;
-const EMAILS_MAX = 4;
+const NEWS_MIN = 1;
+const CALENDAR_MIN_DAYS = 2;
+const REMINDERS_MIN = 1;
+const EMAILS_MIN = 1;
+const PRECIP_MIN_ROWS = 1;
 
 function weatherSourceLabel(source: string): string {
   switch (source) {
@@ -69,7 +66,12 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
         </p>
       ) : null}
       {rows.length > 0 ? (
-        <div className="weather__precip-rows" aria-label="Previsione oraria">
+        <AdaptiveFill
+          className="weather__precip-rows"
+          role="group"
+          minCount={PRECIP_MIN_ROWS}
+          aria-label="Previsione oraria"
+        >
           {rows.map((row, rowIndex) => (
             <div
               key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
@@ -93,7 +95,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
               ))}
             </div>
           ))}
-        </div>
+        </AdaptiveFill>
       ) : null}
     </div>
   );
@@ -460,19 +462,27 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               />
             ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
               (() => {
-                const items = remindersResult.data.items.slice(0, REMINDERS_MAX);
-                const hidden =
+                const items = remindersResult.data.items.slice(
+                  0,
+                  config.reminders.maxItems,
+                );
+                const priorHidden =
                   typeof remindersResult.data.hiddenCount === "number"
                     ? remindersResult.data.hiddenCount
                     : 0;
-                const overflow = remindersOverflowLabel(hidden);
                 return (
                   <SectionShell
                     title="Promemoria"
                     kicker="Oggi / aperti"
                     tone={remindersResult.status === "error" ? "error" : "ok"}
                   >
-                    <ul className="reminder-list">
+                    <AdaptiveFill
+                      as="ul"
+                      className="reminder-list"
+                      minCount={REMINDERS_MIN}
+                      showOverflow
+                      priorHidden={priorHidden}
+                    >
                       {items.map((raw) => {
                         const item = sanitizeReminderItem(raw);
                         const pri = priorityLabel(item.priority);
@@ -506,10 +516,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                           </li>
                         );
                       })}
-                    </ul>
-                    {overflow ? (
-                      <p className="section-overflow">{overflow}</p>
-                    ) : null}
+                    </AdaptiveFill>
                   </SectionShell>
                 );
               })()
@@ -531,19 +538,27 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             />
           ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
             (() => {
-              const items = emailsResult.data.items.slice(0, EMAILS_MAX);
-              const hidden =
+              const items = emailsResult.data.items.slice(
+                0,
+                config.actionEmails.maxItems,
+              );
+              const priorHidden =
                 typeof emailsResult.data.hiddenCount === "number"
                   ? emailsResult.data.hiddenCount
                   : 0;
-              const overflow = emailsOverflowLabel(hidden);
               return (
                 <SectionShell
                   title="Email"
                   kicker="Ieri · richieste d’azione"
                   tone={emailsResult.status === "error" ? "error" : "ok"}
                 >
-                  <ul className="action-mail-list">
+                  <AdaptiveFill
+                    as="ul"
+                    className="action-mail-list"
+                    minCount={EMAILS_MIN}
+                    showOverflow
+                    priorHidden={priorHidden}
+                  >
                     {items.map((item) => (
                       <li key={item.id} className="action-mail-list__item">
                         <p className="action-mail-list__subject">
@@ -575,10 +590,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         ) : null}
                       </li>
                     ))}
-                  </ul>
-                  {overflow ? (
-                    <p className="section-overflow">{overflow}</p>
-                  ) : null}
+                  </AdaptiveFill>
                 </SectionShell>
               );
             })()

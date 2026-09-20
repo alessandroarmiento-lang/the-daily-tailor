@@ -116,18 +116,28 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   root.classList.add("is-pdf-capture");
   root.style.width = "210mm";
   root.style.maxWidth = "210mm";
+  root.style.height = "297mm";
+  root.style.maxHeight = "297mm";
   root.style.margin = "0";
   root.style.boxSizing = "border-box";
   root.style.background = "#ffffff";
+  root.style.overflow = "hidden";
+  root.style.display = "flex";
+  root.style.flexDirection = "column";
 
   if (grid instanceof HTMLElement) {
     grid.style.display = "grid";
+    grid.style.flex = "1 1 auto";
+    grid.style.minHeight = "0";
     grid.style.gridTemplateColumns = DESKTOP_GRID_COLUMNS;
+    grid.style.gridTemplateRows =
+      "minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.9fr)";
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";
-    grid.style.alignContent = "start";
+    grid.style.alignContent = "stretch";
     grid.style.alignItems = "stretch";
+    grid.style.overflow = "hidden";
   }
 
   for (const [selector, area] of orderedAreas) {
@@ -135,6 +145,9 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     if (el instanceof HTMLElement) {
       el.style.gridArea = area;
       el.style.minHeight = "0";
+      el.style.position = "relative";
+      el.style.overflow = "hidden";
+      el.style.alignSelf = "stretch";
     }
   }
 
@@ -175,24 +188,31 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
 
   const restore = prepareSheetForCapture(sheet);
   await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
   });
 
   let imgData: string;
   try {
     const rect = sheet.getBoundingClientRect();
+    const captureH = Math.ceil(rect.height);
     imgData = await toJpeg(sheet, {
       quality: 0.96,
       pixelRatio: 2,
       backgroundColor: "#ffffff",
       cacheBust: true,
       width: Math.ceil(rect.width),
-      height: Math.ceil(Math.max(sheet.scrollHeight, rect.height)),
+      // Fixed A4 box only — never capture overflow below the page.
+      height: captureH,
       style: {
         transform: "none",
         width: `${Math.ceil(rect.width)}px`,
         maxWidth: `${Math.ceil(rect.width)}px`,
+        height: `${captureH}px`,
+        maxHeight: `${captureH}px`,
         margin: "0",
+        overflow: "hidden",
       },
       filter: (node) => {
         if (!(node instanceof Element)) return true;

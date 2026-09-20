@@ -249,14 +249,15 @@ a.cal-event__link:hover {
   min-width: 0;
 }
 
-/* Desktop / PDF: one A4 box. In-flow rows keep natural height (no overlap). */
+/* Desktop: A4 preview without crushing in-flow rows into each other. */
 @media (min-width: 700px) {
   .sheet-page {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    height: 297mm;
+    /* Soft A4 cap — never force a fixed height that compresses sections. */
     max-height: 297mm;
+    height: auto;
     overflow: hidden;
   }
 
@@ -385,11 +386,8 @@ a.cal-event__link:hover {
 @media (min-width: 700px) {
   .sheet-grid {
     grid-template-columns: 0.95fr 1.05fr 1.2fr;
-    /*
-     * Weather + reminders + emails size themselves. Calendar/news are absolute
-     * fillers and must never shrink the in-flow rows (that caused overlaps).
-     */
-    grid-template-rows: auto auto auto;
+    /* max-content: rows never shrink below section content (stops overlaps). */
+    grid-template-rows: max-content max-content max-content;
     grid-template-areas:
       "weather calendar news"
       "reminders reminders news"
@@ -403,14 +401,13 @@ a.cal-event__link:hover {
   .area-reminders,
   .area-emails {
     min-width: 0;
-    /* Do NOT use min-height:0 here — it lets the grid crush rows and overlap. */
-    min-height: min-content;
+    min-height: max-content;
     position: relative;
     overflow: visible;
     align-self: start;
     display: flex;
     flex-direction: column;
-    z-index: 1;
+    z-index: 2;
   }
 
   .area-weather > .sheet-section,
@@ -427,7 +424,7 @@ a.cal-event__link:hover {
   .area-weather .sheet-section__body,
   .area-reminders .sheet-section__body,
   .area-emails .sheet-section__body {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     overflow: visible;
   }
 
@@ -439,14 +436,6 @@ a.cal-event__link:hover {
     overflow: hidden;
     align-self: stretch;
     z-index: 0;
-  }
-
-  /* Stretch calendar to the weather row; news spans weather+reminders. */
-  .area-calendar {
-    height: 100%;
-  }
-  .area-news {
-    height: 100%;
   }
 
   .area-calendar > .sheet-section,
@@ -464,6 +453,12 @@ a.cal-event__link:hover {
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+  }
+
+  /* Author CSS `display` would otherwise override the HTML hidden attribute. */
+  .cal-day[hidden],
+  .headline-list__item[hidden] {
+    display: none !important;
   }
 
   .area-weather {
@@ -507,7 +502,7 @@ a.cal-event__link:hover {
   min-height: 0 !important;
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  grid-template-rows: auto auto auto !important;
+  grid-template-rows: max-content max-content max-content !important;
   grid-template-areas:
     "weather calendar news"
     "reminders reminders news"
@@ -523,12 +518,12 @@ a.cal-event__link:hover {
 .sheet-page.is-pdf-capture .area-reminders,
 .sheet-page.is-pdf-capture .area-emails {
   position: relative !important;
-  min-height: min-content !important;
+  min-height: max-content !important;
   overflow: visible !important;
   align-self: start !important;
   display: flex !important;
   flex-direction: column !important;
-  z-index: 1 !important;
+  z-index: 2 !important;
   height: auto !important;
 }
 
@@ -896,6 +891,12 @@ a.cal-event__link:hover {
 
 .headline-list__item:last-child {
   border-bottom: 0;
+}
+
+/* AdaptiveFill sets hidden — author `display` must not resurrect clipped ghosts. */
+.cal-day[hidden],
+.headline-list__item[hidden] {
+  display: none !important;
 }
 
 .headline-list__title {
@@ -1294,7 +1295,7 @@ a.cal-event__link:hover {
     min-height: 0 !important;
     display: grid !important;
     grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-    grid-template-rows: auto auto auto !important;
+    grid-template-rows: max-content max-content max-content !important;
     grid-template-areas:
       "weather calendar news"
       "reminders reminders news"
@@ -1310,12 +1311,12 @@ a.cal-event__link:hover {
   .area-reminders,
   .area-emails {
     position: relative !important;
-    min-height: min-content !important;
+    min-height: max-content !important;
     overflow: visible !important;
     align-self: start !important;
     display: flex !important;
     flex-direction: column !important;
-    z-index: 1 !important;
+    z-index: 2 !important;
     height: auto !important;
   }
 

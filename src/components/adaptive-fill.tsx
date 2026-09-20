@@ -57,6 +57,7 @@ export function AdaptiveFill({
 
       for (const node of nodes) {
         node.hidden = false;
+        node.style.removeProperty("display");
       }
 
       // Body not height-capped yet (still sizing) — retry next frame.
@@ -66,19 +67,25 @@ export function AdaptiveFill({
       }
 
       let visible = nodes.length;
+      const apply = (n: number) => {
+        for (let i = 0; i < nodes.length; i += 1) {
+          const hide = i >= n;
+          nodes[i].hidden = hide;
+          // Author CSS sets display on list items; override when hiding.
+          if (hide) nodes[i].style.display = "none";
+          else nodes[i].style.removeProperty("display");
+        }
+      };
+
       while (visible > minCount && !fits()) {
         visible -= step;
         if (visible < minCount) visible = minCount;
-        for (let i = 0; i < nodes.length; i += 1) {
-          nodes[i].hidden = i >= visible;
-        }
+        apply(visible);
       }
       while (visible > 0 && !fits()) {
         visible -= step;
         if (visible < 0) visible = 0;
-        for (let i = 0; i < nodes.length; i += 1) {
-          nodes[i].hidden = i >= visible;
-        }
+        apply(visible);
       }
     };
 

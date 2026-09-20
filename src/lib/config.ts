@@ -82,6 +82,9 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "auto",
-    horizonDays: Number(process.env.CALENDAR_HORIZON_DAYS ?? "8"),
+    horizonDays: Math.min(
+      6,
+      Math.max(1, Number(process.env.CALENDAR_HORIZON_DAYS ?? "6") || 6),
+    ),
   },
 } as const;

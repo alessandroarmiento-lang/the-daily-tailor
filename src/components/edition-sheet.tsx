@@ -19,15 +19,16 @@ import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
-import { emailsOverflowLabel } from "@/lib/section-overflow";
+import {
+  emailsOverflowLabel,
+  remindersOverflowLabel,
+} from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
 const NEWS_MIN = 1;
 const CALENDAR_MIN_DAYS = 2;
-const REMINDERS_MIN = 1;
-const PRECIP_MIN_ROWS = 1;
 
 function weatherSourceLabel(source: string): string {
   switch (source) {
@@ -66,12 +67,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
         </p>
       ) : null}
       {rows.length > 0 ? (
-        <AdaptiveFill
-          className="weather__precip-rows"
-          role="group"
-          minCount={PRECIP_MIN_ROWS}
-          aria-label="Previsione oraria"
-        >
+        <div className="weather__precip-rows" aria-label="Previsione oraria">
           {rows.map((row, rowIndex) => (
             <div
               key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
@@ -95,7 +91,7 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
               ))}
             </div>
           ))}
-        </AdaptiveFill>
+        </div>
       ) : null}
     </div>
   );
@@ -464,23 +460,18 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   0,
                   config.reminders.maxItems,
                 );
-                const priorHidden =
+                const hidden =
                   typeof remindersResult.data.hiddenCount === "number"
                     ? remindersResult.data.hiddenCount
                     : 0;
+                const overflow = remindersOverflowLabel(hidden);
                 return (
                   <SectionShell
                     title="Promemoria"
                     kicker="Oggi / aperti"
                     tone={remindersResult.status === "error" ? "error" : "ok"}
                   >
-                    <AdaptiveFill
-                      as="ul"
-                      className="reminder-list"
-                      minCount={REMINDERS_MIN}
-                      showOverflow
-                      priorHidden={priorHidden}
-                    >
+                    <ul className="reminder-list">
                       {items.map((raw) => {
                         const item = sanitizeReminderItem(raw);
                         const pri = priorityLabel(item.priority);
@@ -514,7 +505,10 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                           </li>
                         );
                       })}
-                    </AdaptiveFill>
+                    </ul>
+                    {overflow ? (
+                      <p className="section-overflow">{overflow}</p>
+                    ) : null}
                   </SectionShell>
                 );
               })()

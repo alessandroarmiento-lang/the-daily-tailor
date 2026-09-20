@@ -134,11 +134,7 @@ export function DailyPaperApp({
         <>
           <EditionSheet
             edition={sheetEdition}
-            weatherLocationNote={
-              geoStatus.kind === "ok" || geoStatus.kind === "fallback"
-                ? geoStatus.note
-                : null
-            }
+            weatherLocationNote={null}
           />
           {dateKey === "today" ? (
             <MorningReload

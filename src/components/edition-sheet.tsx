@@ -1,5 +1,6 @@
 "use client";
 
+import { AdaptiveFill } from "@/components/adaptive-fill";
 import { NativeOpenLink } from "@/components/native-open-link";
 import {
   SectionEmpty,
@@ -13,6 +14,7 @@ import {
   reminderDeepLink,
   reminderOpenPayload,
 } from "@/lib/apple/deep-links";
+import { config } from "@/lib/config";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
@@ -25,7 +27,8 @@ import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
 
-const NEWS_MAX = 6;
+const NEWS_MIN = 6;
+const CALENDAR_MIN_DAYS = 4;
 const REMINDERS_MAX = 6;
 const EMAILS_MAX = 4;
 
@@ -330,7 +333,12 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   kicker="Prossimi giorni"
                   tone={calendarResult.status === "error" ? "error" : "ok"}
                 >
-                  <div className="cal-widget" role="list">
+                  <AdaptiveFill
+                    className="cal-widget"
+                    role="list"
+                    minCount={CALENDAR_MIN_DAYS}
+                    step={2}
+                  >
                     {days.map((day) => (
                       <div
                         key={day.dateKey}
@@ -378,7 +386,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         )}
                       </div>
                     ))}
-                  </div>
+                  </AdaptiveFill>
                 </SectionShell>
               );
             })()
@@ -400,14 +408,21 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               />
             ) : newsResult.data && newsResult.data.items.length > 0 ? (
               (() => {
-                const items = newsResult.data.items.slice(0, NEWS_MAX);
+                const items = newsResult.data.items.slice(
+                  0,
+                  config.news.maxItems,
+                );
                 return (
                   <SectionShell
                     title="Notizie dal mondo"
                     kicker="Il Post"
                     tone={newsResult.status === "error" ? "error" : "ok"}
                   >
-                    <ul className="headline-list">
+                    <AdaptiveFill
+                      as="ul"
+                      className="headline-list"
+                      minCount={NEWS_MIN}
+                    >
                       {items.map((item) => (
                         <li key={item.id} className="headline-list__item">
                           <div>
@@ -420,7 +435,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                           </div>
                         </li>
                       ))}
-                    </ul>
+                    </AdaptiveFill>
                   </SectionShell>
                 );
               })()

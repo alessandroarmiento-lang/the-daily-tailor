@@ -80,9 +80,7 @@ export async function CalendarSection() {
               {day.isToday ? "Oggi · " : ""}
               {day.label}
             </p>
-            {day.events.length === 0 ? (
-              <p className="cal-day__empty">—</p>
-            ) : (
+            {day.events.length === 0 ? null : (
               <ul className="cal-day__events">
                 {day.events.map((event) => {
                   const hint = calendarHint(event.calendarName);

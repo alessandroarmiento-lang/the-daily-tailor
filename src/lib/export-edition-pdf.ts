@@ -130,8 +130,7 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     grid.style.flex = "1 1 auto";
     grid.style.minHeight = "0";
     grid.style.gridTemplateColumns = DESKTOP_GRID_COLUMNS;
-    grid.style.gridTemplateRows =
-      "minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.9fr)";
+    grid.style.gridTemplateRows = "auto auto minmax(0, 1fr)";
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";

@@ -1114,6 +1114,37 @@ a.cal-event__link:hover {
     max-width: 100%;
   }
 
+  /* Keep lang + actions on one row on iPhone (~393px); spacer gap was
+     forcing a wrap that looked like IT/EN sitting above the other buttons. */
+  .toolbar {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    align-items: center;
+  }
+
+  .toolbar__spacer {
+    display: none;
+  }
+
+  .toolbar__actions {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    align-self: center;
+  }
+
+  .toolbar__btn {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .toolbar__btn--lang {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
   .sheet-page {
     /* Side margins without letting width:100% + margin overflow the viewport. */
     margin: 0.5rem auto;

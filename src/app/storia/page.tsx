@@ -76,6 +76,30 @@ function StoriaPageInner() {
     <>
       <ServiceWorkerRegister />
       <div className="no-print toolbar">
+        <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
+          <button
+            type="button"
+            className={
+              "toolbar__btn toolbar__btn--ghost toolbar__btn--lang" +
+              (lang === "it" ? " toolbar__btn--lang-on" : "")
+            }
+            aria-pressed={lang === "it"}
+            onClick={() => setLang("it")}
+          >
+            IT
+          </button>
+          <button
+            type="button"
+            className={
+              "toolbar__btn toolbar__btn--ghost toolbar__btn--lang" +
+              (lang === "en" ? " toolbar__btn--lang-on" : "")
+            }
+            aria-pressed={lang === "en"}
+            onClick={() => setLang("en")}
+          >
+            EN
+          </button>
+        </div>
         <div className="toolbar__copy">
           <p className="toolbar__hint">{t("historyTitle")}</p>
           <p className="toolbar__status">
@@ -85,30 +109,6 @@ function StoriaPageInner() {
           </p>
         </div>
         <div className="toolbar__actions">
-          <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
-            <button
-              type="button"
-              className={
-                "toolbar__btn toolbar__btn--ghost" +
-                (lang === "it" ? " toolbar__btn--lang-on" : "")
-              }
-              aria-pressed={lang === "it"}
-              onClick={() => setLang("it")}
-            >
-              IT
-            </button>
-            <button
-              type="button"
-              className={
-                "toolbar__btn toolbar__btn--ghost" +
-                (lang === "en" ? " toolbar__btn--lang-on" : "")
-              }
-              aria-pressed={lang === "en"}
-              onClick={() => setLang("en")}
-            >
-              EN
-            </button>
-          </div>
           <Link className="toolbar__btn" href="/">
             {t("backToday")}
           </Link>

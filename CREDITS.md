@@ -25,12 +25,14 @@ Weather: Open-Meteo · News: Il Post
 
 Not an original format idea. Inspired by an Instagram post about a personal
 daily newspaper made by someone else; this project is Alessandro’s remake on
-Cursor (see README → Provenance / ispirazione).
+Cursor (see README → Provenance).
 
 ## License
 
-**The Daily Tailor 1.0 Non-Commercial Attribution License** (`LICENSE`):
-non-commercial use only; on-screen credits must stay visible.
+**ANCA 1.0** — Armiento Non-Commercial Attribution License
+([`LICENSE`](LICENSE), canonical text:
+https://github.com/alessandroarmiento-lang/ANCA): non-commercial use only;
+on-screen credits must stay visible.
 
 ## Third-party (attribution, own licenses)
 

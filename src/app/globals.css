@@ -147,8 +147,10 @@ a.cal-event__link:hover {
   background: var(--ink);
   border: 1px solid var(--ink);
   padding: 0.7rem 1.05rem;
+  height: 44px;
   min-height: 44px;
   min-width: 44px;
+  line-height: 1;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   -webkit-appearance: none;

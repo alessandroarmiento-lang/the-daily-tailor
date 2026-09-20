@@ -70,6 +70,8 @@ export const messages = {
     condSnow: "Neve",
     condThunderstorm: "Temporale",
     condUnknown: "Condizioni non disponibili",
+    noNews: "Nessun titolo disponibile questa mattina.",
+    noEmails: "Nessuna email d’azione arrivata ieri.",
   },
   en: {
     langAria: "Language",
@@ -138,6 +140,8 @@ export const messages = {
     condSnow: "Snow",
     condThunderstorm: "Thunderstorm",
     condUnknown: "Conditions unavailable",
+    noNews: "No headlines available this morning.",
+    noEmails: "No action emails arrived yesterday.",
   },
 } as const;
 

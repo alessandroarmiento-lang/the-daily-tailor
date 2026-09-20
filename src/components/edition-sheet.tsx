@@ -504,7 +504,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               <SectionEmpty
                 title={t("news")}
                 kicker="Il Post"
-                message="Nessun titolo disponibile questa mattina."
+                message={t("noNews")}
               />
             )}
           </div>
@@ -652,7 +652,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
           ) : (
             <SectionEmpty
               title={t("email")}
-              message="Nessuna email d’azione arrivata ieri."
+              message={t("noEmails")}
             />
           )}
         </div>

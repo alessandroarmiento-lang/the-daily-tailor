@@ -8,10 +8,8 @@ import { PrintToolbar } from "@/components/print-toolbar";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { loadEditionForClient } from "@/lib/offline-editions";
 import {
-  MILANO_FALLBACK,
   readWeatherGeoOverride,
   refreshWeatherFromGeolocation,
-  type WeatherGeoStatus,
 } from "@/lib/refresh-weather-geo";
 import type { SectionResult, WeatherSnapshot } from "@/lib/weather/types";
 
@@ -35,9 +33,6 @@ export function DailyPaperApp({
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialEdition);
-  const [geoStatus, setGeoStatus] = useState<WeatherGeoStatus>({
-    kind: "idle",
-  });
   /**
    * Kept beside the edition, not merged into it: a later edition load
    * (network, AGGIORNA) must not put the 06:00 snapshot back on screen.
@@ -53,15 +48,10 @@ export function DailyPaperApp({
           typeof window === "undefined"
             ? null
             : readWeatherGeoOverride(window.location.search),
-        onStatus: setGeoStatus,
       });
       if (outcome.weather?.data) setGeoWeather(outcome.weather);
     } catch {
-      setGeoStatus({
-        kind: "fallback",
-        location: MILANO_FALLBACK,
-        note: "Posizione non aggiornata — meteo dell’edizione.",
-      });
+      // Keep edition weather; silent — no toolbar status line.
     }
   }, [dateKey]);
 
@@ -109,12 +99,6 @@ export function DailyPaperApp({
   const sheetEdition =
     edition && geoWeather?.data ? { ...edition, weather: geoWeather } : edition;
   const showLoading = loading && !edition;
-  const geoNote =
-    geoStatus.kind === "ok" || geoStatus.kind === "fallback"
-      ? `${geoStatus.note} · ${geoStatus.location.city}`
-      : geoStatus.kind === "locating"
-        ? "Rilevamento posizione…"
-        : null;
 
   return (
     <>
@@ -129,11 +113,6 @@ export function DailyPaperApp({
             : "the-daily-tailor"
         }
       />
-      {geoNote && dateKey === "today" ? (
-        <p className="no-print geo-status" role="status">
-          {geoNote}
-        </p>
-      ) : null}
       {showLoading ? (
         <main className="sheet-page">
           <p className="state-line">Caricamento The Daily Tailor…</p>

@@ -149,5 +149,5 @@ curl -fsS -m 45 -X POST "http://127.0.0.1:3855/open" \
   -H "Content-Type: application/json" \
   -d '{"kind":"mail","title":"Spedizione da ritirare"}' || true
 echo
-echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars / Automation (Mail)."
+echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars / Automation (Reminders + Mail)."
 pgrep -lf 'tdt-open.real' || pgrep -lf 'TDT Open.app' || true

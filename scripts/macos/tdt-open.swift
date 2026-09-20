@@ -36,20 +36,96 @@ func argValue(_ name: String) -> String? {
 }
 
 func activateApp(_ bundleId: String) {
+  // Prefer an already-running instance and force it frontmost — openApplication
+  // alone often leaves Safari focused when Reminders/Calendar/Mail are open.
+  if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+    app.activate(options: [.activateAllWindows])
+  }
   let config = NSWorkspace.OpenConfiguration()
   config.activates = true
   if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) {
     NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
-    return
-  }
-  if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
-    app.activate()
   }
 }
 
 func openURL(_ string: String) -> Bool {
   guard let url = URL(string: string) else { return false }
+  // Synchronous open — async+semaphore on the main HTTP thread deadlocks.
   return NSWorkspace.shared.open(url)
+}
+
+func appleScriptEscape(_ value: String) -> String {
+  value
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
+}
+
+/// Run via /usr/bin/osascript so Automation TCC applies to TDT Open.app
+/// even when called from the background HTTP server.
+@discardableResult
+func runOsascript(_ source: String) -> (ok: Bool, output: String) {
+  let proc = Process()
+  let out = Pipe()
+  let err = Pipe()
+  proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+  proc.arguments = ["-e", source]
+  proc.standardOutput = out
+  proc.standardError = err
+  do {
+    try proc.run()
+  } catch {
+    return (false, "\(error)")
+  }
+  proc.waitUntilExit()
+  let stdout = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+  let stderr = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+  if proc.terminationStatus == 0 {
+    return (true, stdout.isEmpty ? "OK" : stdout)
+  }
+  return (false, stderr.isEmpty ? "exit \(proc.terminationStatus)" : stderr)
+}
+
+/// Bring Reminders forward and show the list / reminder (works when already open).
+func showReminderInApp(title: String, list: String?) -> Bool {
+  let t = appleScriptEscape(title)
+  let source: String
+  if let list, !list.isEmpty {
+    let l = appleScriptEscape(list)
+    source = """
+    tell application "Reminders"
+      activate
+      try
+        tell list "\(l)"
+          show (first reminder whose name is "\(t)")
+        end tell
+        return "OK"
+      on error
+        try
+          show (first list whose name is "\(l)")
+          return "LIST"
+        on error
+          return "FAIL"
+        end try
+      end try
+    end tell
+    """
+  } else {
+    source = """
+    tell application "Reminders"
+      activate
+      try
+        show (first reminder whose name is "\(t)")
+        return "OK"
+      on error
+        return "FAIL"
+      end try
+    end tell
+    """
+  }
+  let (ok, output) = runOsascript(source)
+  return ok && (output == "OK" || output == "LIST")
 }
 
 func authorizeReminders(_ store: EKEventStore) -> String? {
@@ -121,13 +197,29 @@ func openReminder(title: String, list: String?) -> [String: Any] {
   }
   _ = sem.wait(timeout: .now() + 20)
   guard let reminder = found else {
+    // Still try AppleScript by title/list so a second click can switch lists.
+    if showReminderInApp(title: title, list: list) {
+      return ["ok": true, "detail": "OK", "via": "applescript"]
+    }
+    activateApp("com.apple.reminders")
     return ["ok": false, "detail": "NOT_FOUND"]
   }
   let uuid = reminder.calendarItemIdentifier
   let url = "x-apple-reminderkit://REMCDReminder/\(uuid)"
+  // AppleScript first: switches list + fronts the app when already open.
+  let shown = showReminderInApp(title: title, list: list)
   _ = openURL(url)
   activateApp("com.apple.reminders")
-  return ["ok": true, "detail": "OK", "url": url]
+  // Second activate after URL — ReminderKit often leaves Safari focused.
+  DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+    activateApp("com.apple.reminders")
+  }
+  return [
+    "ok": true,
+    "detail": "OK",
+    "url": url,
+    "via": shown ? "applescript+url" : "url",
+  ]
 }
 
 func parseStart(_ raw: String?) -> Date? {
@@ -222,12 +314,6 @@ func openMailBySubject(_ subject: String) -> [String: Any] {
     return ["ok": true, "detail": "OK", "via": "spotlight"]
   }
   return openMailBySubjectAppleScript(title)
-}
-
-func appleScriptEscape(_ value: String) -> String {
-  value
-    .replacingOccurrences(of: "\\", with: "\\\\")
-    .replacingOccurrences(of: "\"", with: "\\\"")
 }
 
 @discardableResult

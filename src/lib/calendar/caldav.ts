@@ -6,7 +6,8 @@
  * the legacy `/calendar/dav/<user>/events/` collection with Basic (app password).
  */
 import { createDAVClient, type DAVCalendar } from "tsdav";
-import ical from "node-ical";
+import ical, { expandRecurringEvent } from "node-ical";
+import { config } from "@/lib/config";
 import {
   readEditionCacheEnvelope,
   writeEditionCache,
@@ -37,6 +38,145 @@ function icalUtcStamp(d: Date): string {
     `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}` +
     `T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`
   );
+}
+
+/** Civil YYYY-MM-DD in `timeZone` for an Instant. */
+function dateKeyInTz(isoOrDate: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(isoOrDate);
+}
+
+/**
+ * Midnight at the start of `dateKey` (YYYY-MM-DD) in `timeZone`, as UTC Date.
+ * Avoids Fly's UTC `setHours(0,0,0,0)` shifting the Rome day.
+ */
+function zonedDayStart(dateKey: string, timeZone: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  // Probe UTC noon on that civil date, then subtract the zone offset.
+  const probe = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const inTz = new Date(
+    probe.toLocaleString("en-US", { timeZone }),
+  );
+  const asUtc = new Date(
+    probe.toLocaleString("en-US", { timeZone: "UTC" }),
+  );
+  const offsetMs = asUtc.getTime() - inTz.getTime();
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0) + offsetMs);
+}
+
+function addCivilDays(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d + days, 12));
+  return utc.toISOString().slice(0, 10);
+}
+
+function horizonBounds(horizonDays: number): { start: Date; end: Date } {
+  const tz = config.timezone;
+  const todayKey = dateKeyInTz(new Date(), tz);
+  const endKey = addCivilDays(todayKey, horizonDays);
+  return {
+    start: zonedDayStart(todayKey, tz),
+    end: zonedDayStart(endKey, tz),
+  };
+}
+
+type IcalEvent = {
+  type?: string;
+  summary?: string;
+  uid?: string;
+  location?: string;
+  start?: Date & { dateOnly?: boolean };
+  end?: Date;
+  rrule?: { between: (a: Date, b: Date, inclusive?: boolean) => Date[] };
+  exdate?: Record<string, Date>;
+};
+
+function parseEventsFromIcs(
+  ics: string,
+  calendarName: string,
+  start: Date,
+  end: Date,
+): CalendarEventItem[] {
+  const parsed = ical.sync.parseICS(ics);
+  const items: CalendarEventItem[] = [];
+
+  for (const value of Object.values(parsed)) {
+    if (!value || typeof value !== "object") continue;
+    const ev = value as IcalEvent;
+    if (ev.type !== "VEVENT") continue;
+
+    const summary = (ev.summary ? String(ev.summary) : "") || "(senza titolo)";
+    const uid = (ev.uid ? String(ev.uid) : "") || summary;
+    const loc = ev.location ? String(ev.location) : null;
+
+    // Recurring masters: expand into the window (EXDATE / RECURRENCE-ID).
+    // Without this, yearly/weekly events vanish from Agenda.
+    if (ev.rrule) {
+      try {
+        const instances = expandRecurringEvent(ev as never, {
+          from: start,
+          to: end,
+        });
+        for (const inst of instances) {
+          const startsAt = inst.start;
+          if (!(startsAt instanceof Date) || Number.isNaN(startsAt.getTime())) {
+            continue;
+          }
+          if (startsAt < start || startsAt >= end) continue;
+          items.push({
+            id: `${uid}|${startsAt.toISOString()}`,
+            title: (inst.summary ? String(inst.summary) : summary) || summary,
+            location: loc,
+            startsAt: startsAt.toISOString(),
+            endsAt:
+              inst.end && !Number.isNaN(inst.end.getTime())
+                ? inst.end.toISOString()
+                : null,
+            isAllDay: Boolean(inst.isFullDay),
+            calendarName,
+          });
+        }
+        continue;
+      } catch {
+        // fall through to one-shot parse
+      }
+    }
+
+    let startsAt: Date | null = null;
+    let endsAt: Date | null = null;
+    let isAllDay = false;
+
+    if (ev.start) {
+      const s = ev.start;
+      startsAt = s instanceof Date ? s : new Date(String(s));
+      isAllDay = Boolean(s.dateOnly === true);
+    }
+    if (ev.end) {
+      const e = ev.end;
+      endsAt = e instanceof Date ? e : new Date(String(e));
+    }
+
+    if (!startsAt || Number.isNaN(startsAt.getTime())) continue;
+    if (startsAt < start || startsAt >= end) continue;
+
+    items.push({
+      id: uid,
+      title: summary,
+      location: loc,
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt && !Number.isNaN(endsAt.getTime())
+        ? endsAt.toISOString()
+        : null,
+      isAllDay,
+      calendarName,
+    });
+  }
+
+  return items;
 }
 
 function defaultGoogleEventsUrl(username: string): string {
@@ -85,74 +225,6 @@ export function configuredCalDavAccounts(): CalDavAccount[] {
 
 export function hasCalDavCredentials(): boolean {
   return configuredCalDavAccounts().length > 0;
-}
-
-function horizonBounds(horizonDays: number): { start: Date; end: Date } {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + horizonDays);
-  return { start, end };
-}
-
-type IcalEvent = {
-  type?: string;
-  summary?: string;
-  uid?: string;
-  location?: string;
-  start?: Date & { dateOnly?: boolean };
-  end?: Date;
-};
-
-function parseEventsFromIcs(
-  ics: string,
-  calendarName: string,
-  start: Date,
-  end: Date,
-): CalendarEventItem[] {
-  const parsed = ical.sync.parseICS(ics);
-  const items: CalendarEventItem[] = [];
-
-  for (const value of Object.values(parsed)) {
-    if (!value || typeof value !== "object") continue;
-    const ev = value as IcalEvent;
-    if (ev.type !== "VEVENT") continue;
-
-    const summary = (ev.summary ? String(ev.summary) : "") || "(senza titolo)";
-    const uid = (ev.uid ? String(ev.uid) : "") || summary;
-    const loc = ev.location ? String(ev.location) : null;
-
-    let startsAt: Date | null = null;
-    let endsAt: Date | null = null;
-    let isAllDay = false;
-
-    if (ev.start) {
-      const s = ev.start;
-      startsAt = s instanceof Date ? s : new Date(String(s));
-      isAllDay = Boolean(s.dateOnly === true);
-    }
-    if (ev.end) {
-      const e = ev.end;
-      endsAt = e instanceof Date ? e : new Date(String(e));
-    }
-
-    if (!startsAt || Number.isNaN(startsAt.getTime())) continue;
-    if (startsAt < start || startsAt >= end) continue;
-
-    items.push({
-      id: uid,
-      title: summary,
-      location: loc,
-      startsAt: startsAt.toISOString(),
-      endsAt: endsAt && !Number.isNaN(endsAt.getTime())
-        ? endsAt.toISOString()
-        : null,
-      isAllDay,
-      calendarName,
-    });
-  }
-
-  return items;
 }
 
 function decodeCalendarDataXml(raw: string): string {

@@ -39,32 +39,32 @@ export function PrintToolbar({
 
   return (
     <div className="no-print toolbar">
+      <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
+        <button
+          type="button"
+          className={
+            "toolbar__btn toolbar__btn--ghost toolbar__btn--lang" +
+            (lang === "it" ? " toolbar__btn--lang-on" : "")
+          }
+          aria-pressed={lang === "it"}
+          onClick={() => setLang("it")}
+        >
+          IT
+        </button>
+        <button
+          type="button"
+          className={
+            "toolbar__btn toolbar__btn--ghost toolbar__btn--lang" +
+            (lang === "en" ? " toolbar__btn--lang-on" : "")
+          }
+          aria-pressed={lang === "en"}
+          onClick={() => setLang("en")}
+        >
+          EN
+        </button>
+      </div>
       <span className="toolbar__spacer" aria-hidden="true" />
       <div className="toolbar__actions">
-        <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
-          <button
-            type="button"
-            className={
-              "toolbar__btn toolbar__btn--ghost" +
-              (lang === "it" ? " toolbar__btn--lang-on" : "")
-            }
-            aria-pressed={lang === "it"}
-            onClick={() => setLang("it")}
-          >
-            IT
-          </button>
-          <button
-            type="button"
-            className={
-              "toolbar__btn toolbar__btn--ghost" +
-              (lang === "en" ? " toolbar__btn--lang-on" : "")
-            }
-            aria-pressed={lang === "en"}
-            onClick={() => setLang("en")}
-          >
-            EN
-          </button>
-        </div>
         {historyHref ? (
           <Link className="toolbar__btn toolbar__btn--ghost" href={historyHref}>
             {t("history")}

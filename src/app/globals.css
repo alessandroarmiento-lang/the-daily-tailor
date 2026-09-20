@@ -1654,9 +1654,22 @@ a.cal-event__link:hover {
   }
 }
 
-.toolbar__lang { display: inline-flex; gap: 0.2rem; margin-right: 0.35rem; }
+.toolbar__lang {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  order: -1;
+}
+.toolbar__btn--lang {
+  min-width: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  border-width: 2px;
+}
 .toolbar__btn--lang-on {
   border-color: #111 !important;
-  background: #f0f0f0 !important;
+  background: #111 !important;
+  color: #fff !important;
   font-weight: 700;
 }

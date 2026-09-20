@@ -51,13 +51,11 @@ async function resolveDefaultLang(): Promise<Lang> {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void resolveDefaultLang().then((next) => {
       setLangState(next);
       document.documentElement.lang = next;
-      setReady(true);
     });
   }, []);
 
@@ -81,9 +79,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     () => ({ lang, setLang, t, locale: localeFor(lang) }),
     [lang, setLang, t],
   );
-
-  // Avoid flashing English on the author's machine before owner-prefs loads.
-  if (!ready) return null;
 
   return (
     <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>

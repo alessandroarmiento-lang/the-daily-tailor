@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v11: empty-state news/email copy follows UI lang.
  * v10: EN UI labels for weather/agenda/masthead/aphorism.
  * v9: toolbar lang/actions single-row alignment on iPhone.
  * v8: shell cache bump after layout/CSS deploys.
@@ -13,7 +14,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v10";
+const SHELL_CACHE = "daily-tailor-shell-v11";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

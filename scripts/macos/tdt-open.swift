@@ -96,6 +96,13 @@ func showReminderInApp(title: String, list: String?) -> Bool {
     source = """
     tell application "Reminders"
       activate
+    end tell
+    tell application "System Events"
+      try
+        set frontmost of first process whose bundle identifier is "com.apple.reminders" to true
+      end try
+    end tell
+    tell application "Reminders"
       try
         tell list "\(l)"
           show (first reminder whose name is "\(t)")
@@ -115,6 +122,13 @@ func showReminderInApp(title: String, list: String?) -> Bool {
     source = """
     tell application "Reminders"
       activate
+    end tell
+    tell application "System Events"
+      try
+        set frontmost of first process whose bundle identifier is "com.apple.reminders" to true
+      end try
+    end tell
+    tell application "Reminders"
       try
         show (first reminder whose name is "\(t)")
         return "OK"
@@ -407,6 +421,57 @@ func handleOpenBody(_ body: [String: Any]) -> [String: Any] {
   }
 }
 
+/// tdt-open://open?kind=reminder&title=…&listName=…
+func handleOpenURLString(_ raw: String) -> [String: Any] {
+  guard let url = URL(string: raw) else {
+    return ["ok": false, "detail": "bad url"]
+  }
+  let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+  var body: [String: Any] = [:]
+  for item in comps?.queryItems ?? [] {
+    if let value = item.value { body[item.name] = value }
+  }
+  if body["kind"] == nil {
+    // tdt-open://reminder?title=…
+    let host = (url.host ?? url.path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    if !host.isEmpty && host != "open" {
+      body["kind"] = host
+    }
+  }
+  FileHandle.standardError.write(
+    Data("tdt-open URL: \(raw)\n".utf8))
+  return handleOpenBody(body)
+}
+
+/// Handles Safari → tdt-open://… (HTTPS pages cannot fetch http://127.0.0.1).
+final class URLHandler: NSObject {
+  static let shared = URLHandler()
+
+  @objc func handleGetURLEvent(
+    _ event: NSAppleEventDescriptor,
+    withReplyEvent replyEvent: NSAppleEventDescriptor,
+  ) {
+    guard
+      let raw = event.paramDescriptor(forKeyword: AEKeyword(0x2D2D_2D2D))?
+        .stringValue
+    else { return }
+    DispatchQueue.main.async {
+      _ = handleOpenURLString(raw)
+    }
+  }
+}
+
+func registerURLSchemeHandler() {
+  // Both class and ID are 'GURL' (kInternetEventClass / kAEGetURL).
+  let gurl = AEEventClass(0x4755_524C)
+  NSAppleEventManager.shared().setEventHandler(
+    URLHandler.shared,
+    andSelector: #selector(URLHandler.handleGetURLEvent(_:withReplyEvent:)),
+    forEventClass: gurl,
+    andEventID: AEEventID(gurl),
+  )
+}
+
 func httpResponse(status: Int, body: String) -> Data {
   let reason: String
   switch status {
@@ -459,12 +524,22 @@ func handleHTTP(request: String) -> Data {
 }
 
 func serve() {
+  let app = NSApplication.shared
+  // Accessory = menu-bar / background agent; required for GetURL Apple Events.
+  app.setActivationPolicy(.accessory)
+  registerURLSchemeHandler()
+
   let listener: NWListener
   do {
     listener = try NWListener(using: .tcp, on: OPEN_PORT)
   } catch {
-    FileHandle.standardError.write(Data("listen failed: \(error)\n".utf8))
-    exit(1)
+    // Another TDT Open already owns :3855 — stay alive briefly so a
+    // launch-for-URL can still receive GetURL, then exit.
+    FileHandle.standardError.write(
+      Data("listen failed (port busy): \(error) — URL handler only\n".utf8))
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { exit(0) }
+    app.run()
+    return
   }
   listener.newConnectionHandler = { conn in
     conn.start(queue: DispatchQueue.global(qos: .userInitiated))
@@ -517,7 +592,7 @@ func serve() {
   listener.start(queue: .main)
   FileHandle.standardError.write(
     Data("tdt-open listening on http://\(OPEN_HOST):\(OPEN_PORT)\n".utf8))
-  RunLoop.main.run()
+  app.run()
 }
 
 let args = CommandLine.arguments

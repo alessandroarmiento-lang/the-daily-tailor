@@ -1,6 +1,9 @@
 /**
- * Deep links + payloads for the Mac local opener (127.0.0.1:3855).
- * Fallback hrefs when the helper is offline (iPhone / helper not installed).
+ * Deep links + payloads for the Mac local opener.
+ *
+ * Safari blocks HTTPS → http://127.0.0.1 fetch (mixed content), so the paper
+ * uses the custom URL scheme `tdt-open://` registered by TDT Open.app.
+ * HTTP POST to :3855 remains for local smoke tests / non-Safari.
  */
 
 import { isValidRfcMessageId } from "@/lib/action-emails/actionable";
@@ -106,25 +109,52 @@ export function mailOpenPayload(item: {
   };
 }
 
+function isAppleMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/** Custom scheme handled by TDT Open.app (bypasses mixed-content). */
+export function tdtOpenSchemeUrl(payload: NativeOpenPayload): string {
+  const q = new URLSearchParams();
+  q.set("kind", payload.kind);
+  if (payload.title) q.set("title", payload.title);
+  if (payload.listName) q.set("listName", payload.listName);
+  if (payload.startsAt) q.set("startsAt", payload.startsAt);
+  if (payload.messageId) q.set("messageId", payload.messageId);
+  if (payload.id) q.set("id", payload.id);
+  if (payload.calendarName) q.set("calendarName", payload.calendarName);
+  return `tdt-open://open?${q.toString()}`;
+}
+
 /**
- * Ask the Mac helper to open the exact item and activate the app.
- * Returns true when the helper handled it (caller should not navigate).
+ * Ask the Mac opener to open the exact item and activate the app.
+ * Returns true when handled (caller should not navigate to href).
  */
 export async function tryNativeOpen(
   payload: NativeOpenPayload,
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  // iPhone: no local helper — use Gmail https / reminderkit hrefs.
+  if (isAppleMobile()) return false;
+
+  // Fast path: HTTP helper (Chrome / local http). Safari HTTPS blocks this.
   try {
     const res = await fetch(OPEN_HELPER, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(400),
     });
-    if (!res.ok) return false;
-    const body = (await res.json()) as { ok?: boolean };
-    return body.ok === true;
+    if (res.ok) {
+      const body = (await res.json()) as { ok?: boolean };
+      if (body.ok === true) return true;
+    }
   } catch {
-    return false;
+    // mixed content or helper down
   }
+
+  // Safari / mixed-content fallback: custom URL scheme → TDT Open.app
+  window.location.href = tdtOpenSchemeUrl(payload);
+  return true;
 }

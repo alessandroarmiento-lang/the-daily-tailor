@@ -46,6 +46,17 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <string>The Daily Tailor apre l’evento esatto quando clicchi sul giornale.</string>
   <key>LSUIElement</key>
   <true/>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>com.alessandro.the-daily-tailor.open</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>tdt-open</string>
+      </array>
+    </dict>
+  </array>
 </dict>
 </plist>
 PLIST
@@ -66,6 +77,11 @@ CLI_BIN="$MACOS_DIR/tdt-open-cli"
 cp "$OPEN_BIN.real" "$CLI_BIN"
 chmod +x "$CLI_BIN"
 codesign --force --deep --sign - "$APP" 2>/dev/null || true
+# Refresh Launch Services so tdt-open:// resolves to this .app
+LSREG="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$LSREG" ]]; then
+  "$LSREG" -f "$APP" 2>/dev/null || true
+fi
 
 echo "EventKit auth (Consenti Promemoria/Calendario for TDT Open if asked)…"
 "$CLI_BIN" reminder --title "Autolettura gas" --list "Famiglia" || true
@@ -149,5 +165,6 @@ curl -fsS -m 45 -X POST "http://127.0.0.1:3855/open" \
   -H "Content-Type: application/json" \
   -d '{"kind":"mail","title":"Spedizione da ritirare"}' || true
 echo
-echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars / Automation (Reminders + Mail)."
+echo "Done. Keep «TDT Open» allowed in Privacy → Reminders / Calendars / Automation (Reminders + System Events + Mail)."
+echo "Scheme check: open 'tdt-open://open?kind=reminder&title=Autolettura%20gas&listName=Famiglia'"
 pgrep -lf 'tdt-open.real' || pgrep -lf 'TDT Open.app' || true

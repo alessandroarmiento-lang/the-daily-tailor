@@ -19,7 +19,18 @@ Weather: Open-Meteo · News: Il Post
 ## Author
 
 - **Alessandro Armiento** — creator of The Daily Tailor
-- Repository: https://origin.cursor.com/alessandro-armiento/the-daily-tailor
+- Repository: https://github.com/alessandroarmiento-lang/the-daily-tailor
+
+## Inspiration
+
+Not an original format idea. Inspired by an Instagram post about a personal
+daily newspaper made by someone else; this project is Alessandro’s remake on
+Cursor (see README → Provenance / ispirazione).
+
+## License
+
+**The Daily Tailor 1.0 Non-Commercial Attribution License** (`LICENSE`):
+non-commercial use only; on-screen credits must stay visible.
 
 ## Third-party (attribution, own licenses)
 

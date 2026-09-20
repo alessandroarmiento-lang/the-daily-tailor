@@ -4,6 +4,7 @@ import type {
   WeatherCondition,
   WeatherSnapshot,
 } from "./types";
+import { formatPrecipTodayMm } from "./labels";
 
 const LABELS: Record<WeatherCondition, string> = {
   clear: "Sereno",
@@ -219,10 +220,5 @@ export function sumDaytimeAmountMm(hours: PrecipHour[]): number | null {
 
 /** Italian label for the daily precip summary, e.g. "oggi previsti 2,4 mm". */
 export function formatOggiPrecipMm(mm: number): string {
-  const rounded = Math.round(mm * 10) / 10;
-  const body =
-    Math.abs(rounded - Math.trunc(rounded)) < 1e-9
-      ? String(Math.trunc(rounded))
-      : rounded.toFixed(1).replace(".", ",");
-  return `oggi previsti ${body} mm`;
+  return formatPrecipTodayMm(mm, "it");
 }

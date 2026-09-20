@@ -14,8 +14,10 @@ import {
   reminderDeepLink,
   reminderOpenPayload,
 } from "@/lib/apple/deep-links";
+import { aphorismText, getAphorismForDateKey } from "@/lib/aphorism";
 import { config } from "@/lib/config";
 import type { NewspaperEdition } from "@/lib/edition-types";
+import type { Lang, MessageKey } from "@/lib/i18n/messages";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
@@ -24,7 +26,10 @@ import {
   remindersOverflowLabel,
 } from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
-import { formatOggiPrecipMm } from "@/lib/weather/mock";
+import {
+  conditionLabel,
+  formatPrecipTodayMm,
+} from "@/lib/weather/labels";
 import type { NewsItem } from "@/lib/news/types";
 import { useLang } from "@/lib/i18n/provider";
 
@@ -45,10 +50,49 @@ function weatherSourceLabel(source: string): string {
   }
 }
 
+function formatEditionDateLine(
+  dateKey: string,
+  locale: string,
+  timeZone: string,
+): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const instant = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone,
+  }).format(instant);
+}
+
+function formatDayLabel(
+  dateKey: string,
+  locale: string,
+  timeZone: string,
+): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone,
+  }).format(date);
+}
+
 /** Six hours per row so iPhone (~390px) can read labels; print stays compact. */
 const PRECIP_ROW_SIZE = 6;
 
-function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
+function PrecipitationBlock({
+  precip,
+  lang,
+  t,
+}: {
+  precip: PrecipitationForecast;
+  lang: Lang;
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string;
+}) {
   const hasToday = precip.todayAmountMm != null;
   const hours = precip.nextHours;
   if (!hasToday && hours.length === 0) return null;
@@ -60,14 +104,14 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
 
   return (
     <div className="weather__precip">
-      <p className="weather__precip-title">Precipitazioni</p>
+      <p className="weather__precip-title">{t("precipTitle")}</p>
       {hasToday ? (
         <p className="weather__precip-today">
-          {formatOggiPrecipMm(precip.todayAmountMm!)}
+          {formatPrecipTodayMm(precip.todayAmountMm!, lang)}
         </p>
       ) : null}
       {rows.length > 0 ? (
-        <div className="weather__precip-rows" aria-label="Previsione oraria">
+        <div className="weather__precip-rows" aria-label={t("precipHourlyAria")}>
           {rows.map((row, rowIndex) => (
             <div
               key={`precip-row-${row[0]?.hourLabel ?? rowIndex}`}
@@ -97,10 +141,15 @@ function PrecipitationBlock({ precip }: { precip: PrecipitationForecast }) {
   );
 }
 
-function formatDue(iso: string | null, timeZone: string): string {
-  if (!iso) return "Senza scadenza";
+function formatDue(
+  iso: string | null,
+  timeZone: string,
+  locale: string,
+  noDueLabel: string,
+): string {
+  if (!iso) return noDueLabel;
   const due = new Date(iso);
-  if (Number.isNaN(due.getTime())) return "Senza scadenza";
+  if (Number.isNaN(due.getTime())) return noDueLabel;
   const now = new Date();
   const sameDay =
     new Intl.DateTimeFormat("en-CA", {
@@ -116,13 +165,13 @@ function formatDue(iso: string | null, timeZone: string): string {
       day: "2-digit",
     }).format(now);
   if (sameDay) {
-    return new Intl.DateTimeFormat("it-IT", {
+    return new Intl.DateTimeFormat(locale, {
       hour: "2-digit",
       minute: "2-digit",
       timeZone,
     }).format(due);
   }
-  return new Intl.DateTimeFormat("it-IT", {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -135,17 +184,19 @@ function formatEventTime(
   iso: string,
   isAllDay: boolean,
   timeZone: string,
+  locale: string,
+  allDayLabel: string,
 ): string {
-  if (isAllDay) return "Tutto il giorno";
-  return new Intl.DateTimeFormat("it-IT", {
+  if (isAllDay) return allDayLabel;
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone,
   }).format(new Date(iso));
 }
 
-function formatReceived(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("it-IT", {
+function formatReceived(iso: string, timeZone: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
@@ -153,22 +204,25 @@ function formatReceived(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
-function formatUpdatedAt(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("it-IT", {
+function formatUpdatedAt(iso: string, timeZone: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone,
   }).format(new Date(iso));
 }
 
-function priorityLabel(priority: string): string | null {
+function priorityLabel(
+  priority: string,
+  t: (key: "priorityHigh" | "priorityMedium" | "priorityLow") => string,
+): string | null {
   switch (priority) {
     case "high":
-      return "Alta";
+      return t("priorityHigh");
     case "medium":
-      return "Media";
+      return t("priorityMedium");
     case "low":
-      return "Bassa";
+      return t("priorityLow");
     default:
       return null;
   }
@@ -206,28 +260,32 @@ type Props = {
  * Same DOM is captured for the PDF button and optional browser print.
  */
 export function EditionSheet({ edition, weatherLocationNote }: Props) {
-  const { t, locale } = useLang();
+  const { t, locale, lang } = useLang();
   const tz = edition.timezone;
   const weatherResult = edition.weather;
   const newsResult = edition.news;
   const remindersResult = edition.reminders;
   const calendarResult = edition.calendar;
   const emailsResult = edition.actionEmails;
+  const dateLine = formatEditionDateLine(edition.dateKey, locale, tz);
+  const dayAphorism = getAphorismForDateKey(edition.dateKey);
 
   return (
     <main className="sheet-page">
       <header className="masthead">
         <p className="masthead__edition">
-          {t("personalEdition")} · {edition.dateLine}
+          {t("personalEdition")} · {dateLine}
         </p>
         <h1 className="masthead__brand">{edition.productName}</h1>
-        <p className="masthead__tagline">{edition.tagline}</p>
+        <p className="masthead__tagline">{t("tagline")}</p>
         <div className="masthead__rule" aria-hidden="true" />
       </header>
 
       <aside className="aphorism" aria-label={t("aphorismAria")}>
         <blockquote className="aphorism__quote">
-          <p className="aphorism__text">«{edition.aphorism.text}»</p>
+          <p className="aphorism__text">
+            «{aphorismText(dayAphorism, lang)}»
+          </p>
         </blockquote>
       </aside>
 
@@ -246,7 +304,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               tone={weatherResult.status === "error" ? "error" : "ok"}
               footerNote={[
                 weatherResult.status === "error"
-                  ? `Dati di riserva: ${weatherResult.message}`
+                  ? t("weatherFallback", { message: weatherResult.message })
                   : null,
                 weatherLocationNote ?? null,
                 weatherResult.data.isMock
@@ -266,30 +324,42 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   </p>
                   <div className="weather__meta">
                     <p className="weather__condition">
-                      {weatherResult.data.conditionLabelIt}
+                      {conditionLabel(weatherResult.data.condition, lang)}
                     </p>
                     <ul className="weather__facts">
                       {weatherResult.data.feelsLikeC != null ? (
-                        <li>Percepiti {weatherResult.data.feelsLikeC}°</li>
+                        <li>
+                          {t("feelsLike", { n: weatherResult.data.feelsLikeC })}
+                        </li>
                       ) : null}
                       {weatherResult.data.highC != null &&
                       weatherResult.data.lowC != null ? (
                         <li>
-                          Max {weatherResult.data.highC}° / Min{" "}
-                          {weatherResult.data.lowC}°
+                          {t("highLow", {
+                            high: weatherResult.data.highC,
+                            low: weatherResult.data.lowC,
+                          })}
                         </li>
                       ) : null}
                       {weatherResult.data.humidityPercent != null ? (
-                        <li>Umidità {weatherResult.data.humidityPercent}%</li>
+                        <li>
+                          {t("humidity", {
+                            n: weatherResult.data.humidityPercent,
+                          })}
+                        </li>
                       ) : null}
                       {weatherResult.data.windKmh != null ? (
-                        <li>Vento {weatherResult.data.windKmh} km/h</li>
+                        <li>
+                          {t("wind", { n: weatherResult.data.windKmh })}
+                        </li>
                       ) : null}
                     </ul>
                   </div>
                 </div>
                 <PrecipitationBlock
                   precip={weatherResult.data.precipitation}
+                  lang={lang}
+                  t={t}
                 />
               </div>
             </SectionShell>
@@ -308,10 +378,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             <SectionError
               title={t("agenda")}
               kicker={t("agendaDays")}
-              message={
-                calendarResult.message ||
-                "Autorizza Calendario o configura CalDAV iCloud."
-              }
+              message={calendarResult.message || t("calendarAuth")}
             />
           ) : calendarResult.data ? (
             (() => {
@@ -322,7 +389,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   <SectionEmpty
                     title={t("agenda")}
                     kicker={t("agendaDays")}
-                    message="Nessun evento nei prossimi giorni."
+                    message={t("noAgendaEvents")}
                   />
                 );
               }
@@ -341,7 +408,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       >
                         <p className="cal-day__label">
                           {day.isToday ? t("todayPrefix") : ""}
-                          {day.label}
+                          {formatDayLabel(day.dateKey, locale, tz)}
                         </p>
                         {day.events.length === 0 ? null : (
                           <ul className="cal-day__events">
@@ -366,6 +433,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                                       event.startsAt,
                                       event.isAllDay,
                                       tz,
+                                      locale,
+                                      t("allDay"),
                                     )}
                                   </span>
                                   <span className="cal-event__title">
@@ -470,7 +539,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                     <ul className="reminder-list">
                       {items.map((raw) => {
                         const item = sanitizeReminderItem(raw);
-                        const pri = priorityLabel(item.priority);
+                        const pri = priorityLabel(item.priority, t);
                         const href = reminderDeepLink(item.id);
                         const title = (
                           <NativeOpenLink
@@ -494,8 +563,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                                   {item.listName}
                                 </span>
                                 {" · "}
-                                {formatDue(item.dueAt, tz)}
-                                {pri ? ` · Priorità ${pri}` : ""}
+                                {formatDue(item.dueAt, tz, locale, t("noDue"))}
+                                {pri ? ` · ${pri}` : ""}
                               </p>
                             </div>
                           </li>
@@ -558,7 +627,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                           {item.account ? ` · ${item.account}` : ""}
                           <span className="action-mail-list__when">
                             {" · "}
-                            {formatReceived(item.receivedAt, tz)}
+                            {formatReceived(item.receivedAt, tz, locale)}
                           </span>
                         </p>
                         {item.actionCue ? (
@@ -591,7 +660,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
 
       <footer className="sheet-footer">
         <span className="sheet-footer__updated">
-          {t("updated")} {formatUpdatedAt(edition.generatedAt, tz)}
+          {t("updated")} {formatUpdatedAt(edition.generatedAt, tz, locale)}
         </span>
       </footer>
     </main>

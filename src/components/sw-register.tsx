@@ -20,7 +20,7 @@ export function ServiceWorkerRegister() {
       });
 
     // Drop obsolete shell/data caches from earlier SW versions that could
-    // serve a stuck “Caricamento…” document or broken chunks.
+    // serve a stuck document (stale HTML → dead /_next CSS → precip “h07%0”).
     if ("caches" in window) {
       void caches.keys().then((keys) =>
         Promise.all(
@@ -28,7 +28,7 @@ export function ServiceWorkerRegister() {
             .filter(
               (k) =>
                 k.startsWith("daily-tailor-") &&
-                k !== "daily-tailor-shell-v3" &&
+                k !== "daily-tailor-shell-v4" &&
                 k !== "daily-tailor-data-v2",
             )
             .map((k) => caches.delete(k)),

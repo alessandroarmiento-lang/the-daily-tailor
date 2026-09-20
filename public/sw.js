@@ -3,10 +3,11 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
- * v3: never cache-first Next.js bundles (stale chunks caused hang/errors);
- * edition API uses network-first with a hard timeout.
+ * v4: HTML navigations are network-first (cache-first served stale
+ * documents whose /_next/*.css hashes 404 after deploy → precip chart
+ * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v3";
+const SHELL_CACHE = "daily-tailor-shell-v4";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 
@@ -80,6 +81,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Documents: network-first so HTML always matches current CSS hashes.
+  const isDocument =
+    req.mode === "navigate" ||
+    req.destination === "document" ||
+    url.pathname === "/" ||
+    url.pathname === "/storia";
+
+  if (isDocument) {
+    event.respondWith(networkFirstShell(req));
+    return;
+  }
+
   event.respondWith(cacheFirstShell(req));
 });
 
@@ -121,6 +134,28 @@ async function networkFirstData(req) {
     return new Response(
       JSON.stringify({ error: "Offline e nessuna copia in cache" }),
       { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+}
+
+async function networkFirstShell(req) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const fresh = await fetchWithTimeout(req, NETWORK_TIMEOUT_MS);
+    if (fresh.ok) {
+      cache.put(req, fresh.clone());
+    }
+    return fresh;
+  } catch {
+    const cached = await cache.match(req, { ignoreSearch: true });
+    if (cached) return cached;
+    const fallback = await cache.match("/");
+    return (
+      fallback ??
+      new Response("Offline", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      })
     );
   }
 }

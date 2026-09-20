@@ -2,8 +2,10 @@
  * Headless CalDAV calendar — iCloud (+ Google legacy CalDAV).
  * Works with Mac powered off when app passwords / credentials are set.
  *
- * Google: tsdav principal discovery fails on calendar.google.com; we REPORT
- * the legacy `/calendar/dav/<user>/events/` collection with Basic (app password).
+ * Google: tsdav principal discovery fails on calendar.google.com; we PROPFIND
+ * the legacy home `/calendar/dav/<user>/` then REPORT every `/events/`
+ * collection (primary, shared, holidays, …) plus Compleanni, with Basic
+ * (Gmail app password). Reminders/VTODO lists are skipped.
  */
 import { createDAVClient, type DAVCalendar } from "tsdav";
 import ical, { expandRecurringEvent } from "node-ical";
@@ -12,6 +14,10 @@ import {
   readEditionCacheEnvelope,
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
+import {
+  birthdayEventsForHorizon,
+  loadContactBirthdays,
+} from "@/lib/contacts/carddav";
 import type { CalendarAdapter, CalendarEventItem } from "./types";
 
 function env(name: string): string {
@@ -179,8 +185,23 @@ function parseEventsFromIcs(
   return items;
 }
 
+function defaultGoogleHomeUrl(username: string): string {
+  return `https://www.google.com/calendar/dav/${encodeURIComponent(username)}/`;
+}
+
 function defaultGoogleEventsUrl(username: string): string {
-  return `https://www.google.com/calendar/dav/${encodeURIComponent(username)}/events/`;
+  return `${defaultGoogleHomeUrl(username)}events/`;
+}
+
+/** Google Contacts birthdays — not listed under the primary home PROPFIND. */
+function googleBirthdaysEventsUrl(): string {
+  return "https://www.google.com/calendar/dav/addressbook%23contacts%40group.v.calendar.google.com/events/";
+}
+
+function absoluteGoogleDavUrl(href: string, username: string): string {
+  if (href.startsWith("http://") || href.startsWith("https://")) return href;
+  if (href.startsWith("/")) return `https://www.google.com${href}`;
+  return `${defaultGoogleHomeUrl(username)}${href}`;
 }
 
 export function configuredCalDavAccounts(): CalDavAccount[] {
@@ -208,14 +229,16 @@ export function configuredCalDavAccounts(): CalDavAccount[] {
     env("GMAIL_APP_PASSWORD") ||
     env("GOOGLE_MAIL_APP_PASSWORD");
   if (googleUser && googlePass) {
-    const override = env("GOOGLE_CALDAV_URL");
+    const pass = googlePass.replace(/\s+/g, "");
     accounts.push({
       id: "google",
       label: "Google Calendar",
-      // Legacy collection URL works with Gmail app passwords; OAuth CalDAV does not.
-      serverUrl: override || defaultGoogleEventsUrl(googleUser),
+      // Home URL: fetch discovers every /events/ collection (primary, shared,
+      // holidays, …) plus Compleanni. GOOGLE_CALDAV_URL can force a single
+      // collection for debugging.
+      serverUrl: env("GOOGLE_CALDAV_URL") || defaultGoogleHomeUrl(googleUser),
       username: googleUser,
-      password: googlePass.replace(/\s+/g, ""),
+      password: pass,
       transport: "google-legacy",
     });
   }
@@ -237,15 +260,131 @@ function decodeCalendarDataXml(raw: string): string {
     .replace(/&amp;/g, "&");
 }
 
-async function fetchGoogleLegacyEvents(
+type GoogleCollection = { url: string; name: string };
+
+function parseGooglePropfindCollections(
+  xml: string,
+  username: string,
+): GoogleCollection[] {
+  const blocks = [
+    ...xml.matchAll(
+      /<(?:[\w.-]+:)?response\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?response>/gi,
+    ),
+  ].map((m) => m[1]);
+
+  const out: GoogleCollection[] = [];
+  const seen = new Set<string>();
+
+  for (const block of blocks) {
+    const hrefMatch = block.match(
+      /<(?:[\w.-]+:)?href[^>]*>([^<]+)<\/(?:[\w.-]+:)?href>/i,
+    );
+    if (!hrefMatch) continue;
+    const href = hrefMatch[1].trim();
+    const lower = href.toLowerCase();
+    if (!lower.includes("/events")) continue;
+    if (lower.endsWith("/user") || lower.includes("/inbox") || lower.includes("/outbox")) {
+      continue;
+    }
+
+    // Skip pure VTODO collections when advertised.
+    const comps = [
+      ...block.matchAll(
+        /<(?:[\w.-]+:)?comp\b[^>]*name=["']([^"']+)["']/gi,
+      ),
+    ].map((m) => m[1].toUpperCase());
+    if (
+      comps.length > 0 &&
+      comps.every((c) => c === "VTODO")
+    ) {
+      continue;
+    }
+
+    const nameMatch = block.match(
+      /<(?:[\w.-]+:)?displayname[^>]*>([^<]*)<\/(?:[\w.-]+:)?displayname>/i,
+    );
+    const name = (nameMatch?.[1] || "").trim() || username;
+    let url = absoluteGoogleDavUrl(href, username);
+    if (!url.endsWith("/")) url = `${url}/`;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    out.push({ url, name });
+  }
+
+  return out;
+}
+
+async function discoverGoogleLegacyCollections(
   account: CalDavAccount,
+): Promise<GoogleCollection[]> {
+  const username = account.username;
+  const birthdays: GoogleCollection = {
+    url: googleBirthdaysEventsUrl(),
+    name: "Compleanni",
+  };
+  const primary: GoogleCollection = {
+    url: defaultGoogleEventsUrl(username),
+    name: username || account.label,
+  };
+
+  // Explicit single-collection override (debug / forced URL ending in /events/).
+  const server = account.serverUrl;
+  if (/\/events\/?$/i.test(server)) {
+    const url = server.endsWith("/") ? server : `${server}/`;
+    return [
+      { url, name: username || account.label },
+      birthdays,
+    ];
+  }
+
+  const home = server.endsWith("/") ? server : `${server}/`;
+  const byUrl = new Map<string, GoogleCollection>();
+
+  const add = (c: GoogleCollection) => {
+    const url = c.url.endsWith("/") ? c.url : `${c.url}/`;
+    if (!byUrl.has(url)) byUrl.set(url, { ...c, url });
+  };
+
+  try {
+    const res = await fetch(home, {
+      method: "PROPFIND",
+      headers: {
+        Authorization: basicAuthHeader(account.username, account.password),
+        Depth: "1",
+        "Content-Type": "application/xml; charset=utf-8",
+      },
+      body: `<?xml version="1.0" encoding="utf-8"?>
+<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/">
+  <d:prop>
+    <d:displayname/>
+    <d:resourcetype/>
+    <c:supported-calendar-component-set/>
+    <cs:getctag/>
+  </d:prop>
+</d:propfind>`,
+    });
+    const xml = await res.text();
+    if (res.ok || res.status === 207) {
+      for (const c of parseGooglePropfindCollections(xml, username)) {
+        add(c);
+      }
+    }
+  } catch {
+    // fall through — still return primary + birthdays
+  }
+
+  add(primary);
+  add(birthdays);
+  return [...byUrl.values()];
+}
+
+async function reportGoogleCollection(
+  account: CalDavAccount,
+  collection: GoogleCollection,
   start: Date,
   end: Date,
 ): Promise<{ items: CalendarEventItem[]; error?: string }> {
   try {
-    const collectionUrl = account.serverUrl.endsWith("/")
-      ? account.serverUrl
-      : `${account.serverUrl}/`;
     const body = `<?xml version="1.0" encoding="utf-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
   <d:prop>
@@ -261,7 +400,7 @@ async function fetchGoogleLegacyEvents(
   </c:filter>
 </c:calendar-query>`;
 
-    const res = await fetch(collectionUrl, {
+    const res = await fetch(collection.url, {
       method: "REPORT",
       headers: {
         Authorization: basicAuthHeader(account.username, account.password),
@@ -271,10 +410,10 @@ async function fetchGoogleLegacyEvents(
       body,
     });
     const xml = await res.text();
-    if (!res.ok) {
+    if (!res.ok && res.status !== 207) {
       return {
         items: [],
-        error: `${account.label}: HTTP ${res.status}`,
+        error: `${account.label}/${collection.name}: HTTP ${res.status}`,
       };
     }
 
@@ -284,17 +423,40 @@ async function fetchGoogleLegacyEvents(
       ),
     ].map((m) => decodeCalendarDataXml(m[1]));
 
-    const calendarName = account.username || account.label;
     const items: CalendarEventItem[] = [];
     for (const ics of blocks) {
       if (!ics.trim()) continue;
-      items.push(...parseEventsFromIcs(ics, calendarName, start, end));
+      items.push(...parseEventsFromIcs(ics, collection.name, start, end));
     }
     return { items };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { items: [], error: `${account.label}: ${message}` };
+    return { items: [], error: `${account.label}/${collection.name}: ${message}` };
   }
+}
+
+async function fetchGoogleLegacyEvents(
+  account: CalDavAccount,
+  start: Date,
+  end: Date,
+): Promise<{ items: CalendarEventItem[]; error?: string }> {
+  const collections = await discoverGoogleLegacyCollections(account);
+  const all: CalendarEventItem[] = [];
+  const errors: string[] = [];
+  let okCount = 0;
+
+  for (const collection of collections) {
+    const result = await reportGoogleCollection(account, collection, start, end);
+    if (result.error) errors.push(result.error);
+    else okCount += 1;
+    all.push(...result.items);
+  }
+
+  if (all.length === 0 && errors.length > 0 && okCount === 0) {
+    return { items: [], error: errors.join("; ") };
+  }
+  // Partial success is fine (e.g. one shared calendar 404).
+  return { items: all };
 }
 
 async function fetchTsdavAccountEvents(
@@ -382,7 +544,17 @@ export class CalDavCalendarAdapter implements CalendarAdapter {
   async getUpcomingEvents(horizonDays: number): Promise<CalendarEventItem[]> {
     const cached =
       await readEditionCacheEnvelope<CalendarEventItem[]>("calendar");
-    if (cached?.data) return cached.data;
+
+    const birthdays = birthdayEventsForHorizon(
+      await loadContactBirthdays(),
+      horizonDays,
+    );
+
+    if (cached?.data) {
+      return dedupeEvents([...cached.data, ...birthdays]).sort((a, b) =>
+        a.startsAt.localeCompare(b.startsAt),
+      );
+    }
 
     const accounts = configuredCalDavAccounts();
     if (accounts.length === 0) {
@@ -408,7 +580,7 @@ export class CalDavCalendarAdapter implements CalendarAdapter {
       throw new Error(errors.join("; "));
     }
 
-    const merged = dedupeEvents(all).sort((a, b) =>
+    const merged = dedupeEvents([...all, ...birthdays]).sort((a, b) =>
       a.startsAt.localeCompare(b.startsAt),
     );
     this.label =

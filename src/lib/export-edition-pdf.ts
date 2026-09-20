@@ -25,7 +25,7 @@ const LINE_CLAMP_LINES: Array<[string, number]> = [
   [".reminder-list__title", 2],
   [".cal-event__title", 2],
   [".action-mail-list__subject", 2],
-  [".action-mail-list__body", 3],
+  [".action-mail-list__body", 2],
 ];
 
 type StyleBackup = {

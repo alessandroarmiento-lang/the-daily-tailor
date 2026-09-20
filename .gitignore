@@ -58,3 +58,7 @@ AuthKey_*.p8
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Author-only UI prefs (Italian default). Public clones → English.
+/public/owner-prefs.json
+

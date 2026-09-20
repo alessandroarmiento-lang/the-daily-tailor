@@ -26,6 +26,7 @@ import {
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import { formatOggiPrecipMm } from "@/lib/weather/mock";
 import type { NewsItem } from "@/lib/news/types";
+import { useLang } from "@/lib/i18n/provider";
 
 const NEWS_MIN = 1;
 
@@ -205,6 +206,7 @@ type Props = {
  * Same DOM is captured for the PDF button and optional browser print.
  */
 export function EditionSheet({ edition, weatherLocationNote }: Props) {
+  const { t, locale } = useLang();
   const tz = edition.timezone;
   const weatherResult = edition.weather;
   const newsResult = edition.news;
@@ -216,14 +218,14 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
     <main className="sheet-page">
       <header className="masthead">
         <p className="masthead__edition">
-          Edizione personale · {edition.dateLine}
+          {t("personalEdition")} · {edition.dateLine}
         </p>
         <h1 className="masthead__brand">{edition.productName}</h1>
         <p className="masthead__tagline">{edition.tagline}</p>
         <div className="masthead__rule" aria-hidden="true" />
       </header>
 
-      <aside className="aphorism" aria-label="Aforisma del giorno">
+      <aside className="aphorism" aria-label={t("aphorismAria")}>
         <blockquote className="aphorism__quote">
           <p className="aphorism__text">«{edition.aphorism.text}»</p>
         </blockquote>
@@ -233,13 +235,13 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
         <div className="area-weather">
           {weatherResult.status === "error" && !weatherResult.data ? (
             <SectionError
-              title="Meteo di oggi"
+              title={t("weather")}
               kicker="—"
               message={weatherResult.message}
             />
           ) : weatherResult.data ? (
             <SectionShell
-              title="Meteo di oggi"
+              title={t("weather")}
               kicker={weatherResult.data.city}
               tone={weatherResult.status === "error" ? "error" : "ok"}
               footerNote={[
@@ -293,9 +295,9 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             </SectionShell>
           ) : (
             <SectionEmpty
-              title="Meteo di oggi"
+              title={t("weather")}
               kicker="—"
-              message="Meteo non disponibile."
+              message={t("weatherMissing")}
             />
           )}
         </div>
@@ -304,8 +306,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
           {calendarResult.status === "error" &&
           !(calendarResult.data?.days.some((d) => d.events.length > 0)) ? (
             <SectionError
-              title="Agenda"
-              kicker="Prossimi giorni"
+              title={t("agenda")}
+              kicker={t("agendaDays")}
               message={
                 calendarResult.message ||
                 "Autorizza Calendario o configura CalDAV iCloud."
@@ -318,16 +320,16 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               if (!hasAny) {
                 return (
                   <SectionEmpty
-                    title="Agenda"
-                    kicker="Prossimi giorni"
+                    title={t("agenda")}
+                    kicker={t("agendaDays")}
                     message="Nessun evento nei prossimi giorni."
                   />
                 );
               }
               return (
                 <SectionShell
-                  title="Agenda"
-                  kicker="Prossimi giorni"
+                  title={t("agenda")}
+                  kicker={t("agendaDays")}
                   tone={calendarResult.status === "error" ? "error" : "ok"}
                 >
                   <div className="cal-widget" role="list">
@@ -338,7 +340,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         role="listitem"
                       >
                         <p className="cal-day__label">
-                          {day.isToday ? "Oggi · " : ""}
+                          {day.isToday ? t("todayPrefix") : ""}
                           {day.label}
                         </p>
                         {day.events.length === 0 ? null : (
@@ -382,9 +384,9 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             })()
           ) : (
             <SectionEmpty
-              title="Agenda"
-              kicker="Prossimi giorni"
-              message="Agenda non disponibile."
+              title={t("agenda")}
+              kicker={t("agendaDays")}
+              message={t("agendaMissing")}
             />
           )}
         </div>
@@ -392,7 +394,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
         <div className="area-news">
             {newsResult.status === "error" && !newsResult.data ? (
               <SectionError
-                title="Notizie dal mondo"
+                title={t("news")}
                 kicker="Il Post"
                 message={newsResult.message}
               />
@@ -404,7 +406,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 );
                 return (
                   <SectionShell
-                    title="Notizie dal mondo"
+                    title={t("news")}
                     kicker="Il Post"
                     tone={newsResult.status === "error" ? "error" : "ok"}
                   >
@@ -431,7 +433,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               })()
             ) : (
               <SectionEmpty
-                title="Notizie dal mondo"
+                title={t("news")}
                 kicker="Il Post"
                 message="Nessun titolo disponibile questa mattina."
               />
@@ -442,10 +444,10 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             {remindersResult.status === "error" &&
             !(remindersResult.data && remindersResult.data.items.length > 0) ? (
               <SectionError
-                title="Promemoria"
+                title={t("reminders")}
                 message={
                   remindersResult.message ||
-                  "Autorizza Promemoria o configura CalDAV iCloud."
+                  t("remindersAuth")
                 }
               />
             ) : remindersResult.data && remindersResult.data.items.length > 0 ? (
@@ -461,8 +463,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 const overflow = remindersOverflowLabel(hidden);
                 return (
                   <SectionShell
-                    title="Promemoria"
-                    kicker="Oggi / aperti"
+                    title={t("reminders")}
+                    kicker={t("remindersKicker")}
                     tone={remindersResult.status === "error" ? "error" : "ok"}
                   >
                     <ul className="reminder-list">
@@ -508,7 +510,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               })()
             ) : (
               <SectionEmpty
-                title="Promemoria"
+                title={t("reminders")}
                 message={remindersEmptyMessage(
                   remindersResult.data?.sourceLabel,
                 )}
@@ -519,7 +521,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
         <div className="area-emails">
           {emailsResult.status === "error" && !emailsResult.data ? (
             <SectionError
-              title="Email"
+              title={t("email")}
               message={emailsResult.message}
             />
           ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
@@ -535,8 +537,8 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               const overflow = emailsOverflowLabel(hidden);
               return (
                 <SectionShell
-                  title="Email"
-                  kicker="Ieri · richieste d’azione"
+                  title={t("email")}
+                  kicker={t("emailKicker")}
                   tone={emailsResult.status === "error" ? "error" : "ok"}
                 >
                   <ul className="action-mail-list">
@@ -580,7 +582,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
             })()
           ) : (
             <SectionEmpty
-              title="Email"
+              title={t("email")}
               message="Nessuna email d’azione arrivata ieri."
             />
           )}
@@ -589,7 +591,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
 
       <footer className="sheet-footer">
         <span className="sheet-footer__updated">
-          Aggiornamento {formatUpdatedAt(edition.generatedAt, tz)}
+          {t("updated")} {formatUpdatedAt(edition.generatedAt, tz)}
         </span>
       </footer>
     </main>

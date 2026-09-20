@@ -59,7 +59,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="it"
+      lang="en"
       className={`${playfair.variable} ${newsreader.variable} ${sourceSans.variable} h-full`}
     >
       <body className="min-h-full antialiased">{children}</body>

@@ -3,22 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { exportEditionPdf } from "@/lib/export-edition-pdf";
+import { useLang } from "@/lib/i18n/provider";
 
 type Props = {
   onRefresh?: () => void;
-  /** True while a forced rebuild/reload is in flight. */
   refreshing?: boolean;
   historyHref?: string;
-  /** PDF export is optional and manual — never auto-invoked. */
   canExportPdf?: boolean;
-  /** Used for the downloaded filename, e.g. the-daily-tailor-2026-09-15 */
   pdfFileStem?: string;
 };
 
-/**
- * Screen-only chrome. Left side stays empty — actions only on the right.
- * PDF captures the on-screen sheet (no browser print dialog).
- */
 export function PrintToolbar({
   onRefresh,
   refreshing = false,
@@ -26,6 +20,7 @@ export function PrintToolbar({
   canExportPdf = true,
   pdfFileStem = "the-daily-tailor",
 }: Props) {
+  const { lang, setLang, t } = useLang();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -36,9 +31,7 @@ export function PrintToolbar({
     try {
       await exportEditionPdf(pdfFileStem);
     } catch (err) {
-      setExportError(
-        err instanceof Error ? err.message : "Esportazione PDF fallita",
-      );
+      setExportError(err instanceof Error ? err.message : t("pdfFail"));
     } finally {
       setExporting(false);
     }
@@ -48,9 +41,33 @@ export function PrintToolbar({
     <div className="no-print toolbar">
       <span className="toolbar__spacer" aria-hidden="true" />
       <div className="toolbar__actions">
+        <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
+          <button
+            type="button"
+            className={
+              "toolbar__btn toolbar__btn--ghost" +
+              (lang === "it" ? " toolbar__btn--lang-on" : "")
+            }
+            aria-pressed={lang === "it"}
+            onClick={() => setLang("it")}
+          >
+            IT
+          </button>
+          <button
+            type="button"
+            className={
+              "toolbar__btn toolbar__btn--ghost" +
+              (lang === "en" ? " toolbar__btn--lang-on" : "")
+            }
+            aria-pressed={lang === "en"}
+            onClick={() => setLang("en")}
+          >
+            EN
+          </button>
+        </div>
         {historyHref ? (
           <Link className="toolbar__btn toolbar__btn--ghost" href={historyHref}>
-            Storico
+            {t("history")}
           </Link>
         ) : null}
         <button
@@ -60,7 +77,7 @@ export function PrintToolbar({
           aria-busy={refreshing}
           onClick={() => (onRefresh ? onRefresh() : window.location.reload())}
         >
-          {refreshing ? "Aggiorno…" : "Aggiorna"}
+          {refreshing ? t("refreshing") : t("refresh")}
         </button>
         <button
           type="button"
@@ -69,7 +86,7 @@ export function PrintToolbar({
           aria-busy={exporting}
           onClick={() => void handlePdf()}
         >
-          {exporting ? "PDF…" : "PDF"}
+          {exporting ? t("pdfBusy") : t("pdf")}
         </button>
       </div>
       {exportError ? (

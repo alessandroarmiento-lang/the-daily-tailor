@@ -1653,3 +1653,10 @@ a.cal-event__link:hover {
     text-decoration: none !important;
   }
 }
+
+.toolbar__lang { display: inline-flex; gap: 0.2rem; margin-right: 0.35rem; }
+.toolbar__btn--lang-on {
+  border-color: #111 !important;
+  background: #f0f0f0 !important;
+  font-weight: 700;
+}

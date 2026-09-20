@@ -10,6 +10,8 @@ Personal one-page morning paper, tailored to you — web app for Alessandro Armi
 
 Questo repository non rivendica l’invenzione del formato “giornale del mattino in una pagina”: è un remake personale. Licensed under **[ANCA 1.0](https://github.com/alessandroarmiento-lang/ANCA)** (Armiento Non-Commercial Attribution): personal / educational / research use; **no commercial use**; credits in `CREDITS.md` must stay visible in the UI (see [`LICENSE`](LICENSE)).
 
+**Language:** UI Italian / English (IT · EN in the toolbar). Public clones default to **English**. Author machines keep Italian via gitignored `public/owner-prefs.json` (`defaultLang: "it"`) — see `public/owner-prefs.example.json`.
+
 ## What it is
 
 A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollable, touch-friendly). Print / Save as PDF is hard-locked to **exactly one A4 page** — never page 2. Printing is **optional**: tap **Stampa** when you want; the app never auto-prints on open.

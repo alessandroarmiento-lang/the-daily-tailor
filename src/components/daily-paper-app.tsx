@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { EditionSheet } from "@/components/edition-sheet";
 import { MorningReload } from "@/components/morning-reload";
 import { PrintToolbar } from "@/components/print-toolbar";
+import { LanguageProvider, useLang } from "@/lib/i18n/provider";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import { loadEditionForClient } from "@/lib/offline-editions";
 import {
@@ -22,12 +23,13 @@ type Props = {
   initialEdition?: NewspaperEdition | null;
 };
 
-export function DailyPaperApp({
+function DailyPaperAppInner({
   dateKey,
   timezone,
   showHistoryLink = true,
   initialEdition = null,
 }: Props) {
+  const { t } = useLang();
   const [edition, setEdition] = useState<NewspaperEdition | null>(
     initialEdition,
   );
@@ -67,7 +69,7 @@ export function DailyPaperApp({
             headers: { "Cache-Control": "no-cache" },
           });
           if (!warm.ok) {
-            throw new Error(`Aggiornamento fallito (HTTP ${warm.status})`);
+            throw new Error(t("warmFail", { status: warm.status }));
           }
         }
         const result = await loadEditionForClient(dateKey);
@@ -80,13 +82,13 @@ export function DailyPaperApp({
         }
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Caricamento edizione fallito",
+          err instanceof Error ? err.message : t("loadFail"),
         );
       } finally {
         setLoading(false);
       }
     },
-    [dateKey, refreshWeatherGeo],
+    [dateKey, refreshWeatherGeo, t],
   );
 
   // Position runs alongside the edition fetch: with permission already granted
@@ -115,19 +117,15 @@ export function DailyPaperApp({
       />
       {showLoading ? (
         <main className="sheet-page">
-          <p className="state-line">Caricamento The Daily Tailor…</p>
+          <p className="state-line">{t("loadingApp")}</p>
         </main>
       ) : null}
       {!loading && !edition ? (
         <main className="sheet-page">
           <p className="state-line state-line--error">
-            {error ?? "Nessuna edizione disponibile."}
+            {error ?? t("noEdition")}
           </p>
-          <p className="state-line">
-            Apri l’app dopo le 06:00 (con rete) per scaricare il giornale del
-            giorno, oppure genera sul Mac con{" "}
-            <code>/api/morning-warm</code>.
-          </p>
+          <p className="state-line">{t("noEditionHint")}</p>
         </main>
       ) : null}
       {sheetEdition ? (
@@ -146,9 +144,18 @@ export function DailyPaperApp({
       ) : null}
       {dateKey !== "today" ? (
         <p className="no-print history-back">
-          <Link href="/">Torna a oggi</Link>
+          <Link href="/">{t("backToday")}</Link>
         </p>
       ) : null}
     </>
+  );
+}
+
+
+export function DailyPaperApp(props: Props) {
+  return (
+    <LanguageProvider>
+      <DailyPaperAppInner {...props} />
+    </LanguageProvider>
   );
 }

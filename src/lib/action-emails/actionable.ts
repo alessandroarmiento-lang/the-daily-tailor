@@ -9,18 +9,18 @@ import type { ActionEmailItem } from "@/lib/action-emails/types";
 
 /** Domains / sender patterns that are usually noise (deny). */
 const DENY_SENDER =
-  /newsletter|mailer-daemon|bounce@|news@|marketing@|promo@|noreply@.*substack|notifications?@(facebook|instagram|twitter|x\.com|linkedin|tiktok)|email\.airc|ilgiorno\.it|kickstarter|delosdigital|info@sprea|maccount@microsoft|family\.microsoft|omptrans\.info|do not reply.*newsletter/i;
+  /newsletter|mailer-daemon|bounce@|news@|marketing@|promo@|noreply@.*substack|notifications?@(facebook|instagram|twitter|x\.com|linkedin|tiktok)|email\.airc|ilgiorno\.it|kickstarter|delosdigital|info@sprea|maccount@microsoft|family\.microsoft|omptrans\.info|do not reply.*newsletter|decathlon|doctolib|@email\.(decathlon|vinted)|itomi\.|kiprun|magnews|mailchimp|sendgrid|shopify/i;
 
 /** Subject patterns that are usually noise (deny), unless allow-domain. */
 const DENY_SUBJECT =
-  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest/i;
+  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno/i;
 
 /**
  * Prefer / allow sender domains (Italian life ops).
  * These pass even for no-reply senders when the subject looks operational.
  */
 const ALLOW_DOMAIN =
-  /\b(intesa|unicredit|bnl|bps|bancoposta|fineco|chebanca|ing\.|isysbank|revolut|n26|wise\.com|paypal|relaxbanking|posteitaliane|poste\.it|posteid|sda\.it|bartolini|brt\.it|dhl\.|ups\.com|fedex|amazon\.|vinted\.|inps\.|agenziaentrate|agenziaentrateriscossione|pagopa|io\.italia|spazio\.|comune\.|regione\.|poliziadistato|carabinieri|mise\.gov|interno\.gov|istruzione\.it|pec\.it)\b/i;
+  /\b(intesa|unicredit|bnl|bps|bancoposta|fineco|chebanca|ing\.|isysbank|revolut|n26|wise\.com|paypal|relaxbanking|posteitaliane|poste\.it|posteid|sda\.it|bartolini|brt\.it|dhl\.|ups\.com|fedex|amazon\.|vinted\.|tim\.it|telecomitalia|inps\.|agenziaentrate|agenziaentrateriscossione|pagopa|io\.italia|spazio\.|comune\.|regione\.|poliziadistato|carabinieri|mise\.gov|interno\.gov|istruzione\.it|pec\.it)\b/i;
 
 const ACTION_HINT =
   /\b(scadenz|pagamento|pagare|conferma|fattura|appuntamento|puoi|potresti|per favore|cortesemente|ti chiedo|serve che|dovresti|rispondi|inviami|mandami|entro il|urgente|asap|please|could you|can you|need you to|action required|rsvp|let me know|waiting on you|deadline|firm[ae]|approva|revisione|feedback|ritiro|spedizione|consegn|avviso di|bollettino|cartella|avviso bonario|codice otp|codice di verifica|verifica identit)\b/i;
@@ -33,6 +33,13 @@ const BANK_ACTION =
 
 const PA_ACTION =
   /\b(scadenz|pagamento|avviso|cartella|bollettino|appuntamento|document[oi]|certificat|spazio|pec|notifica|ricevuta)\b/i;
+
+const BULK_SENDER =
+  /noreply|no[\s.-]?reply|donotreply|do[\s.-]?not[\s.-]?reply|newsletter|marketing|promo@|mailer-daemon|notifications?@/i;
+
+function looksBulkSender(sender: string, address: string): boolean {
+  return BULK_SENDER.test(sender) || BULK_SENDER.test(address);
+}
 
 export type MailRawMessage = {
   id: string;
@@ -95,18 +102,18 @@ export function isActionableMail(
 
   const allow = isAllowDomain(address, sender);
   const contact = isContact(address, ctx.contactEmails);
+  const bulk = looksBulkSender(sender, address);
 
   // Hard deny for marketing/noise — unless allow-domain + operational cue.
-  if (DENY_SENDER.test(sender) && !allow && !contact) return false;
-  if (DENY_SUBJECT.test(subject) && !allow && !contact) return false;
+  if (DENY_SENDER.test(sender) && !allow) return false;
+  if (DENY_SUBJECT.test(subject) && !allow) return false;
 
   if (msg.flagged) return true;
-  if (contact && (ACTION_HINT.test(blob) || /[?？]/.test(blob) || msg.unread)) {
-    return true;
-  }
-  if (contact && !DENY_SUBJECT.test(subject) && !DENY_SENDER.test(sender)) {
-    // Real person in Contacts: keep unread/recent human mail even without keyword.
-    if (msg.unread || ACTION_HINT.test(blob) || /[?？]/.test(blob)) return true;
+
+  // Contacts: only with a clear ask (not every unread newsletter-as-contact).
+  if (contact && !bulk) {
+    if (ACTION_HINT.test(blob) || /[?？]/.test(blob)) return true;
+    if (msg.unread && !DENY_SUBJECT.test(subject)) return true;
   }
 
   if (allow) {
@@ -119,14 +126,21 @@ export function isActionableMail(
   }
 
   // Bank/ops cues even from noreply senders not yet on allow-list.
-  if (BANK_ACTION.test(blob) && /bank|banca|banking|paypal|revolut|n26|wise/i.test(sender)) {
+  if (BANK_ACTION.test(blob) && /bank|banca|banking|paypal|revolut|n26|wise|tim\.|telecom/i.test(sender + address)) {
+    return true;
+  }
+  if (SHIPPING_ACTION.test(blob) && /poste|sda|brt|bartolini|dhl|ups|fedex|vinted|amazon/i.test(sender + address)) {
     return true;
   }
 
-  if (ACTION_HINT.test(blob)) return true;
+  // Human-looking senders with an explicit ask — never bare ACTION_HINT on bulk.
+  if (!bulk && ACTION_HINT.test(blob) && /[?？]|per favore|please|potresti|ti chiedo|rispondi/i.test(blob)) {
+    return true;
+  }
 
   if (
     address &&
+    !bulk &&
     !DENY_SENDER.test(address) &&
     /[?？]|per favore|please/i.test(blob)
   ) {

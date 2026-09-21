@@ -50,6 +50,25 @@ export function AdaptiveFill({
 
     const fits = () => body.scrollHeight <= body.clientHeight + 2;
 
+    const markLastVisible = (nodes: HTMLElement[]) => {
+      for (const node of nodes) node.classList.remove("is-last-visible");
+      const visible = nodes.filter((n) => !n.hidden);
+      const last = visible[visible.length - 1];
+      if (last) last.classList.add("is-last-visible");
+    };
+
+    const hideGeometricOverflow = (nodes: HTMLElement[]) => {
+      const bodyBottom = body.getBoundingClientRect().bottom;
+      for (const node of nodes) {
+        if (node.hidden) continue;
+        const bottom = node.getBoundingClientRect().bottom;
+        if (bottom > bodyBottom + 1) {
+          node.hidden = true;
+          node.style.display = "none";
+        }
+      }
+    };
+
     const fit = () => {
       if (cancelled) return;
       const nodes = Array.from(el.children) as HTMLElement[];
@@ -58,6 +77,7 @@ export function AdaptiveFill({
       for (const node of nodes) {
         node.hidden = false;
         node.style.removeProperty("display");
+        node.classList.remove("is-last-visible");
       }
 
       // Body not height-capped yet (still sizing) — retry next frame.
@@ -87,6 +107,10 @@ export function AdaptiveFill({
         if (visible < 0) visible = 0;
         apply(visible);
       }
+
+      // Catch partial rows clipped by overflow:hidden (ghost dotted rules).
+      hideGeometricOverflow(nodes);
+      markLastVisible(nodes);
     };
 
     fit();

@@ -8,6 +8,12 @@
  * so narrow clones fell back to a single column; we force the same 3-column map
  * as the screen stylesheet before snapshotting.
  *
+ * On iPhone the viewport stays ~390px during capture even after the sheet is
+ * widened to 210mm, so viewport media queries that pack Promemoria/Email into
+ * two columns never fire. `is-pdf-capture` CSS, sheet container queries, and
+ * inline grid styles below keep those lists at two columns so Email stays at
+ * four items instead of being crushed.
+ *
  * `-webkit-box` + `-webkit-line-clamp` stretch glyphs in rasterizers. Fully
  * unwrapping the clamp also expands long summaries to their full height while
  * the SVG often still paints only the clamped lines — phantom empty space under
@@ -105,6 +111,11 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     if (el instanceof HTMLElement) touched.push(el);
   }
 
+  const reminderList = root.querySelector(".reminder-list");
+  if (reminderList instanceof HTMLElement) touched.push(reminderList);
+  const actionMailList = root.querySelector(".action-mail-list");
+  if (actionMailList instanceof HTMLElement) touched.push(actionMailList);
+
   for (const [selector] of LINE_CLAMP_LINES) {
     root.querySelectorAll(selector).forEach((node) => {
       if (node instanceof HTMLElement) touched.push(node);
@@ -148,6 +159,20 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
       el.style.overflow = "hidden";
       el.style.alignSelf = "stretch";
     }
+  }
+
+  // Viewport on iPhone stays narrow; media queries that pack lists into two
+  // columns never fire. Set them inline so PDF capture matches desktop A4.
+  if (reminderList instanceof HTMLElement) {
+    reminderList.style.display = "grid";
+    reminderList.style.gridTemplateColumns = "1fr 1fr";
+    reminderList.style.gap = "0 0.55rem";
+    reminderList.style.columnGap = "0.55rem";
+  }
+  if (actionMailList instanceof HTMLElement) {
+    actionMailList.style.display = "grid";
+    actionMailList.style.gridTemplateColumns = "1fr 1fr";
+    actionMailList.style.gap = "0.15rem 0.75rem";
   }
 
   for (const [selector, lines] of LINE_CLAMP_LINES) {

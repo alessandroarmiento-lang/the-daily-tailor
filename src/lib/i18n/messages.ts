@@ -34,7 +34,7 @@ export const messages = {
       "Autorizza Promemoria o configura CalDAV iCloud.",
     remindersLoading: "Caricamento promemoria…",
     email: "Email",
-    emailKicker: "Ieri · richieste d’azione",
+    emailKicker: "Ultime · richieste d’azione",
     emailLoading: "Caricamento email…",
     aphorismAria: "Aforisma del giorno",
     updated: "Aggiornamento",
@@ -71,7 +71,7 @@ export const messages = {
     condThunderstorm: "Temporale",
     condUnknown: "Condizioni non disponibili",
     noNews: "Nessun titolo disponibile questa mattina.",
-    noEmails: "Nessuna email d’azione arrivata ieri.",
+    noEmails: "Nessuna email d’azione recente.",
   },
   en: {
     langAria: "Language",
@@ -105,7 +105,7 @@ export const messages = {
     remindersAuth: "Allow Reminders or configure iCloud CalDAV.",
     remindersLoading: "Loading reminders…",
     email: "Email",
-    emailKicker: "Yesterday · action items",
+    emailKicker: "Latest · action items",
     emailLoading: "Loading email…",
     aphorismAria: "Aphorism of the day",
     updated: "Updated",
@@ -141,7 +141,7 @@ export const messages = {
     condThunderstorm: "Thunderstorm",
     condUnknown: "Conditions unavailable",
     noNews: "No headlines available this morning.",
-    noEmails: "No action emails arrived yesterday.",
+    noEmails: "No recent action emails.",
   },
 } as const;
 

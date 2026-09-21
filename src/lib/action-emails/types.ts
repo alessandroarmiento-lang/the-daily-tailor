@@ -1,6 +1,6 @@
 /**
- * Action emails — messages from yesterday that imply a to-do / request / deadline.
- * Not a full inbox.
+ * Action emails — recent inbox messages that imply a to-do / request / deadline.
+ * Rolling slot of the newest actionable ones (not a full inbox).
  */
 
 export type ActionEmailItem = {
@@ -21,7 +21,7 @@ export type ActionEmailItem = {
 
 export type ActionEmailBriefing = {
   items: ActionEmailItem[];
-  /** Important actionable emails not shown (A4 budget). */
+  /** Always 0: older actionable mail falls out of the rolling slot. */
   hiddenCount: number;
   fetchedAt: string;
   sourceLabel: string;
@@ -36,6 +36,6 @@ export type SectionResult<T> =
 export interface ActionEmailAdapter {
   readonly id: string;
   readonly label: string;
-  /** Emails arrived yesterday whose content implies an actionable request. */
-  getYesterdaysActionEmails(): Promise<ActionEmailItem[]>;
+  /** Newest actionable emails in the lookback window (newest first). */
+  getRecentActionEmails(): Promise<ActionEmailItem[]>;
 }

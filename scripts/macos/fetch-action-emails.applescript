@@ -1,18 +1,24 @@
 #!/usr/bin/osascript
--- Fetch yesterday's inbox messages from Apple Mail as JSON.
+-- Fetch recent inbox messages from Apple Mail as JSON (lookback window).
 -- Unified inbox covers iCloud + Gmail (and any other accounts in Mail.app).
--- Args (optional): maxItems (default 40)
+-- Args (optional): maxScan (default 80), lookbackDays (default 14)
 on run argv
-	set maxItems to 40
+	set maxScan to 80
+	set lookbackDays to 14
 	if (count of argv) ≥ 1 then
 		try
-			set maxItems to (item 1 of argv) as integer
+			set maxScan to (item 1 of argv) as integer
 		end try
 	end if
+	if (count of argv) ≥ 2 then
+		try
+			set lookbackDays to (item 2 of argv) as integer
+		end try
+	end if
+	if lookbackDays < 1 then set lookbackDays to 1
 
 	set now to current date
-	set endDay to date (short date string of now)
-	set startDay to endDay - 1 * days
+	set startDay to now - lookbackDays * days
 
 	set accountNames to {}
 	tell application "Mail"
@@ -22,14 +28,14 @@ on run argv
 
 		set rows to {}
 		try
-			set msgs to (messages of inbox whose date received ≥ startDay and date received < endDay)
+			set msgs to (messages of inbox whose date received ≥ startDay)
 		on error errMsg number errNum
 			return "{\"ok\":false,\"error\":\"Mail whose failed (" & errNum & "): " & my escapeJson(errMsg) & "\",\"accounts\":" & my accountsJson(accountNames) & "}"
 		end try
 
 		set total to count of msgs
 		set limit to total
-		if limit > maxItems then set limit to maxItems
+		if limit > maxScan then set limit to maxScan
 
 		repeat with i from 1 to limit
 			try
@@ -67,7 +73,7 @@ on run argv
 	set AppleScript's text item delimiters to ","
 	set body to rows as text
 	set AppleScript's text item delimiters to ""
-	return "{\"ok\":true,\"window\":\"yesterday\",\"total\":" & total & ",\"accounts\":" & my accountsJson(accountNames) & ",\"items\":[" & body & "]}"
+	return "{\"ok\":true,\"window\":\"recent\",\"lookbackDays\":" & lookbackDays & ",\"total\":" & total & ",\"accounts\":" & my accountsJson(accountNames) & ",\"items\":[" & body & "]}"
 end run
 
 on accountsJson(accountNames)

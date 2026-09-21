@@ -1,8 +1,8 @@
 /**
- * Apple Mail adapter — yesterday's actionable inbox via osascript.
+ * Apple Mail adapter — recent actionable inbox via osascript.
  * Mac-awake path only (TCC Automation). Prefer IMAP for Mac-off generation.
  * Scans the unified inbox (iCloud + Gmail and any other accounts in Mail.app).
- * Returns a ranked pool (may exceed A4 max); getActionEmails caps + hiddenCount.
+ * Returns the rolling newest-N actionable slot.
  */
 import { config } from "@/lib/config";
 import {
@@ -31,16 +31,20 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "applemail";
   label = "Apple Mail (iCloud + Gmail)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
-    const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
+    const maxVisible = config.actionEmails.maxItems;
+    const scanPool = actionEmailFetchPool(maxVisible);
     const cached = await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
     if (cached?.data) {
-      return cached.data.slice(0, poolSize);
+      return cached.data.slice(0, maxVisible);
     }
 
     const result = await runOsascriptJson<ScriptResult>(
       "fetch-action-emails.applescript",
-      [String(Math.max(40, poolSize))],
+      [
+        String(Math.max(80, scanPool)),
+        String(config.actionEmails.lookbackDays),
+      ],
       90_000,
     );
 
@@ -58,8 +62,7 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
       messageUrl: m.messageUrl || messageUrlFromId(m.id, m.account),
     }));
 
-    // Keep full ranked actionable pool (not just A4 visible slot).
-    const { items } = toActionEmailItemsWithOverflow(raw, poolSize, {
+    const { items } = toActionEmailItemsWithOverflow(raw, maxVisible, {
       contactEmails: contacts,
     });
     await writeEditionCache("action-emails", items);

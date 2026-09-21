@@ -2,6 +2,8 @@
  * Headless IMAP actionable-mail adapter.
  * Scans iCloud Mail + Gmail (app passwords) — works with Mac powered off.
  * No Google/Microsoft OAuth required when app passwords are set.
+ *
+ * Rolling slot: newest actionable emails in the lookback window.
  */
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
@@ -67,8 +69,11 @@ export function hasImapCredentials(): boolean {
   return configuredImapAccounts().length > 0;
 }
 
-function yesterdayWindow(timeZone: string): { since: Date; before: Date } {
-  // Civil yesterday in newspaper timezone → UTC bounds (approx via local Date).
+/** Civil lookback window in the newspaper timezone → UTC-ish bounds. */
+function recentWindow(
+  timeZone: string,
+  lookbackDays: number,
+): { since: Date; before: Date } {
   const now = new Date();
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -78,15 +83,14 @@ function yesterdayWindow(timeZone: string): { since: Date; before: Date } {
   });
   const todayKey = fmt.format(now);
   const [y, m, d] = todayKey.split("-").map(Number);
-  // Build "today 00:00" and "yesterday 00:00" as Date in local machine TZ;
-  // good enough for personal Mac / always-on host in Europe/Rome.
-  const todayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  return { since: yesterdayStart, before: todayStart };
+  // End of today (exclusive tomorrow 00:00) so today's mail is included.
+  const tomorrowStart = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
+  const since = new Date(y, m - 1, d, 0, 0, 0, 0);
+  since.setDate(since.getDate() - (lookbackDays - 1));
+  return { since, before: tomorrowStart };
 }
 
-async function fetchAccountYesterday(
+async function fetchAccountRecent(
   account: ImapAccount,
   since: Date,
   before: Date,
@@ -105,7 +109,6 @@ async function fetchAccountYesterday(
     await client.connect();
     const lock = await client.getMailboxLock("INBOX");
     try {
-      // Search yesterday window; fall back to recent if server rejects SINCE/BEFORE.
       let uids: number[] = [];
       try {
         const found = await client.search({
@@ -126,10 +129,7 @@ async function fetchAccountYesterday(
           const downloaded = await client.download(uid);
           if (!downloaded?.content) continue;
           const parsed = await simpleParser(downloaded.content);
-          const received =
-            parsed.date && parsed.date >= since && parsed.date < before
-              ? parsed.date
-              : parsed.date;
+          const received = parsed.date;
           if (!received || received < since || received >= before) continue;
 
           const from =
@@ -197,12 +197,13 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "imap";
   readonly label = "IMAP (iCloud + Gmail)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
-    const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
+    const maxVisible = config.actionEmails.maxItems;
+    const scanPool = actionEmailFetchPool(maxVisible);
     const cached =
       await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
     if (cached?.data) {
-      return cached.data.slice(0, poolSize);
+      return cached.data.slice(0, maxVisible);
     }
 
     const accounts = configuredImapAccounts();
@@ -212,14 +213,17 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
       );
     }
 
-    const { since, before } = yesterdayWindow(config.timezone);
-    const scanCap = Math.max(30, poolSize);
+    const { since, before } = recentWindow(
+      config.timezone,
+      config.actionEmails.lookbackDays,
+    );
+    const scanCap = Math.max(80, scanPool);
     const all: MailRawMessage[] = [];
     const errors: string[] = [];
     const foundLabels: string[] = [];
 
     for (const account of accounts) {
-      const result = await fetchAccountYesterday(
+      const result = await fetchAccountRecent(
         account,
         since,
         before,
@@ -235,7 +239,8 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
     }
 
     const contacts = await loadContactEmails();
-    const { items } = toActionEmailItemsWithOverflow(all, poolSize, {
+    // Rank newest-first actionable; keep only the rolling visible slot.
+    const { items } = toActionEmailItemsWithOverflow(all, maxVisible, {
       contactEmails: contacts,
     });
 

@@ -1,8 +1,8 @@
 import type { ActionEmailAdapter, ActionEmailItem } from "./types";
 
-function yesterdayAt(hours: number, minutes: number): string {
+function daysAgoAt(daysAgo: number, hours: number, minutes: number): string {
   const d = new Date();
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - daysAgo);
   d.setHours(hours, minutes, 0, 0);
   return d.toISOString();
 }
@@ -16,7 +16,7 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     actionCue: "Rileggere e firmare il PDF allegato entro venerdì.",
     bodyPreview:
       "Ciao Alessandro, in allegato la bozza aggiornata. Controlla le clausole 4 e 7 e rimandami il PDF firmato entro venerdì sera.",
-    receivedAt: yesterdayAt(9, 14),
+    receivedAt: daysAgoAt(0, 9, 14),
   },
   {
     id: "ae-2",
@@ -25,8 +25,8 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     senderAddress: "marco.rossi@team.example",
     actionCue: "Confermare o declinare la partecipazione al kickoff di mercoledì.",
     bodyPreview:
-      "Ciao, confermi la tua presenza al kickoff di mercoledì alle 10? Serve il via libera per bloccare la sala e l’ordine del giorno.",
-    receivedAt: yesterdayAt(11, 42),
+      "Ciao, confermi la tua presenza al kickoff di mercoledì alle 10? Serve il via libero per bloccare la sala e l’ordine del giorno.",
+    receivedAt: daysAgoAt(1, 11, 42),
   },
   {
     id: "ae-3",
@@ -36,7 +36,7 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     actionCue: "Verificare importo e autorizzare il pagamento entro 48 ore.",
     bodyPreview:
       "La fattura #4821 di €1.240 scade dopodomani. Verifica l’importo e autorizza il pagamento SEPA entro 48 ore.",
-    receivedAt: yesterdayAt(16, 5),
+    receivedAt: daysAgoAt(2, 16, 5),
   },
   {
     id: "ae-4",
@@ -46,7 +46,7 @@ const MOCK_ACTION_EMAILS: ActionEmailItem[] = [
     actionCue: "Rispondere con 3 punti di feedback sulla bozza di ieri.",
     bodyPreview:
       "Ho riletto il brief di ieri. Mi mandi tre punti di feedback (tono, densità, gerarchia) così chiudo la revisione entro stasera?",
-    receivedAt: yesterdayAt(18, 30),
+    receivedAt: daysAgoAt(3, 18, 30),
   },
 ];
 
@@ -54,7 +54,10 @@ export class MockActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "mock";
   readonly label = "Action email (mock)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
-    return MOCK_ACTION_EMAILS;
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
+    // Newest first — matches the rolling slot order.
+    return [...MOCK_ACTION_EMAILS].sort(
+      (a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt),
+    );
   }
 }

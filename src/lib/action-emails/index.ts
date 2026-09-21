@@ -1,7 +1,10 @@
 /**
- * Action emails — yesterday messages that imply a to-do.
+ * Action emails — recent messages that imply a to-do.
  * Prefer headless IMAP (iCloud + Gmail app passwords) so editions generate
  * with Mac off. Apple Mail automation is a Mac-awake fallback only.
+ *
+ * Visible slot: the newest N actionable emails (default 4). When a new one
+ * arrives, the oldest drops off.
  */
 import { config } from "@/lib/config";
 import { mailAuthMessage } from "@/lib/apple/permissions";
@@ -11,7 +14,6 @@ import {
   ImapActionEmailAdapter,
 } from "./imap";
 import { MockActionEmailAdapter } from "./mock";
-import { toActionEmailItemsWithOverflow } from "./actionable";
 import type {
   ActionEmailAdapter,
   ActionEmailBriefing,
@@ -46,6 +48,8 @@ function resolveAdapter(): ActionEmailAdapter {
   }
 }
 
+const WINDOW_LABEL = "Ultime · richieste d’azione";
+
 function emptyBriefing(
   adapter: ActionEmailAdapter,
   isMock: boolean,
@@ -55,30 +59,28 @@ function emptyBriefing(
     hiddenCount: 0,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
-    windowLabel: "Ieri · solo richieste d’azione",
+    windowLabel: WINDOW_LABEL,
     isMock,
   };
 }
 
 /**
- * Adapters may return a ranked pool larger than the A4 slot.
- * Cap here and expose hiddenCount for «+N altre email».
+ * Adapters return the rolling visible slot (newest first).
+ * No overflow row — older actionable mail simply falls out of the slot.
  */
 function briefingFromPool(
   pool: ActionEmailItem[],
   adapter: ActionEmailAdapter,
   isMock: boolean,
 ): ActionEmailBriefing {
-  // Pool is already actionable; re-cap by list order (adapters rank first).
   const max = config.actionEmails.maxItems;
   const items = pool.slice(0, max);
-  const hiddenCount = Math.max(0, pool.length - items.length);
   return {
     items,
-    hiddenCount,
+    hiddenCount: 0,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
-    windowLabel: "Ieri · solo richieste d’azione",
+    windowLabel: WINDOW_LABEL,
     isMock,
   };
 }
@@ -90,7 +92,7 @@ export async function getActionEmails(): Promise<
   const useMock = adapter.id === "mock";
 
   try {
-    const pool = await adapter.getYesterdaysActionEmails();
+    const pool = await adapter.getRecentActionEmails();
     return {
       status: "ok",
       data: briefingFromPool(pool, adapter, useMock),
@@ -115,4 +117,4 @@ export type {
 } from "./types";
 
 // Re-export for adapters that build overflow-aware pools.
-export { toActionEmailItemsWithOverflow };
+export { toActionEmailItemsWithOverflow } from "./actionable";

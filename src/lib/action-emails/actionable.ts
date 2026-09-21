@@ -297,20 +297,25 @@ export function emailImportanceScore(
   if (PA_ACTION.test(blob)) score += 160;
   if (ACTION_HINT.test(blob)) score += 120;
   if (msg.unread) score += 60;
-  // Prefer more recent within yesterday.
-  const t = Date.parse(msg.receivedAt);
-  if (!Number.isNaN(t)) score += Math.min(40, Math.floor(t / 100_000) % 40);
-
   return score;
 }
 
+/**
+ * Actionable only, newest first. A new message pushes out the oldest once
+ * the visible slot (maxItems) is full.
+ */
 export function rankActionableMail(
   messages: MailRawMessage[],
   ctx: ActionClassifyContext = {},
 ): MailRawMessage[] {
   return messages
     .filter((m) => isActionableMail(m, ctx))
-    .sort((a, b) => emailImportanceScore(b, ctx) - emailImportanceScore(a, ctx));
+    .sort((a, b) => {
+      const tb = Date.parse(b.receivedAt) || 0;
+      const ta = Date.parse(a.receivedAt) || 0;
+      if (tb !== ta) return tb - ta;
+      return emailImportanceScore(b, ctx) - emailImportanceScore(a, ctx);
+    });
 }
 
 export function toActionEmailItems(
@@ -352,7 +357,7 @@ export function toActionEmailItemsWithOverflow(
   return { items, hiddenCount };
 }
 
-/** Pool of actionable candidates to keep before A4 cap (for +N altre email). */
+/** How many raw inbox messages to scan per account before actionable filter. */
 export function actionEmailFetchPool(maxVisible: number): number {
-  return Math.max(24, maxVisible * 8);
+  return Math.max(80, maxVisible * 20);
 }

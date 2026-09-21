@@ -70,7 +70,13 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
+    /** Visible rolling slot: newest actionable emails; a new one drops the oldest. */
     maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "4"),
+    /** How far back to scan the inbox for actionable candidates. */
+    lookbackDays: Math.min(
+      60,
+      Math.max(1, Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "14") || 14),
+    ),
   },
   calendar: {
     /**

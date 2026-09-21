@@ -10,9 +10,11 @@ Self-hosted **one-page morning paper**: weather, calendar, actionable mail, remi
 | --- | --- |
 | 1 | Clone: `git clone https://github.com/alessandroarmiento-lang/the-daily-tailor.git` |
 | 2 | Install: `npm install` then `npm run dev` → [http://127.0.0.1:3847](http://127.0.0.1:3847) |
-| 3 | Configure: copy `.env.example` → `.env.local` (IMAP / CalDAV / tokens as needed) |
-| 4 | Optional host: Fly.io via `./deploy/fly/deploy.sh` (see below) |
+| 3 | **Personalize:** follow **[SETUP.md](SETUP.md)** — copy `.env.example` → `.env.local`, wire mail / calendar / reminders / weather / news as yours |
+| 4 | Optional always-on host: Fly.io via `./deploy/fly/deploy.sh` (details in SETUP.md) |
 | Release | [Latest release](https://github.com/alessandroarmiento-lang/the-daily-tailor/releases/latest) (source archive) |
+
+**Make it yours:** [SETUP.md](SETUP.md) is the end-to-end guide (branding, IMAP/CalDAV, iPhone Reminders Shortcut, Fly, Home Screen, verification). Env knobs are also listed in [`.env.example`](.env.example).
 
 This is **not** a hosted SaaS for strangers: you run your own instance with **your** credentials. Do not point public traffic at someone else’s live deployment (it may contain private mail/calendar).
 

@@ -1,4 +1,4 @@
 {
   "defaultLang": "en",
-  "_comment": "Copy to public/owner-prefs.json (gitignored) and set defaultLang to \"it\" on the author's machine."
+  "_comment": "Copy this file to public/owner-prefs.json (gitignored). Use \"en\" or \"it\". Public clones without owner-prefs.json default to English. Toolbar EN · IT still switches at runtime."
 }

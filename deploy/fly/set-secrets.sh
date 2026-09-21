@@ -49,12 +49,6 @@ wanted = {
     "GOOGLE_CALDAV_APP_PASSWORD",
     "REMINDERS_INGEST_TOKEN",
 }
-required = {
-    "ICLOUD_MAIL_USER",
-    "ICLOUD_MAIL_APP_PASSWORD",
-    "GMAIL_USER",
-    "GMAIL_APP_PASSWORD",
-}
 found: dict[str, str] = {}
 for line in raw.splitlines():
     s = line.strip()
@@ -68,11 +62,21 @@ for line in raw.splitlines():
     if val:
         found[key] = val
 
-missing = sorted(required - set(found))
-if missing:
-    for m in missing:
-        print(f"MISSING:{m}", file=sys.stderr)
+# At least one IMAP provider (iCloud and/or Gmail). Both optional individually.
+icloud_ok = "ICLOUD_MAIL_USER" in found and "ICLOUD_MAIL_APP_PASSWORD" in found
+gmail_ok = "GMAIL_USER" in found and "GMAIL_APP_PASSWORD" in found
+if not icloud_ok and not gmail_ok:
+    print(
+        "MISSING: need ICLOUD_MAIL_USER+ICLOUD_MAIL_APP_PASSWORD "
+        "and/or GMAIL_USER+GMAIL_APP_PASSWORD",
+        file=sys.stderr,
+    )
     sys.exit(2)
+if "REMINDERS_INGEST_TOKEN" not in found:
+    print(
+        "WARN: REMINDERS_INGEST_TOKEN unset — iPhone Reminders push will not work",
+        file=sys.stderr,
+    )
 
 if not found:
     print("No secrets parsed", file=sys.stderr)

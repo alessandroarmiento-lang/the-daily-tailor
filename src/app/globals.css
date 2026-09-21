@@ -485,17 +485,52 @@ a.cal-event__link:hover {
   }
 }
 
-/* Belt-and-suspenders for PDF capture clones (also set inline in onclone). */
+/* Belt-and-suspenders for PDF capture clones (also set inline in onclone).
+ * Must beat @media (max-width: 640px) — on iPhone the viewport stays ~390px
+ * even while the sheet is forced to A4, so mobile type/padding would otherwise
+ * leak into the PDF and diverge from desktop browser export. */
 .sheet-page.is-pdf-capture {
   display: flex !important;
   flex-direction: column !important;
   box-sizing: border-box !important;
-  width: 210mm !important;
-  max-width: 210mm !important;
-  height: 297mm !important;
-  max-height: 297mm !important;
+  /* 210×297mm at 96dpi — same CSS px box on every device. */
+  width: 794px !important;
+  max-width: 794px !important;
+  height: 1123px !important;
+  max-height: 1123px !important;
   margin: 0 !important;
+  padding: 45px 45px 38px !important;
   overflow: hidden !important;
+  border: 1px solid #000000 !important;
+  border-radius: 0 !important;
+}
+
+.sheet-page.is-pdf-capture .masthead__brand {
+  font-size: 3.35rem !important;
+}
+
+.sheet-page.is-pdf-capture .masthead__tagline {
+  font-size: 0.95rem !important;
+}
+
+.sheet-page.is-pdf-capture .aphorism__text {
+  font-size: 1.15rem !important;
+}
+
+.sheet-page.is-pdf-capture .sheet-section__title {
+  font-size: 1.2rem !important;
+}
+
+.sheet-page.is-pdf-capture .weather__deg {
+  font-size: 3rem !important;
+}
+
+.sheet-page.is-pdf-capture .headline-list__title {
+  font-size: 0.88rem !important;
+}
+
+.sheet-page.is-pdf-capture .headline-list__summary {
+  font-size: 0.74rem !important;
 }
 
 .sheet-page.is-pdf-capture > .masthead,
@@ -516,7 +551,7 @@ a.cal-event__link:hover {
     "emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
-  align-content: start !important;
+  align-content: stretch !important;
   align-items: stretch !important;
   overflow: hidden !important;
 }

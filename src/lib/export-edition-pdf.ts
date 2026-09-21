@@ -13,11 +13,9 @@ import {
  * so narrow clones fell back to a single column; we force the same 3-column map
  * as the screen stylesheet before snapshotting.
  *
- * On iPhone the viewport stays ~390px during capture even after the sheet is
- * widened to 210mm, so viewport media queries that pack Promemoria/Email into
- * two columns never fire. `is-pdf-capture` CSS, sheet container queries, and
- * inline grid styles below keep those lists at two columns so Email stays at
- * four items instead of being crushed.
+ * On iPhone the viewport stays ~390px during capture, so @media (max-width:
+ * 640px) would otherwise keep mobile type/padding. Capture locks a fixed A4
+ * CSS-px box (794×1123) plus desktop type under `.is-pdf-capture`.
  *
  * `-webkit-box` + `-webkit-line-clamp` stretch glyphs in rasterizers. Fully
  * unwrapping the clamp also expands long summaries to their full height while
@@ -32,6 +30,13 @@ import {
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
 const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
+
+/** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
+const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
+const A4_HEIGHT_PX = Math.round((297 / 25.4) * 96); // 1123
+/** ~12mm / ~10mm at 96dpi — avoid mm→px drift across Safari/Chrome. */
+const A4_PAD_X_PX = Math.round((12 / 25.4) * 96); // 45
+const A4_PAD_BOTTOM_PX = Math.round((10 / 25.4) * 96); // 38
 
 /** Selectors → on-screen `-webkit-line-clamp` line counts. */
 const LINE_CLAMP_LINES: Array<[string, number]> = [
@@ -145,16 +150,18 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   const backups = backupStyles(touched);
 
   root.classList.add("is-pdf-capture");
-  root.style.width = "210mm";
-  root.style.maxWidth = "210mm";
-  root.style.height = "297mm";
-  root.style.maxHeight = "297mm";
+  root.style.width = `${A4_WIDTH_PX}px`;
+  root.style.maxWidth = `${A4_WIDTH_PX}px`;
+  root.style.height = `${A4_HEIGHT_PX}px`;
+  root.style.maxHeight = `${A4_HEIGHT_PX}px`;
   root.style.margin = "0";
+  root.style.padding = `${A4_PAD_X_PX}px ${A4_PAD_X_PX}px ${A4_PAD_BOTTOM_PX}px`;
   root.style.boxSizing = "border-box";
   root.style.background = "#ffffff";
   root.style.overflow = "hidden";
   root.style.display = "flex";
   root.style.flexDirection = "column";
+  root.style.borderRadius = "0";
 
   if (grid instanceof HTMLElement) {
     grid.style.display = "grid";
@@ -246,22 +253,20 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
 
   let imgData: string;
   try {
-    const rect = sheet.getBoundingClientRect();
-    const captureH = Math.ceil(rect.height);
     imgData = await toJpeg(sheet, {
       quality: 0.96,
+      // Fixed ratio so Retina iPhone (3×) and desktop (2×) share the same PDF DPI.
       pixelRatio: 2,
       backgroundColor: "#ffffff",
       cacheBust: true,
-      width: Math.ceil(rect.width),
-      // Fixed A4 box only — never capture overflow below the page.
-      height: captureH,
+      width: A4_WIDTH_PX,
+      height: A4_HEIGHT_PX,
       style: {
         transform: "none",
-        width: `${Math.ceil(rect.width)}px`,
-        maxWidth: `${Math.ceil(rect.width)}px`,
-        height: `${captureH}px`,
-        maxHeight: `${captureH}px`,
+        width: `${A4_WIDTH_PX}px`,
+        maxWidth: `${A4_WIDTH_PX}px`,
+        height: `${A4_HEIGHT_PX}px`,
+        maxHeight: `${A4_HEIGHT_PX}px`,
         margin: "0",
         overflow: "hidden",
       },

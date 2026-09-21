@@ -95,6 +95,7 @@ export async function RemindersSection() {
     <SectionShell
       title="Promemoria"
       kicker="Oggi / aperti"
+      overflowLabel={overflow || undefined}
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
         result.status === "error" ? result.message : undefined
@@ -130,9 +131,6 @@ export async function RemindersSection() {
           );
         })}
       </ul>
-      {overflow ? (
-        <p className="section-overflow">{overflow}</p>
-      ) : null}
     </SectionShell>
   );
 }

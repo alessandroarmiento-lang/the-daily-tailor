@@ -52,6 +52,7 @@ export async function ActionEmailsSection() {
     <SectionShell
       title="Email"
       kicker="Ultime · richieste d’azione"
+      overflowLabel={overflow || undefined}
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
         result.status === "error" ? result.message : undefined
@@ -86,9 +87,6 @@ export async function ActionEmailsSection() {
           </li>
         ))}
       </ul>
-      {overflow ? (
-        <p className="section-overflow">{overflow}</p>
-      ) : null}
     </SectionShell>
   );
 }

@@ -725,6 +725,42 @@ a.cal-event__link:hover {
   line-height: 1.15;
 }
 
+.sheet-section__title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-top: 0.1rem;
+  min-width: 0;
+}
+
+.sheet-section__title-row .sheet-section__title {
+  margin: 0;
+  min-width: 0;
+}
+
+.section-overflow {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sits on the title row — no vertical band under the list. */
+.section-overflow--inline {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  align-self: center;
+}
+
 .sheet-section__note {
   margin: 0.45rem 0 0;
   font-family: var(--font-sans);
@@ -1187,18 +1223,6 @@ a.cal-event__link:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.section-overflow {
-  margin: 0.35rem 0 0;
-  padding: 0;
-  text-align: left;
-  font-family: var(--font-sans);
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-muted);
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
 }
 
 .sheet-footer {
@@ -1782,11 +1806,22 @@ a.cal-event__link:hover {
   }
 
   .section-overflow {
-    margin-top: 0.2rem !important;
-    font-size: 6.5pt !important;
-    letter-spacing: 0.02em;
+    margin: 0 !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.04em;
     color: #000000 !important;
-    text-align: left !important;
+    text-align: right !important;
+  }
+
+  .section-overflow--inline {
+    margin: 0 !important;
+  }
+
+  .sheet-section__title-row {
+    display: flex !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
   }
 
   .sheet-footer {

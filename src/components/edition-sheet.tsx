@@ -534,6 +534,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                   <SectionShell
                     title={t("reminders")}
                     kicker={t("remindersKicker")}
+                    overflowLabel={overflow || undefined}
                     tone={remindersResult.status === "error" ? "error" : "ok"}
                   >
                     <ul className="reminder-list">
@@ -571,9 +572,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         );
                       })}
                     </ul>
-                    {overflow ? (
-                      <p className="section-overflow">{overflow}</p>
-                    ) : null}
                   </SectionShell>
                 );
               })()
@@ -608,6 +606,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 <SectionShell
                   title={t("email")}
                   kicker={t("emailKicker")}
+                  overflowLabel={overflow || undefined}
                   tone={emailsResult.status === "error" ? "error" : "ok"}
                 >
                   <ul className="action-mail-list">
@@ -643,9 +642,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       </li>
                     ))}
                   </ul>
-                  {overflow ? (
-                    <p className="section-overflow">{overflow}</p>
-                  ) : null}
                 </SectionShell>
               );
             })()

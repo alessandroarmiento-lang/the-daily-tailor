@@ -1,6 +1,8 @@
 type SectionShellProps = {
   title: string;
   kicker?: string;
+  /** Compact +N badge on the title row (no extra vertical band under the list). */
+  overflowLabel?: string;
   children: React.ReactNode;
   footerNote?: string;
   tone?: "ok" | "error" | "empty";
@@ -9,6 +11,7 @@ type SectionShellProps = {
 export function SectionShell({
   title,
   kicker,
+  overflowLabel,
   children,
   footerNote,
   tone = "ok",
@@ -20,7 +23,14 @@ export function SectionShell({
         <p className="sheet-section__kicker">
           {kicker ? kicker : "\u00a0"}
         </p>
-        <h2 className="sheet-section__title">{title}</h2>
+        <div className="sheet-section__title-row">
+          <h2 className="sheet-section__title">{title}</h2>
+          {overflowLabel ? (
+            <span className="section-overflow section-overflow--inline">
+              {overflowLabel}
+            </span>
+          ) : null}
+        </div>
       </header>
       <div className="sheet-section__body">{children}</div>
       {footerNote ? (

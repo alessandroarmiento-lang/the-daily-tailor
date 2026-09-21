@@ -21,10 +21,7 @@ import type { Lang, MessageKey } from "@/lib/i18n/messages";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
-import {
-  emailsOverflowLabel,
-  remindersOverflowLabel,
-} from "@/lib/section-overflow";
+import { remindersOverflowLabel } from "@/lib/section-overflow";
 import type { PrecipitationForecast } from "@/lib/weather/types";
 import {
   conditionLabel,
@@ -599,11 +596,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 0,
                 config.actionEmails.maxItems,
               );
-              const hidden =
-                typeof emailsResult.data.hiddenCount === "number"
-                  ? emailsResult.data.hiddenCount
-                  : 0;
-              const overflow = emailsOverflowLabel(hidden);
               return (
                 <SectionShell
                   title={t("email")}
@@ -643,9 +635,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       </li>
                     ))}
                   </ul>
-                  {overflow ? (
-                    <p className="section-overflow">{overflow}</p>
-                  ) : null}
                 </SectionShell>
               );
             })()

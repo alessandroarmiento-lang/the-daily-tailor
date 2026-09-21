@@ -63,21 +63,19 @@ function emptyBriefing(
 }
 
 /**
- * Adapters may return a ranked pool larger than the A4 slot.
- * Cap here and expose hiddenCount for «+N».
+ * Adapters may return a ranked pool larger than the visible slot.
+ * Cap here; rolling last-N does not show a +N overflow row.
  */
 function briefingFromPool(
   pool: ActionEmailItem[],
   adapter: ActionEmailAdapter,
   isMock: boolean,
 ): ActionEmailBriefing {
-  // Pool is already actionable + newest-first; re-cap by list order.
   const max = config.actionEmails.maxItems;
   const items = pool.slice(0, max);
-  const hiddenCount = Math.max(0, pool.length - items.length);
   return {
     items,
-    hiddenCount,
+    hiddenCount: 0,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
     windowLabel: WINDOW_LABEL,

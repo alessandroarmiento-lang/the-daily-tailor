@@ -1,20 +1,32 @@
 # The Daily Tailor
 
-Personal one-page morning paper, tailored to you — web app for Alessandro Armiento.
+Self-hosted **one-page morning paper**: weather, calendar, actionable mail, reminders, and world news — built as a PWA you can read on iPhone and optionally print to **exactly one A4**.
 
 **Product name (locked):** The Daily Tailor.
 
-## Provenance / ispirazione
+## Get it
 
-**Non è un’idea originale.** The Daily Tailor nasce da un post visto su Instagram: una ragazza aveva realizzato una sorta di giornale personale quotidiano. Alessandro ha voluto **replicare** quell’idea su Cursor, con le proprie sezioni e integrazioni (meteo, agenda, mail, promemoria, notizie).
+| Step | Action |
+| --- | --- |
+| 1 | Clone: `git clone https://github.com/alessandroarmiento-lang/the-daily-tailor.git` |
+| 2 | Install: `npm install` then `npm run dev` → [http://127.0.0.1:3847](http://127.0.0.1:3847) |
+| 3 | Configure: copy `.env.example` → `.env.local` (IMAP / CalDAV / tokens as needed) |
+| 4 | Optional host: Fly.io via `./deploy/fly/deploy.sh` (see below) |
+| Release | [Latest release](https://github.com/alessandroarmiento-lang/the-daily-tailor/releases/latest) (source archive) |
 
-Questo repository non rivendica l’invenzione del formato “giornale del mattino in una pagina”: è un remake personale. Licensed under **[ANCA 1.0](https://github.com/alessandroarmiento-lang/ANCA)** (Armiento Non-Commercial Attribution): personal / educational / research use; **no commercial use**; credits in `CREDITS.md` must stay visible in the UI (see [`LICENSE`](LICENSE)).
+This is **not** a hosted SaaS for strangers: you run your own instance with **your** credentials. Do not point public traffic at someone else’s live deployment (it may contain private mail/calendar).
+
+**License:** [ANCA 1.0](https://github.com/alessandroarmiento-lang/ANCA) — personal / educational / research; **no commercial use**; credits in `CREDITS.md` must stay visible ([`LICENSE`](LICENSE)).
 
 **Language:** UI Italian / English (IT · EN in the toolbar). Public clones default to **English**. Author machines keep Italian via gitignored `public/owner-prefs.json` (`defaultLang: "it"`) — see `public/owner-prefs.example.json`.
 
+## Provenance
+
+Not an original format invention: inspired by an Instagram personal-newspaper post, remade here with weather, agenda, mail, reminders, and news integrations.
+
 ## What it is
 
-A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollable, touch-friendly). Print / Save as PDF is hard-locked to **exactly one A4 page** — never page 2. Printing is **optional**: tap **Stampa** when you want; the app never auto-prints on open.
+A **web app** whose main page is the newspaper. Read it on **iPhone** (scrollable, touch-friendly). Print / Save as PDF is hard-locked to **exactly one A4 page** — never page 2. Printing is **optional**: tap **Print** (`Stampa`) when you want; the app never auto-prints on open.
 
 Sections:
 

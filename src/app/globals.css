@@ -544,15 +544,15 @@ a.cal-event__link:hover {
   min-height: 0 !important;
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  grid-template-rows: max-content max-content max-content !important;
+  grid-template-rows: auto auto auto !important;
   grid-template-areas:
     "weather calendar news"
     "reminders reminders news"
     "emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
-  align-content: stretch !important;
-  align-items: stretch !important;
+  align-content: start !important;
+  align-items: start !important;
   overflow: hidden !important;
 }
 

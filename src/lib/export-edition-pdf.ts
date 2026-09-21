@@ -168,12 +168,14 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     grid.style.flex = "1 1 auto";
     grid.style.minHeight = "0";
     grid.style.gridTemplateColumns = DESKTOP_GRID_COLUMNS;
-    grid.style.gridTemplateRows = "max-content max-content max-content";
+    // auto rows: pack from the top. stretch+max-content let iOS push emails
+    // past the A4 clip edge while the left mail cell was still mid-paint.
+    grid.style.gridTemplateRows = "auto auto auto";
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";
-    grid.style.alignContent = "stretch";
-    grid.style.alignItems = "stretch";
+    grid.style.alignContent = "start";
+    grid.style.alignItems = "start";
     grid.style.overflow = "hidden";
   }
 
@@ -181,10 +183,22 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     const el = root.querySelector(selector);
     if (el instanceof HTMLElement) {
       el.style.gridArea = area;
-      el.style.minHeight = "0";
       el.style.position = "relative";
-      el.style.overflow = "hidden";
-      el.style.alignSelf = "stretch";
+      if (selector === ".area-news") {
+        // News spans two rows and must clip leftover headlines.
+        el.style.minHeight = "0";
+        el.style.overflow = "hidden";
+        el.style.alignSelf = "stretch";
+        el.style.height = "100%";
+      } else {
+        // Weather / calendar / reminders / emails size to content.
+        // Never overflow:hidden on emails — that clipped the bottom-left
+        // mail on iPhone when iOS font metrics ran slightly taller.
+        el.style.minHeight = "max-content";
+        el.style.overflow = "visible";
+        el.style.alignSelf = "start";
+        el.style.height = "auto";
+      }
     }
   }
 
@@ -213,6 +227,97 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   return () => restoreStyles(backups);
 }
 
+/**
+ * If the email block (or footer) sits past the A4 clip edge — common on iPhone
+ * where font metrics run a hair taller — shrink mail body previews, then cue
+ * lines, until everything clears the sheet bottom padding.
+ */
+function fitEmailsInsideSheet(root: HTMLElement): void {
+  const emails = root.querySelector(".area-emails");
+  const footer = root.querySelector(".sheet-footer");
+  if (!(emails instanceof HTMLElement)) return;
+
+  const sheetBottom =
+    root.getBoundingClientRect().top + root.clientHeight - 2;
+
+  const overflows = () => {
+    const emailBottom = emails.getBoundingClientRect().bottom;
+    const footerBottom =
+      footer instanceof HTMLElement
+        ? footer.getBoundingClientRect().bottom
+        : emailBottom;
+    return Math.max(emailBottom, footerBottom) > sheetBottom;
+  };
+
+  if (!overflows()) return;
+
+  const shrink = (selector: string, lines: number) => {
+    root.querySelectorAll(selector).forEach((node) => {
+      if (node instanceof HTMLElement) {
+        replaceWebkitClampWithMaxHeight(node, lines);
+      }
+    });
+  };
+
+  // Progressive tighten — keep all four mails, just shorter previews.
+  for (const lines of [2, 1, 0]) {
+    if (!overflows()) break;
+    if (lines === 0) {
+      root.querySelectorAll(".action-mail-list__body").forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.style.setProperty("display", "none", "important");
+          node.style.setProperty("height", "0", "important");
+          node.style.setProperty("max-height", "0", "important");
+          node.style.setProperty("margin", "0", "important");
+          node.style.setProperty("padding", "0", "important");
+        }
+      });
+    } else {
+      shrink(".action-mail-list__body", lines);
+    }
+  }
+
+  if (overflows()) {
+    shrink(".action-mail-list__cue", 1);
+    shrink(".action-mail-list__subject", 1);
+  }
+
+  if (overflows()) {
+    root.querySelectorAll(".action-mail-list__cue").forEach((node) => {
+      if (node instanceof HTMLElement) {
+        node.style.setProperty("display", "none", "important");
+      }
+    });
+  }
+}
+
+/** Park the A4 sheet at the viewport origin so iOS foreignObject is not clipped. */
+function pinSheetForIosCapture(root: HTMLElement): () => void {
+  const prev = {
+    position: root.style.position,
+    left: root.style.left,
+    top: root.style.top,
+    right: root.style.right,
+    zIndex: root.style.zIndex,
+    transform: root.style.transform,
+  };
+  root.style.position = "fixed";
+  root.style.left = "0";
+  root.style.top = "0";
+  root.style.right = "auto";
+  root.style.zIndex = "2147483646";
+  root.style.transform = "none";
+  window.scrollTo(0, 0);
+  return () => {
+    root.style.position = prev.position;
+    root.style.left = prev.left;
+    root.style.top = prev.top;
+    root.style.right = prev.right;
+    root.style.zIndex = prev.zIndex;
+    root.style.transform = prev.transform;
+  };
+}
+
 function imageSize(dataUrl: string): Promise<{ w: number; h: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -238,6 +343,7 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
   }
 
   const restore = prepareSheetForCapture(sheet);
+  const unpin = pinSheetForIosCapture(sheet);
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -247,6 +353,10 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
   // Physically remove hidden / overflow / collapsed news rows for the snapshot.
   // Do not AdaptiveFill-refit first: that re-shows rows and recreates ghost rules.
   const restoreHeadlines = detachHeadlineRowsForCapture(sheet);
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  fitEmailsInsideSheet(sheet);
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
@@ -279,6 +389,7 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
     });
   } finally {
     restoreHeadlines();
+    unpin();
     restore();
     requestAdaptiveRefit(sheet);
   }

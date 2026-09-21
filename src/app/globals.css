@@ -256,6 +256,9 @@ a.cal-event__link:hover {
   box-shadow: none;
   overflow-x: clip;
   min-width: 0;
+  /* List columns follow sheet width (A4 PDF capture), not the phone viewport. */
+  container-type: inline-size;
+  container-name: sheet;
 }
 
 /* Desktop: natural height — do not clip emails with a soft A4 max-height.
@@ -591,6 +594,29 @@ a.cal-event__link:hover {
 }
 .sheet-page.is-pdf-capture .area-emails {
   grid-area: emails !important;
+}
+
+/*
+ * iPhone PDF capture: viewport stays ~390px so @media (min-width: 700px) never
+ * matches. Force the mid-band reminder + email lists to two columns anyway —
+ * otherwise Promemoria stays a tall single column and Email is crushed to 2.
+ */
+.sheet-page.is-pdf-capture .reminder-list {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0 0.55rem !important;
+  column-gap: 0.55rem !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.15rem 0.75rem !important;
+}
+
+.sheet-page.is-pdf-capture .reminder-list__item:nth-last-child(2):nth-child(odd),
+.sheet-page.is-pdf-capture .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0 !important;
 }
 
 /*
@@ -945,6 +971,21 @@ a.cal-event__link:hover {
   column-gap: 0.85rem;
 }
 
+/*
+ * Prefer sheet width over viewport: on iPhone PDF capture the sheet is forced
+ * to 210mm while the viewport stays ~390px, so min-width media alone never
+ * packs Promemoria into two columns (and Email gets crushed).
+ */
+@container sheet (min-width: 36rem) {
+  .reminder-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reminder-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}
+
 @media (min-width: 700px) {
   .reminder-list {
     grid-template-columns: 1fr 1fr;
@@ -1019,6 +1060,16 @@ a.cal-event__link:hover {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.15rem 1rem;
+}
+
+@container sheet (min-width: 36rem) {
+  .action-mail-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .action-mail-list__item:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
 }
 
 @media (min-width: 640px) {

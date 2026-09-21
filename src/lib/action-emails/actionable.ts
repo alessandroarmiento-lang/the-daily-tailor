@@ -103,17 +103,20 @@ export function isActionableMail(
   const allow = isAllowDomain(address, sender);
   const contact = isContact(address, ctx.contactEmails);
   const bulk = looksBulkSender(sender, address);
+  const opsSubject =
+    /scadenz|fattura|addebito|bonifico|ritir|spedizion|otp|avviso bonario|giacenza|pagopa|cartella|bollettino/i.test(
+      subject,
+    );
 
-  // Hard deny for marketing/noise — unless allow-domain + operational cue.
+  // Marketing / clickbait subjects never fill the rolling slots.
+  if (DENY_SUBJECT.test(subject) && !opsSubject) return false;
   if (DENY_SENDER.test(sender) && !allow) return false;
-  if (DENY_SUBJECT.test(subject) && !allow) return false;
 
   if (msg.flagged) return true;
 
-  // Contacts: only with a clear ask (not every unread newsletter-as-contact).
+  // Contacts: clear ask only (not every unread message from an address book hit).
   if (contact && !bulk) {
     if (ACTION_HINT.test(blob) || /[?？]/.test(blob)) return true;
-    if (msg.unread && !DENY_SUBJECT.test(subject)) return true;
   }
 
   if (allow) {
@@ -121,8 +124,6 @@ export function isActionableMail(
       return true;
     }
     if (ACTION_HINT.test(blob)) return true;
-    // Do not accept allow-domain + unread alone — bank/retail marketing is
-    // often unread and would crowd the rolling last-N slots.
   }
 
   // Bank/ops cues even from noreply senders not yet on allow-list.

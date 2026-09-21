@@ -7,7 +7,6 @@ import {
 import { mailOpenPayload } from "@/lib/apple/deep-links";
 import { getActionEmails } from "@/lib/action-emails";
 import { config } from "@/lib/config";
-import { emailsOverflowLabel } from "@/lib/section-overflow";
 
 function formatReceived(iso: string): string {
   return new Intl.DateTimeFormat(config.locale, {
@@ -44,9 +43,6 @@ export async function ActionEmailsSection() {
   }
 
   const items = briefing.items.slice(0, config.actionEmails.maxItems);
-  const hidden =
-    typeof briefing.hiddenCount === "number" ? briefing.hiddenCount : 0;
-  const overflow = emailsOverflowLabel(hidden);
 
   return (
     <SectionShell
@@ -86,9 +82,6 @@ export async function ActionEmailsSection() {
           </li>
         ))}
       </ul>
-      {overflow ? (
-        <p className="section-overflow">{overflow}</p>
-      ) : null}
     </SectionShell>
   );
 }

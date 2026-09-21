@@ -248,8 +248,8 @@ a.cal-event__link:hover {
    * let min-content children — e.g. unbreakable JSON titles — grow to ~794px). */
   width: 100%;
   max-width: min(210mm, 100%);
-  margin: 0.75rem auto 2rem;
-  padding: 12mm 12mm 10mm;
+  margin: 0.75rem auto 1.25rem;
+  padding: 12mm 12mm 7mm;
   background: #ffffff;
   color: var(--ink);
   border: 1px solid #000000;
@@ -279,8 +279,10 @@ a.cal-event__link:hover {
     flex: 0 0 auto;
   }
 
+  /* Do not flex-grow the grid on screen — growth leaves a blank band under
+   * Email before the footer when the sheet gets a definite height. */
   .sheet-page > .sheet-grid {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     overflow: visible;
   }
@@ -1080,7 +1082,7 @@ a.cal-event__link:hover {
 .action-mail-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.15rem 1rem;
+  gap: 0.05rem 0.85rem;
 }
 
 @container sheet (min-width: 36rem) {
@@ -1100,16 +1102,16 @@ a.cal-event__link:hover {
 }
 
 .action-mail-list__item {
-  padding: 0.28rem 0;
+  padding: 0.18rem 0;
   border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
 }
 
 .action-mail-list__subject {
   margin: 0;
   font-family: var(--font-masthead);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.15;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1124,32 +1126,32 @@ a.cal-event__link:hover {
 }
 
 .action-mail-list__from {
-  margin: 0.1rem 0 0;
+  margin: 0.06rem 0 0;
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   color: var(--ink-muted);
 }
 
 .action-mail-list__cue {
-  margin: 0.12rem 0 0;
+  margin: 0.08rem 0 0;
   font-family: var(--font-sans);
-  font-size: 0.58rem;
-  line-height: 1.15;
+  font-size: 0.54rem;
+  line-height: 1.12;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-muted);
 }
 
 .action-mail-list__body {
-  margin: 0.14rem 0 0;
-  padding: 0.14rem 0 0;
+  margin: 0.08rem 0 0;
+  padding: 0.08rem 0 0;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   font-family: var(--font-serif);
-  font-size: 0.58rem;
-  line-height: 1.22;
+  font-size: 0.56rem;
+  line-height: 1.18;
   color: var(--ink-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1167,8 +1169,8 @@ a.cal-event__link:hover {
 }
 
 .sheet-footer {
-  margin-top: 0.45rem;
-  padding-top: 0.3rem;
+  margin-top: 0.25rem;
+  padding-top: 0.2rem;
   border-top: 2px solid var(--rule);
   display: flex;
   justify-content: flex-end;
@@ -1214,10 +1216,10 @@ a.cal-event__link:hover {
 
   .sheet-page {
     /* Side margins without letting width:100% + margin overflow the viewport. */
-    margin: 0.5rem auto;
+    margin: 0.5rem auto 0.35rem;
     width: calc(100% - 1rem);
     max-width: calc(100% - 1rem);
-    padding: 1rem 1rem 1.35rem;
+    padding: 1rem 1rem 0.75rem;
     border-radius: 0;
   }
 

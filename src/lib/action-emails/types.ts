@@ -1,6 +1,6 @@
 /**
- * Action emails — messages from yesterday that imply a to-do / request / deadline.
- * Not a full inbox.
+ * Action emails — rolling list of the latest actionable messages
+ * (to-do / request / deadline). Not a full inbox; not limited to yesterday.
  */
 
 export type ActionEmailItem = {
@@ -36,6 +36,6 @@ export type SectionResult<T> =
 export interface ActionEmailAdapter {
   readonly id: string;
   readonly label: string;
-  /** Emails arrived yesterday whose content implies an actionable request. */
-  getYesterdaysActionEmails(): Promise<ActionEmailItem[]>;
+  /** Latest actionable emails (newest first); caller caps to maxItems. */
+  getRecentActionEmails(): Promise<ActionEmailItem[]>;
 }

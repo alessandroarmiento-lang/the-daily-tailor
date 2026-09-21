@@ -1,5 +1,5 @@
 /**
- * Action emails — yesterday messages that imply a to-do.
+ * Action emails — rolling latest actionable messages (to-do / request).
  * Prefer headless IMAP (iCloud + Gmail app passwords) so editions generate
  * with Mac off. Apple Mail automation is a Mac-awake fallback only.
  */
@@ -46,6 +46,8 @@ function resolveAdapter(): ActionEmailAdapter {
   }
 }
 
+const WINDOW_LABEL = "Ultime · richieste d’azione";
+
 function emptyBriefing(
   adapter: ActionEmailAdapter,
   isMock: boolean,
@@ -55,21 +57,21 @@ function emptyBriefing(
     hiddenCount: 0,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
-    windowLabel: "Ieri · solo richieste d’azione",
+    windowLabel: WINDOW_LABEL,
     isMock,
   };
 }
 
 /**
  * Adapters may return a ranked pool larger than the A4 slot.
- * Cap here and expose hiddenCount for «+N altre email».
+ * Cap here and expose hiddenCount for «+N».
  */
 function briefingFromPool(
   pool: ActionEmailItem[],
   adapter: ActionEmailAdapter,
   isMock: boolean,
 ): ActionEmailBriefing {
-  // Pool is already actionable; re-cap by list order (adapters rank first).
+  // Pool is already actionable + newest-first; re-cap by list order.
   const max = config.actionEmails.maxItems;
   const items = pool.slice(0, max);
   const hiddenCount = Math.max(0, pool.length - items.length);
@@ -78,7 +80,7 @@ function briefingFromPool(
     hiddenCount,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
-    windowLabel: "Ieri · solo richieste d’azione",
+    windowLabel: WINDOW_LABEL,
     isMock,
   };
 }
@@ -90,7 +92,7 @@ export async function getActionEmails(): Promise<
   const useMock = adapter.id === "mock";
 
   try {
-    const pool = await adapter.getYesterdaysActionEmails();
+    const pool = await adapter.getRecentActionEmails();
     return {
       status: "ok",
       data: briefingFromPool(pool, adapter, useMock),

@@ -38,7 +38,7 @@ export async function ActionEmailsSection() {
     return (
       <SectionEmpty
         title="Email"
-        message="Nessuna email d’azione arrivata ieri."
+        message="Nessuna email d’azione recente."
       />
     );
   }
@@ -51,7 +51,7 @@ export async function ActionEmailsSection() {
   return (
     <SectionShell
       title="Email"
-      kicker="Ieri · richieste d’azione"
+      kicker="Ultime · richieste d’azione"
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
         result.status === "error" ? result.message : undefined

@@ -54,7 +54,7 @@ export class MockActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "mock";
   readonly label = "Action email (mock)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
     return MOCK_ACTION_EMAILS;
   }
 }

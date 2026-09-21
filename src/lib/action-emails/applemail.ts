@@ -1,5 +1,5 @@
 /**
- * Apple Mail adapter — yesterday's actionable inbox via osascript.
+ * Apple Mail adapter — recent actionable inbox via osascript.
  * Mac-awake path only (TCC Automation). Prefer IMAP for Mac-off generation.
  * Scans the unified inbox (iCloud + Gmail and any other accounts in Mail.app).
  * Returns a ranked pool (may exceed A4 max); getActionEmails caps + hiddenCount.
@@ -31,17 +31,18 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "applemail";
   label = "Apple Mail (iCloud + Gmail)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
     const cached = await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
     if (cached?.data) {
       return cached.data.slice(0, poolSize);
     }
 
+    const lookback = Math.max(1, config.actionEmails.lookbackDays);
     const result = await runOsascriptJson<ScriptResult>(
       "fetch-action-emails.applescript",
-      [String(Math.max(40, poolSize))],
-      90_000,
+      [String(Math.max(80, poolSize * 3)), String(lookback)],
+      120_000,
     );
 
     if (!result.ok) {

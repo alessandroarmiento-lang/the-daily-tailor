@@ -297,20 +297,29 @@ export function emailImportanceScore(
   if (PA_ACTION.test(blob)) score += 160;
   if (ACTION_HINT.test(blob)) score += 120;
   if (msg.unread) score += 60;
-  // Prefer more recent within yesterday.
+  // Recency tie-break within importance (primary sort is by date below).
   const t = Date.parse(msg.receivedAt);
   if (!Number.isNaN(t)) score += Math.min(40, Math.floor(t / 100_000) % 40);
 
   return score;
 }
 
+/**
+ * Actionable only, newest first. The A4 slot keeps the last N; a newer
+ * message bumps the oldest out.
+ */
 export function rankActionableMail(
   messages: MailRawMessage[],
   ctx: ActionClassifyContext = {},
 ): MailRawMessage[] {
   return messages
     .filter((m) => isActionableMail(m, ctx))
-    .sort((a, b) => emailImportanceScore(b, ctx) - emailImportanceScore(a, ctx));
+    .sort((a, b) => {
+      const tb = Date.parse(b.receivedAt) || 0;
+      const ta = Date.parse(a.receivedAt) || 0;
+      if (tb !== ta) return tb - ta;
+      return emailImportanceScore(b, ctx) - emailImportanceScore(a, ctx);
+    });
 }
 
 export function toActionEmailItems(

@@ -1,18 +1,25 @@
 #!/usr/bin/osascript
--- Fetch yesterday's inbox messages from Apple Mail as JSON.
+-- Fetch recent inbox messages from Apple Mail as JSON (rolling lookback).
 -- Unified inbox covers iCloud + Gmail (and any other accounts in Mail.app).
--- Args (optional): maxItems (default 40)
+-- Args: maxItems (default 80), lookbackDays (default 45)
 on run argv
-	set maxItems to 40
+	set maxItems to 80
+	set lookbackDays to 45
 	if (count of argv) ≥ 1 then
 		try
 			set maxItems to (item 1 of argv) as integer
 		end try
 	end if
+	if (count of argv) ≥ 2 then
+		try
+			set lookbackDays to (item 2 of argv) as integer
+		end try
+	end if
+	if lookbackDays < 1 then set lookbackDays to 45
 
 	set now to current date
-	set endDay to date (short date string of now)
-	set startDay to endDay - 1 * days
+	set endDay to current date
+	set startDay to endDay - lookbackDays * days
 
 	set accountNames to {}
 	tell application "Mail"
@@ -22,16 +29,16 @@ on run argv
 
 		set rows to {}
 		try
-			set msgs to (messages of inbox whose date received ≥ startDay and date received < endDay)
+			set msgs to (messages of inbox whose date received ≥ startDay)
 		on error errMsg number errNum
 			return "{\"ok\":false,\"error\":\"Mail whose failed (" & errNum & "): " & my escapeJson(errMsg) & "\",\"accounts\":" & my accountsJson(accountNames) & "}"
 		end try
 
 		set total to count of msgs
-		set limit to total
-		if limit > maxItems then set limit to maxItems
-
-		repeat with i from 1 to limit
+		-- Prefer newest: walk from the end of the mailbox list when possible.
+		set collected to 0
+		set i to total
+		repeat while i ≥ 1 and collected < maxItems
 			try
 				set m to item i of msgs
 				set subj to subject of m as text
@@ -60,14 +67,16 @@ on run argv
 					set acct to name of account of mailbox of m as text
 				end try
 				set end of rows to my objectJson(msgId, subj, snd, iso, flagged, unread, preview, acct)
+				set collected to collected + 1
 			end try
+			set i to i - 1
 		end repeat
 	end tell
 
 	set AppleScript's text item delimiters to ","
 	set body to rows as text
 	set AppleScript's text item delimiters to ""
-	return "{\"ok\":true,\"window\":\"yesterday\",\"total\":" & total & ",\"accounts\":" & my accountsJson(accountNames) & ",\"items\":[" & body & "]}"
+	return "{\"ok\":true,\"window\":\"lookback\",\"lookbackDays\":" & lookbackDays & ",\"total\":" & total & ",\"accounts\":" & my accountsJson(accountNames) & ",\"items\":[" & body & "]}"
 end run
 
 on accountsJson(accountNames)
@@ -93,7 +102,7 @@ end isoFromDate
 
 on pad2(n)
 	set s to n as text
-	if length of s < 2 then return "0" & s
+	if length of s < 2 then set s to "0" & s
 	return s
 end pad2
 
@@ -121,7 +130,6 @@ on firstLines(t, maxLen)
 	set cleaned to my replaceText(cleaned, return, " ")
 	set cleaned to my replaceText(cleaned, linefeed, " ")
 	set cleaned to my replaceText(cleaned, tab, " ")
-	-- collapse repeated spaces loosely
 	repeat while cleaned contains "  "
 		set cleaned to my replaceText(cleaned, "  ", " ")
 	end repeat

@@ -1,7 +1,7 @@
 /**
  * Headless IMAP actionable-mail adapter.
  * Scans iCloud Mail + Gmail (app passwords) — works with Mac powered off.
- * No Google/Microsoft OAuth required when app passwords are set.
+ * Rolling lookback: newest actionable messages fill the A4 slot (last N).
  */
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
@@ -67,8 +67,8 @@ export function hasImapCredentials(): boolean {
   return configuredImapAccounts().length > 0;
 }
 
-function yesterdayWindow(timeZone: string): { since: Date; before: Date } {
-  // Civil yesterday in newspaper timezone → UTC bounds (approx via local Date).
+/** Civil lookback start in newspaper timezone → Date (host TZ / Fly TZ=Rome). */
+function lookbackSince(timeZone: string, lookbackDays: number): Date {
   const now = new Date();
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -78,18 +78,15 @@ function yesterdayWindow(timeZone: string): { since: Date; before: Date } {
   });
   const todayKey = fmt.format(now);
   const [y, m, d] = todayKey.split("-").map(Number);
-  // Build "today 00:00" and "yesterday 00:00" as Date in local machine TZ;
-  // good enough for personal Mac / always-on host in Europe/Rome.
   const todayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  return { since: yesterdayStart, before: todayStart };
+  const since = new Date(todayStart);
+  since.setDate(since.getDate() - Math.max(1, lookbackDays));
+  return since;
 }
 
-async function fetchAccountYesterday(
+async function fetchAccountRecent(
   account: ImapAccount,
   since: Date,
-  before: Date,
   scanCap: number,
 ): Promise<{ messages: MailRawMessage[]; error?: string }> {
   const client = new ImapFlow({
@@ -105,16 +102,12 @@ async function fetchAccountYesterday(
     await client.connect();
     const lock = await client.getMailboxLock("INBOX");
     try {
-      // Search yesterday window; fall back to recent if server rejects SINCE/BEFORE.
       let uids: number[] = [];
       try {
-        const found = await client.search({
-          since,
-          before,
-        });
+        const found = await client.search({ since });
         uids = Array.isArray(found) ? found : [];
       } catch {
-        const found = await client.search({ since });
+        const found = await client.search({ all: true });
         uids = Array.isArray(found) ? found : [];
       }
 
@@ -126,11 +119,8 @@ async function fetchAccountYesterday(
           const downloaded = await client.download(uid);
           if (!downloaded?.content) continue;
           const parsed = await simpleParser(downloaded.content);
-          const received =
-            parsed.date && parsed.date >= since && parsed.date < before
-              ? parsed.date
-              : parsed.date;
-          if (!received || received < since || received >= before) continue;
+          const received = parsed.date;
+          if (!received || received < since) continue;
 
           const from =
             parsed.from?.text ||
@@ -197,7 +187,7 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "imap";
   readonly label = "IMAP (iCloud + Gmail)";
 
-  async getYesterdaysActionEmails(): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
     const cached =
       await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
@@ -212,19 +202,18 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
       );
     }
 
-    const { since, before } = yesterdayWindow(config.timezone);
-    const scanCap = Math.max(30, poolSize);
+    const since = lookbackSince(
+      config.timezone,
+      config.actionEmails.lookbackDays,
+    );
+    // Wide scan: most inbox mail is noise; need enough raw to fill last-N.
+    const scanCap = Math.max(120, poolSize * 4);
     const all: MailRawMessage[] = [];
     const errors: string[] = [];
     const foundLabels: string[] = [];
 
     for (const account of accounts) {
-      const result = await fetchAccountYesterday(
-        account,
-        since,
-        before,
-        scanCap,
-      );
+      const result = await fetchAccountRecent(account, since, scanCap);
       if (result.error) errors.push(result.error);
       else foundLabels.push(account.label);
       all.push(...result.messages);

@@ -71,6 +71,8 @@ export const config = {
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
     maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "4"),
+    /** How far back IMAP/Mail scan for actionable mail (rolling last-N). */
+    lookbackDays: Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "45"),
   },
   calendar: {
     /**

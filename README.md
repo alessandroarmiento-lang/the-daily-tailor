@@ -23,7 +23,7 @@ Sections:
 3. **Agenda** — CalDAV iCloud (Mac-off) or EventKit/Calendar.app (Mac awake). No silent mock.
 4. **World news** — Il Post sezione Mondo RSS (`/mondo/feed/`). Mock fallback. Capped for one-page print.
 5. **Apple Reminders** — EventKit (Mac awake) or the iPhone push snapshot (Mac-off); CalDAV VTODO only as fallback. No silent mock.
-6. **Action emails** — IMAP iCloud+Gmail (Mac-off) or Mail.app (Mac awake); actionable only.
+6. **Action emails** — IMAP iCloud+Gmail (Mac-off) or Mail.app (Mac awake); actionable only. Always the **latest 4** (rolling); a newer one replaces the oldest.
 
 ## Morning edition model (locked)
 
@@ -174,7 +174,7 @@ Copy `.env.example` to `.env.local` for overrides:
 | `REMINDERS_SOURCE` / `REMINDERS_MAX_ITEMS` | `auto` / `6` | On Mac `auto` prefers EventKit; elsewhere iPhone push, then CalDAV |
 | `REMINDERS_INGEST_TOKEN` | — | Shared token for `POST /api/reminders/ingest` (iPhone Shortcut) |
 | `REMINDERS_PUSH_MAX_AGE_HOURS` | `36` | How long a pushed snapshot stays preferred over CalDAV |
-| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` | `auto` / `4` | `auto`\|`imap`\|`applemail`\|`mock` |
+| `ACTION_EMAIL_SOURCE` / `ACTION_EMAIL_MAX_ITEMS` / `ACTION_EMAIL_LOOKBACK_DAYS` | `auto` / `4` / `45` | Rolling last-N actionable mail |
 | `CALENDAR_SOURCE` / `CALENDAR_HORIZON_DAYS` | `auto` / `4` | On Mac `auto` prefers EventKit (all calendars); all events per day |
 | `ICLOUD_MAIL_USER` / `ICLOUD_MAIL_APP_PASSWORD` | — | IMAP + CalDAV/CardDAV (Mac-off) |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` | — | Gmail IMAP + Google Calendar CalDAV (Mac-off) |

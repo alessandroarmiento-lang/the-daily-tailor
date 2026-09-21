@@ -13,7 +13,7 @@ const DENY_SENDER =
 
 /** Subject patterns that are usually noise (deny), unless allow-domain. */
 const DENY_SUBJECT =
-  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno|risparmia|\d+\s*%|dimagrire|salumi|confezionat|offerta|coupon|black friday|solo oggi/i;
+  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno|risparmia|\d+\s*%|dimagrire|salumi|confezionat|offerta|coupon|black friday|solo oggi|ti aspetta|conto corrente italiano/i;
 
 /**
  * Prefer / allow sender domains (Italian life ops).
@@ -121,8 +121,8 @@ export function isActionableMail(
       return true;
     }
     if (ACTION_HINT.test(blob)) return true;
-    // Allow-list domain + unread: still surface (ops mail often terse).
-    if (msg.unread) return true;
+    // Do not accept allow-domain + unread alone — bank/retail marketing is
+    // often unread and would crowd the rolling last-N slots.
   }
 
   // Bank/ops cues even from noreply senders not yet on allow-list.

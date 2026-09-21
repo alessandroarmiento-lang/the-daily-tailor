@@ -1,3 +1,8 @@
+import {
+  requestAdaptiveRefit,
+  trimOverflowingLists,
+} from "@/lib/trim-overflowing-lists";
+
 /**
  * Client-side PDF of the on-screen `.sheet-page` (screen CSS, not print media).
  * Fits the capture onto a single A4 page — no browser print dialog.
@@ -19,6 +24,10 @@
  * the SVG often still paints only the clamped lines — phantom empty space under
  * those items. Instead, replace the webkit box with `display:block` and a
  * line-height × N `max-height` so PDF spacing matches the on-screen clamp.
+ *
+ * After that restyle, news rows can grow and overflow the column without
+ * AdaptiveFill noticing (scrollHeight ≠ ResizeObserver). We explicitly refit
+ * and trim overflowing headline rows so dotted borders do not ghost in the PDF.
  */
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
@@ -183,6 +192,11 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     });
   }
 
+  // Clamp restyle can grow news rows; refit AdaptiveFill then hard-trim any
+  // leftover partial rows so PDF does not paint orphan dotted borders.
+  requestAdaptiveRefit(root);
+  trimOverflowingLists(root);
+
   return () => restoreStyles(backups);
 }
 
@@ -216,6 +230,13 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
   });
+  // After layout settles on A4 metrics, trim again (foreignObject is picky).
+  requestAdaptiveRefit(sheet);
+  trimOverflowingLists(sheet);
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  trimOverflowingLists(sheet);
 
   let imgData: string;
   try {
@@ -240,11 +261,16 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
       },
       filter: (node) => {
         if (!(node instanceof Element)) return true;
-        return !node.classList?.contains("no-print");
+        if (node.classList?.contains("no-print")) return false;
+        // SVG foreignObject sometimes still paints [hidden] borders.
+        if (node instanceof HTMLElement && node.hidden) return false;
+        return true;
       },
     });
   } finally {
     restore();
+    // Restore screen AdaptiveFill after PDF prep hid extra rows.
+    requestAdaptiveRefit(sheet);
   }
 
   const pdf = new jsPDF({

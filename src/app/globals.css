@@ -624,6 +624,21 @@ a.cal-event__link:hover {
  * inline max-height set in export-edition-pdf.ts (line-height × N). Do not force
  * max-height:none — that reintroduces phantom gaps under long summaries.
  */
+.sheet-page.is-pdf-capture .headline-list__item.is-last-visible,
+.sheet-page.is-pdf-capture .headline-list__item:last-child {
+  border-bottom: 0 !important;
+}
+
+.sheet-page.is-pdf-capture .headline-list__item[hidden] {
+  display: none !important;
+  border-bottom: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
 .sheet-page.is-pdf-capture .headline-list__title,
 .sheet-page.is-pdf-capture .headline-list__summary,
 .sheet-page.is-pdf-capture .reminder-list__title,

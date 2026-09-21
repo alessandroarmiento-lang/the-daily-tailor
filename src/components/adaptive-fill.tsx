@@ -114,17 +114,24 @@ export function AdaptiveFill({
     };
 
     fit();
+    const onRefit = () => fit();
+    el.addEventListener("tdt:refit-adaptive", onRefit);
+    // Capture may dispatch on the sheet root; listen there too.
+    const page = el.closest(".sheet-page");
+    page?.addEventListener("tdt:refit-adaptive", onRefit);
+
     const ro = new ResizeObserver(() => fit());
     ro.observe(body);
     const area = el.closest(".area-calendar, .area-news");
     if (area) ro.observe(area);
-    const page = el.closest(".sheet-page");
     if (page) ro.observe(page);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
       ro.disconnect();
+      el.removeEventListener("tdt:refit-adaptive", onRefit);
+      page?.removeEventListener("tdt:refit-adaptive", onRefit);
     };
   }, [items, minCount, step]);
 

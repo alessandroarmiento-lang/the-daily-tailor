@@ -13,7 +13,7 @@ const DENY_SENDER =
 
 /** Subject patterns that are usually noise (deny), unless allow-domain. */
 const DENY_SUBJECT =
-  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno/i;
+  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno|risparmia|\d+\s*%|dimagrire|salumi|confezionat|offerta|coupon|black friday|solo oggi/i;
 
 /**
  * Prefer / allow sender domains (Italian life ops).
@@ -134,13 +134,20 @@ export function isActionableMail(
   }
 
   // Human-looking senders with an explicit ask — never bare ACTION_HINT on bulk.
-  if (!bulk && ACTION_HINT.test(blob) && /[?？]|per favore|please|potresti|ti chiedo|rispondi/i.test(blob)) {
+  // A lone "?" in a marketing subject is not a personal request.
+  if (
+    !bulk &&
+    contact &&
+    ACTION_HINT.test(blob) &&
+    /[?？]|per favore|please|potresti|ti chiedo|rispondi/i.test(blob)
+  ) {
     return true;
   }
 
   if (
     address &&
     !bulk &&
+    contact &&
     !DENY_SENDER.test(address) &&
     /[?？]|per favore|please/i.test(blob)
   ) {

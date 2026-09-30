@@ -90,6 +90,20 @@ const MOCK_REMINDERS: ReminderItem[] = [
     isCompleted: false,
     priority: "low",
   },
+  {
+    id: "rem-future",
+    title: "Promemoria di una settimana (non del giorno)",
+    notes: "Deve restare fuori dall’edizione odierna",
+    listName: "Lavoro",
+    dueAt: (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      d.setHours(10, 0, 0, 0);
+      return d.toISOString();
+    })(),
+    isCompleted: false,
+    priority: "high",
+  },
 ];
 
 /**

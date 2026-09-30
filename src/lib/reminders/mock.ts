@@ -1,4 +1,6 @@
 import type { ReminderItem, RemindersAdapter } from "./types";
+import { config } from "@/lib/config";
+import { filterRemindersForEditionDay } from "./for-edition-day";
 
 function todayAt(hours: number, minutes: number): string {
   const d = new Date();
@@ -97,7 +99,9 @@ export class MockRemindersAdapter implements RemindersAdapter {
   readonly id = "mock";
   readonly label = "Reminders (mock)";
 
-  async getTodaysOpenReminders(): Promise<ReminderItem[]> {
-    return MOCK_REMINDERS.filter((r) => !r.isCompleted);
+  async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
+    const open = MOCK_REMINDERS.filter((r) => !r.isCompleted);
+    if (!dateKey) return open;
+    return filterRemindersForEditionDay(open, dateKey, config.timezone);
   }
 }

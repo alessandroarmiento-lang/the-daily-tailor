@@ -29,7 +29,7 @@ export const messages = {
     news: "Notizie dal mondo",
     newsLoading: "Caricamento titoli…",
     reminders: "Promemoria",
-    remindersKicker: "Oggi / aperti",
+    remindersKicker: "Del giorno / aperti",
     remindersAuth:
       "Autorizza Promemoria o configura CalDAV iCloud.",
     remindersLoading: "Caricamento promemoria…",
@@ -101,7 +101,7 @@ export const messages = {
     news: "World news",
     newsLoading: "Loading headlines…",
     reminders: "Reminders",
-    remindersKicker: "Today / open",
+    remindersKicker: "That day / open",
     remindersAuth: "Allow Reminders or configure iCloud CalDAV.",
     remindersLoading: "Loading reminders…",
     email: "Email",

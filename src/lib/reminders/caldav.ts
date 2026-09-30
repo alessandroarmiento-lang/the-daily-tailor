@@ -113,15 +113,18 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
   readonly id = "caldav";
   label = "CalDAV (iCloud Reminders)";
 
-  async getTodaysOpenReminders(): Promise<ReminderItem[]> {
+  async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
+    const rankOpts = dateKey
+      ? { dateKey, timeZone: config.timezone }
+      : undefined;
     const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
     if (cached?.data) {
       if (cached.data.length === 0) {
         this.label =
           "CalDAV (iCloud Reminders — liste CloudKit non esposte)";
       }
-      return rankReminders(cached.data).slice(0, poolSize);
+      return rankReminders(cached.data, rankOpts).slice(0, poolSize);
     }
 
     const account = icloudAccount();
@@ -179,7 +182,7 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
           : "CalDAV (iCloud Reminders — nessun VTODO)";
     }
 
-    const ranked = rankReminders(items).slice(0, poolSize);
+    const ranked = rankReminders(items, rankOpts).slice(0, poolSize);
     await writeEditionCache("reminders", ranked);
     return ranked;
   }

@@ -1,5 +1,6 @@
 import { config } from "@/lib/config";
 import { remindersAuthMessage } from "@/lib/apple/permissions";
+import { getEditionDateKey } from "@/lib/edition";
 import { CalDavRemindersAdapter } from "./caldav";
 import { EventKitRemindersAdapter } from "./eventkit";
 import { MockRemindersAdapter } from "./mock";
@@ -39,19 +40,28 @@ function resolveAdapter(): RemindersAdapter {
   }
 }
 
-export async function getReminders(): Promise<
-  SectionResult<RemindersBriefing>
-> {
+/**
+ * Open reminders for the newspaper day (`dateKey`), not wall-clock "today"
+ * when they differ (e.g. before the 06:00 edition rollover).
+ */
+export async function getReminders(
+  dateKey: string = getEditionDateKey(),
+): Promise<SectionResult<RemindersBriefing>> {
   const adapter = resolveAdapter();
   const useMock = adapter.id === "mock";
+  const rankOptions = {
+    dateKey,
+    timeZone: config.timezone,
+  };
 
   try {
-    const pool = await adapter.getTodaysOpenReminders();
+    const pool = await adapter.getTodaysOpenReminders(dateKey);
     // Repair stringified Shortcut Dictionaries stored as titles.
     const { items: cleaned } = sanitizeReminderItems(pool);
     const { items, hiddenCount } = rankAndCapReminders(
       cleaned,
       config.reminders.maxItems,
+      rankOptions,
     );
     return {
       status: "ok",

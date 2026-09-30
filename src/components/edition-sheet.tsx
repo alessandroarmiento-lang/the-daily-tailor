@@ -20,6 +20,7 @@ import type { NewspaperEdition } from "@/lib/edition-types";
 import type { Lang, MessageKey } from "@/lib/i18n/messages";
 import { normalizeArticleUrl } from "@/lib/news-links";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
+import { reminderDueDateKey } from "@/lib/reminders/for-edition-day";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
 import {
   emailsOverflowLabel,
@@ -146,25 +147,13 @@ function formatDue(
   timeZone: string,
   locale: string,
   noDueLabel: string,
+  editionDateKey: string,
 ): string {
   if (!iso) return noDueLabel;
   const due = new Date(iso);
   if (Number.isNaN(due.getTime())) return noDueLabel;
-  const now = new Date();
-  const sameDay =
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(due) ===
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-  if (sameDay) {
+  const dueKey = reminderDueDateKey(iso, timeZone);
+  if (dueKey === editionDateKey) {
     return new Intl.DateTimeFormat(locale, {
       hour: "2-digit",
       minute: "2-digit",
@@ -564,7 +553,13 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                                   {item.listName}
                                 </span>
                                 {" · "}
-                                {formatDue(item.dueAt, tz, locale, t("noDue"))}
+                                {formatDue(
+                                  item.dueAt,
+                                  tz,
+                                  locale,
+                                  t("noDue"),
+                                  edition.dateKey,
+                                )}
                                 {pri ? ` · ${pri}` : ""}
                               </p>
                             </div>

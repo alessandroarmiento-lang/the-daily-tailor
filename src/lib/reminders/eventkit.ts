@@ -45,18 +45,23 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
   readonly id = "eventkit";
   label = "Apple Reminders";
 
-  async getTodaysOpenReminders(): Promise<ReminderItem[]> {
+  async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
+    // Fetch a wider incomplete set; Node filters to the edition day.
+    const fetchLimit = Math.max(poolSize * 3, 60);
+    const rankOpts = dateKey
+      ? { dateKey, timeZone: config.timezone }
+      : undefined;
     const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
     if (cached?.data) {
-      return rankReminders(cached.data).slice(0, poolSize);
+      return rankReminders(cached.data, rankOpts).slice(0, poolSize);
     }
 
     let result: ScriptResult;
     try {
       result = await runEventKitBinJson<ScriptResult>(
         "fetch-reminders-eventkit",
-        [String(poolSize)],
+        [String(fetchLimit)],
         45_000,
       );
       this.label = "Apple Reminders (EventKit)";
@@ -65,7 +70,7 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
       try {
         result = await runOsascriptJson<ScriptResult>(
           "fetch-reminders.applescript",
-          [String(Math.min(8, poolSize))],
+          [String(Math.min(8, fetchLimit))],
           25_000,
         );
         this.label = "Apple Reminders (AppleScript)";
@@ -82,7 +87,7 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
       throw new Error(result.error ?? "Promemoria: fetch fallito");
     }
 
-    const ranked = rankReminders(mapItems(result.items ?? [])).slice(
+    const ranked = rankReminders(mapItems(result.items ?? []), rankOpts).slice(
       0,
       poolSize,
     );

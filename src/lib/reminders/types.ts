@@ -32,11 +32,12 @@ export type SectionResult<T> =
   | { status: "error"; message: string; data?: T };
 
 /**
- * Replaceable data source for today's / open reminders.
- * Implementations: mock (default), later EventKit / Shortcuts / AppleScript.
+ * Replaceable data source for open reminders belonging to an edition day.
+ * Implementations: mock, EventKit / push / CalDAV.
  */
 export interface RemindersAdapter {
   readonly id: string;
   readonly label: string;
-  getTodaysOpenReminders(): Promise<ReminderItem[]>;
+  /** Open reminders for the newspaper day (`dateKey`, YYYY-MM-DD). */
+  getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]>;
 }

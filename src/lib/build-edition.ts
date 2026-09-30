@@ -31,7 +31,7 @@ export async function buildEdition(
   const [weather, news, reminders, calendar, actionEmails] = await Promise.all([
     getWeather(),
     getWorldNews(),
-    getReminders(),
+    getReminders(dateKey),
     getCalendar(),
     getActionEmails(),
   ]);

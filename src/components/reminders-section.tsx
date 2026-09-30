@@ -9,30 +9,26 @@ import {
   reminderOpenPayload,
 } from "@/lib/apple/deep-links";
 import { config } from "@/lib/config";
+import { getEditionDateKey } from "@/lib/edition";
 import { getReminders } from "@/lib/reminders";
 import { remindersEmptyMessage } from "@/lib/reminders/empty-copy";
+import { reminderDueDateKey } from "@/lib/reminders/for-edition-day";
 import { sanitizeReminderItem } from "@/lib/reminders/normalize-push";
 import { remindersOverflowLabel } from "@/lib/section-overflow";
 
-function formatDue(iso: string | null): string {
+function formatDue(iso: string | null, editionDateKey: string): string {
   if (!iso) return "Senza scadenza";
   const due = new Date(iso);
   if (Number.isNaN(due.getTime())) return "Senza scadenza";
-  const now = new Date();
-  const sameDay =
+  const dueKey =
+    reminderDueDateKey(iso, config.timezone) ??
     new Intl.DateTimeFormat("en-CA", {
       timeZone: config.timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(due) ===
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: config.timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-  if (sameDay) {
+    }).format(due);
+  if (dueKey === editionDateKey) {
     return new Intl.DateTimeFormat(config.locale, {
       hour: "2-digit",
       minute: "2-digit",
@@ -62,7 +58,8 @@ function priorityLabel(priority: string): string | null {
 }
 
 export async function RemindersSection() {
-  const result = await getReminders();
+  const editionDateKey = getEditionDateKey();
+  const result = await getReminders(editionDateKey);
 
   if (result.status === "error" && (!result.data || result.data.items.length === 0)) {
     return (
@@ -94,7 +91,7 @@ export async function RemindersSection() {
   return (
     <SectionShell
       title="Promemoria"
-      kicker="Oggi / aperti"
+      kicker="Del giorno / aperti"
       overflowLabel={overflow || undefined}
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
@@ -123,7 +120,7 @@ export async function RemindersSection() {
                 <p className="reminder-list__meta">
                   <span className="reminder-list__list">{item.listName}</span>
                   {" · "}
-                  {formatDue(item.dueAt)}
+                  {formatDue(item.dueAt, editionDateKey)}
                   {pri ? ` · Priorità ${pri}` : ""}
                 </p>
               </div>

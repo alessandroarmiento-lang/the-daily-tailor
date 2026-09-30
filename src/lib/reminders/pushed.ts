@@ -47,19 +47,22 @@ export class PushedRemindersAdapter implements RemindersAdapter {
 
   constructor(private readonly fallback: RemindersAdapter | null = null) {}
 
-  async getTodaysOpenReminders(): Promise<ReminderItem[]> {
+  async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
+    const rankOpts = dateKey
+      ? { dateKey, timeZone: config.timezone }
+      : undefined;
     const snapshot = await loadPushedReminders();
 
     if (snapshot && isPushedSnapshotFresh(snapshot)) {
       this.label = freshLabel(snapshot);
-      return rankReminders(snapshot.items).slice(0, poolSize);
+      return rankReminders(snapshot.items, rankOpts).slice(0, poolSize);
     }
 
     if (!this.fallback) {
       if (snapshot) {
         this.label = staleLabel(snapshot);
-        return rankReminders(snapshot.items).slice(0, poolSize);
+        return rankReminders(snapshot.items, rankOpts).slice(0, poolSize);
       }
       throw new Error(
         `Nessun push dall'iPhone: esegui il Comando rapido "Promemoria → The Daily Tailor" (snapshot valido ${pushedSnapshotMaxAgeHours()}h).`,
@@ -69,7 +72,7 @@ export class PushedRemindersAdapter implements RemindersAdapter {
     let fallbackItems: ReminderItem[] = [];
     let fallbackError: Error | null = null;
     try {
-      fallbackItems = await this.fallback.getTodaysOpenReminders();
+      fallbackItems = await this.fallback.getTodaysOpenReminders(dateKey);
     } catch (err) {
       fallbackError = err instanceof Error ? err : new Error(String(err));
     }
@@ -81,7 +84,7 @@ export class PushedRemindersAdapter implements RemindersAdapter {
 
     if (snapshot && snapshot.items.length > 0) {
       this.label = staleLabel(snapshot);
-      return rankReminders(snapshot.items).slice(0, poolSize);
+      return rankReminders(snapshot.items, rankOpts).slice(0, poolSize);
     }
 
     if (fallbackError) throw fallbackError;

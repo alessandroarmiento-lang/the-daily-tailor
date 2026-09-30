@@ -1,4 +1,6 @@
 import type { ReminderItem, RemindersAdapter } from "./types";
+import { config } from "@/lib/config";
+import { filterRemindersForEditionDay } from "./for-edition-day";
 
 function todayAt(hours: number, minutes: number): string {
   const d = new Date();
@@ -88,6 +90,20 @@ const MOCK_REMINDERS: ReminderItem[] = [
     isCompleted: false,
     priority: "low",
   },
+  {
+    id: "rem-future",
+    title: "Promemoria di una settimana (non del giorno)",
+    notes: "Deve restare fuori dall’edizione odierna",
+    listName: "Lavoro",
+    dueAt: (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      d.setHours(10, 0, 0, 0);
+      return d.toISOString();
+    })(),
+    isCompleted: false,
+    priority: "high",
+  },
 ];
 
 /**
@@ -97,7 +113,9 @@ export class MockRemindersAdapter implements RemindersAdapter {
   readonly id = "mock";
   readonly label = "Reminders (mock)";
 
-  async getTodaysOpenReminders(): Promise<ReminderItem[]> {
-    return MOCK_REMINDERS.filter((r) => !r.isCompleted);
+  async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
+    const open = MOCK_REMINDERS.filter((r) => !r.isCompleted);
+    if (!dateKey) return open;
+    return filterRemindersForEditionDay(open, dateKey, config.timezone);
   }
 }

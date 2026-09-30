@@ -95,6 +95,10 @@ async function fetchAccountRecent(
     secure: true,
     auth: { user: account.user, pass: account.pass },
     logger: false,
+    // Without these, a stuck mailbox keeps /api/morning-warm (and AGGIORNA) hanging.
+    connectionTimeout: 20_000,
+    greetingTimeout: 20_000,
+    socketTimeout: 60_000,
   });
 
   const messages: MailRawMessage[] = [];

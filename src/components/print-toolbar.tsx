@@ -8,6 +8,8 @@ import { useLang } from "@/lib/i18n/provider";
 type Props = {
   onRefresh?: () => void;
   refreshing?: boolean;
+  /** Shown under the toolbar (e.g. failed AGGIORNA while the sheet stays visible). */
+  statusMessage?: string | null;
   historyHref?: string;
   canExportPdf?: boolean;
   pdfFileStem?: string;
@@ -16,6 +18,7 @@ type Props = {
 export function PrintToolbar({
   onRefresh,
   refreshing = false,
+  statusMessage = null,
   historyHref,
   canExportPdf = true,
   pdfFileStem = "the-daily-tailor",
@@ -23,6 +26,7 @@ export function PrintToolbar({
   const { lang, setLang, t } = useLang();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const alertText = exportError ?? statusMessage;
 
   async function handlePdf() {
     if (!canExportPdf || exporting) return;
@@ -88,13 +92,13 @@ export function PrintToolbar({
           {exporting ? t("pdfBusy") : t("pdf")}
         </button>
       </div>
-      {exportError ? (
+      {alertText ? (
         <p
           className="toolbar__status"
           role="alert"
           style={{ flexBasis: "100%", textAlign: "right", margin: 0 }}
         >
-          {exportError}
+          {alertText}
         </p>
       ) : null}
     </div>

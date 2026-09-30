@@ -15,6 +15,8 @@ export const messages = {
       "Apri l’app dopo le 06:00 (con rete) per scaricare il giornale del giorno, oppure genera sul Mac con /api/morning-warm.",
     loadFail: "Caricamento edizione fallito",
     warmFail: "Aggiornamento fallito (HTTP {status})",
+    warmTimeout:
+      "Aggiornamento interrotto: il server non ha risposto in tempo.",
     backToday: "Torna a oggi",
     personalEdition: "Edizione personale",
     tagline: "Il giornale del mattino in una pagina, su misura per te",
@@ -87,6 +89,7 @@ export const messages = {
       "Open the app after 06:00 (with network) to download today’s paper, or generate on the Mac with /api/morning-warm.",
     loadFail: "Failed to load edition",
     warmFail: "Refresh failed (HTTP {status})",
+    warmTimeout: "Refresh stopped: the server did not respond in time.",
     backToday: "Back to today",
     personalEdition: "Personal edition",
     tagline: "The morning paper in one page, tailored to you",

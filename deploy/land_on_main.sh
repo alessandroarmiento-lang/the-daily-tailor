@@ -49,6 +49,10 @@ if [[ "$src" == "main" ]]; then
   else
     echo "LAND_ON_MAIN: already on main — push failed or nothing to push"
   fi
+  if [[ -n "${FLY_API_TOKEN:-}" && -x "$ROOT/deploy/fly/deploy.sh" ]]; then
+    echo "LAND_ON_MAIN: FLY_API_TOKEN present — deploying Fly…"
+    "$ROOT/deploy/fly/deploy.sh" || exit 1
+  fi
   exit 0
 fi
 
@@ -95,4 +99,20 @@ fi
 
 git checkout "$here" 2>/dev/null || git checkout "$src" 2>/dev/null || true
 echo "LAND_ON_MAIN: ${src} → origin/main OK"
+
+# Prefer GitHub Actions for Fly, but if FLY_API_TOKEN is here deploy immediately
+# (Cloud Agent / CI without waiting for Actions).
+if [[ -n "${FLY_API_TOKEN:-}" ]]; then
+  echo "LAND_ON_MAIN: FLY_API_TOKEN present — deploying Fly…"
+  if [[ -x "$ROOT/deploy/fly/deploy.sh" ]]; then
+    "$ROOT/deploy/fly/deploy.sh" || {
+      echo "LAND_ON_MAIN: Fly deploy failed — Actions may still retry on main"
+      exit 1
+    }
+  fi
+else
+  echo "LAND_ON_MAIN: no FLY_API_TOKEN here — relying on GitHub Actions fly-deploy.yml"
+  echo "LAND_ON_MAIN: if Actions lacks the secret, set FLY_API_TOKEN (see SETUP.md §12)"
+fi
+
 exit 0

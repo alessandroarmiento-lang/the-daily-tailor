@@ -141,17 +141,18 @@ function fitAgenda(root: HTMLElement): void {
   if (!(body instanceof HTMLElement) || body.clientHeight < 24) return;
   const days = asElements(root.querySelectorAll(".area-calendar .cal-day"));
   for (const day of days) {
-    showNode(day);
+    hideNode(day);
     for (const event of asElements(day.querySelectorAll(".cal-event"))) {
       showNode(event);
     }
   }
 
-  // Keep empty day boxes to fill the agenda band. Drop only what overflows.
+  // Greedy: keep empty day boxes to pack the column top-down.
   for (const day of days) {
+    showNode(day);
     if (overflowsBody(day, body.getBoundingClientRect().bottom)) {
       hideNode(day);
-      continue;
+      break;
     }
     for (const event of asElements(day.querySelectorAll(".cal-event"))) {
       if (overflowsBody(event, body.getBoundingClientRect().bottom)) {

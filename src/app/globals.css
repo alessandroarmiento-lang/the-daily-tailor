@@ -556,7 +556,7 @@ a.cal-event__link:hover {
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
   /* Fixed bands. Middle fits six reminders, bottom fits six emails. */
-  grid-template-rows: minmax(0, 1fr) 14.75rem 22.5rem !important;
+  grid-template-rows: minmax(0, 1fr) 14.75rem 20.5rem !important;
   grid-template-areas:
     "weather calendar news"
     "reminders reminders news"

@@ -44,7 +44,7 @@ const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "
  * Bottom band fits six emails (2×3). Top band is the rest: agenda and news
  * drop whole items to stay inside it. Counts do not resize the rows.
  */
-const DESKTOP_GRID_ROWS = "minmax(0, 1fr) 14.75rem 22.5rem";
+const DESKTOP_GRID_ROWS = "minmax(0, 1fr) 14.75rem 20.5rem";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794

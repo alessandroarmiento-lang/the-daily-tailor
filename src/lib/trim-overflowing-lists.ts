@@ -115,25 +115,22 @@ function overflowsBody(node: HTMLElement, bottom: number): boolean {
 }
 
 /**
- * Keep the longest prefix of whole items that sit fully inside the section.
- * Does not clip a title or a paragraph: the next item is omitted entirely.
+ * Pack the longest prefix of whole items into the section.
+ * Greedy: show one by one so leftover height is used (no empty band).
  */
 function fitItemList(list: Element | null, itemSelector: string): void {
   if (!(list instanceof HTMLElement)) return;
   const body = sectionBody(list);
   if (!body || body.clientHeight < 24) return;
   const items = asElements(list.querySelectorAll(itemSelector));
-  for (const item of items) showNode(item);
+  for (const item of items) hideNode(item);
 
-  let guard = items.length + 1;
-  while (guard-- > 0) {
+  for (const item of items) {
+    showNode(item);
     const bottom = body.getBoundingClientRect().bottom;
-    const overflow = items.find((item) => !item.hidden && overflowsBody(item, bottom));
-    if (!overflow) break;
-    let cut = false;
-    for (const item of items) {
-      if (item === overflow) cut = true;
-      if (cut) hideNode(item);
+    if (overflowsBody(item, bottom)) {
+      hideNode(item);
+      break;
     }
   }
   markLastVisible(items);

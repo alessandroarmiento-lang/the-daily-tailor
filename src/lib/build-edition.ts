@@ -32,7 +32,7 @@ export async function buildEdition(
     getWeather(),
     getWorldNews(),
     getReminders(dateKey),
-    getCalendar(),
+    getCalendar(dateKey),
     getActionEmails(),
   ]);
 

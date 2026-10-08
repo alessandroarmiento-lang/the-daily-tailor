@@ -372,16 +372,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
           ) : calendarResult.data ? (
             (() => {
               const days = calendarResult.data.days;
-              const hasAny = days.some((d) => d.events.length > 0);
-              if (!hasAny) {
-                return (
-                  <SectionEmpty
-                    title={t("agenda")}
-                    kicker={t("agendaDays")}
-                    message={t("noAgendaEvents")}
-                  />
-                );
-              }
               return (
                 <SectionShell
                   title={t("agenda")}
@@ -399,7 +389,9 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                           {day.isToday ? t("todayPrefix") : ""}
                           {formatDayLabel(day.dateKey, locale, tz)}
                         </p>
-                        {day.events.length === 0 ? null : (
+                        {day.events.length === 0 ? (
+                          <p className="cal-day__empty">—</p>
+                        ) : (
                           <ul className="cal-day__events">
                             {day.events.map((event) => {
                               const href = calendarEventDeepLink(event.id, {

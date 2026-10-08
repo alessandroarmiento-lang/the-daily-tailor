@@ -26,7 +26,7 @@ export function reminderImportanceScore(
   let score = PRIORITY_SCORE[item.priority] ?? 0;
   if (options?.dateKey && options.timeZone) {
     const bucket = editionDayBucket(item, options.dateKey, options.timeZone);
-    // overdue > due that day > undated
+    // due that day ranks above anything else still in the pool
     score += (3 - bucket) * 120;
   }
   if (item.dueAt) {

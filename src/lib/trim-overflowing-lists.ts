@@ -145,21 +145,22 @@ function fitAgenda(root: HTMLElement): void {
   const days = asElements(root.querySelectorAll(".area-calendar .cal-day"));
   for (const day of days) {
     showNode(day);
-    for (const event of asElements(day.querySelectorAll(".cal-event"))) showNode(event);
+    for (const event of asElements(day.querySelectorAll(".cal-event"))) {
+      showNode(event);
+    }
   }
 
+  // Keep empty day boxes to fill the agenda band. Drop only what overflows.
   for (const day of days) {
-    const events = asElements(day.querySelectorAll(".cal-event"));
-    if (events.length === 0) {
-      if (overflowsBody(day, body.getBoundingClientRect().bottom)) hideNode(day);
+    if (overflowsBody(day, body.getBoundingClientRect().bottom)) {
+      hideNode(day);
       continue;
     }
-    let kept = 0;
-    for (const event of events) {
-      if (overflowsBody(event, body.getBoundingClientRect().bottom)) hideNode(event);
-      else kept += 1;
+    for (const event of asElements(day.querySelectorAll(".cal-event"))) {
+      if (overflowsBody(event, body.getBoundingClientRect().bottom)) {
+        hideNode(event);
+      }
     }
-    if (kept === 0) hideNode(day);
   }
 }
 

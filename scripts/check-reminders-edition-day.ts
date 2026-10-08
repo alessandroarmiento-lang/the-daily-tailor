@@ -62,25 +62,21 @@ assert(
   isReminderForEditionDay(samples[0]!, day, tz),
   "include due that day",
 );
-assert(isReminderForEditionDay(samples[1]!, day, tz), "include overdue");
-assert(isReminderForEditionDay(samples[2]!, day, tz), "include undated");
+assert(!isReminderForEditionDay(samples[1]!, day, tz), "exclude overdue");
+assert(!isReminderForEditionDay(samples[2]!, day, tz), "exclude undated");
 assert(!isReminderForEditionDay(samples[3]!, day, tz), "exclude future");
 assert(!isReminderForEditionDay(samples[5]!, day, tz), "exclude next day");
 
 const filtered = filterRemindersForEditionDay(samples, day, tz);
 assert(
-  filtered.map((r) => r.id).sort().join(",") === "1,2,3,5",
+  filtered.map((r) => r.id).sort().join(",") === "1,5",
   `filtered ids=${filtered.map((r) => r.id).join(",")}`,
 );
 
 const ranked = rankReminders(samples, { dateKey: day, timeZone: tz });
 assert(
-  ranked[0]?.id === "2",
-  `overdue ranks first (got ${ranked[0]?.id})`,
-);
-assert(
-  !ranked.some((r) => r.id === "4" || r.id === "6"),
-  "ranked has no future",
+  ranked.every((r) => r.id === "1" || r.id === "5"),
+  `ranked only that day (got ${ranked.map((r) => r.id).join(",")})`,
 );
 
 if (failed > 0) {

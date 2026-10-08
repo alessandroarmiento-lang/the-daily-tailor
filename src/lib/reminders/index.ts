@@ -41,9 +41,9 @@ function resolveAdapter(): RemindersAdapter {
 }
 
 /**
- * Up to six dated reminders: edition day first, then upcoming due dates
- * in chronological order. Overdue and undated are excluded. Uses the
- * edition day, not wall-clock "today", when they differ (e.g. before 06:00).
+ * Up to six open reminders: edition day, then upcoming, then overdue,
+ * then undated — enough to fill the A4 slot. Uses the edition day, not
+ * wall-clock "today", when they differ (e.g. before 06:00).
  */
 export async function getReminders(
   dateKey: string = getEditionDateKey(),

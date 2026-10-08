@@ -678,8 +678,8 @@ a.cal-event__link:hover {
 }
 
 /*
- * iPhone and Mac share this capture. Promemoria span under Meteo and Agenda,
- * two columns, so about six fit. Email is two columns across the bottom band.
+ * iPhone and Mac share this capture. Promemoria sit under Meteo only,
+ * two columns so about six fit. Email is two columns across the bottom band.
  */
 .sheet-page.is-pdf-capture .reminder-list {
   display: grid !important;

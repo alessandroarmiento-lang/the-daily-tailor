@@ -53,7 +53,9 @@ AuthKey_*.p8
 .vercel
 
 # local Cursor project rules / agent state
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 
 # typescript
 *.tsbuildinfo

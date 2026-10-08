@@ -16,12 +16,15 @@ import {
   PUSHED_DEVICE_LABEL,
   savePushedReminders,
 } from "@/lib/reminders/ingest-store";
+import { withBudget } from "@/lib/with-budget";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /** Roughly 200 reminders with notes; anything larger is a mistake. */
 const MAX_BODY_BYTES = 256 * 1024;
+/** Same budget as morning-warm — hung IMAP must not block the iPhone Shortcut. */
+const WARM_BUDGET_MS = 60_000;
 
 function expectedToken(): string {
   return (process.env.REMINDERS_INGEST_TOKEN ?? "").trim();
@@ -158,13 +161,23 @@ export async function POST(request: Request) {
   const shouldWarm = url.searchParams.get("warm") === "1" || bodyWarm === true;
 
   let warmed = false;
+  let warmError: string | null = null;
   if (shouldWarm) {
     const dateKey = getEditionDateKey();
     revalidateTag(DAILY_TAILOR_CACHE_TAG, "max");
     revalidateTag(editionCacheTag(dateKey), "max");
-    await clearEditionAdapterCache(dateKey);
-    await getOrBuildTodayEdition({ force: true });
-    warmed = true;
+    try {
+      await clearEditionAdapterCache(dateKey);
+      await withBudget(
+        getOrBuildTodayEdition({ force: true }),
+        WARM_BUDGET_MS,
+        "ingest-warm",
+      );
+      warmed = true;
+    } catch (err) {
+      // Reminders are already stored — do not fail the Shortcut on a slow rebuild.
+      warmError = err instanceof Error ? err.message : String(err);
+    }
   }
 
   return Response.json({
@@ -179,5 +192,6 @@ export async function POST(request: Request) {
     deviceLabel: snapshot.deviceLabel,
     staleAfterHours: pushedSnapshotMaxAgeHours(),
     warmed,
+    warmError,
   });
 }

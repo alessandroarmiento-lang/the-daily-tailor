@@ -76,9 +76,11 @@ print(f"{len(items)} promemoria aperti da EventKit", file=sys.stderr)
 PY
 
 # curl --config - keeps the token out of the process list.
+# Up to 3 attempts on flaky network / cold Fly (same policy as iPhone Shortcut v3).
 printf 'header = "X-Ingest-Token: %s"\n' "$TOKEN" |
   curl --config - \
     --silent --show-error --fail-with-body --max-time 240 \
+    --retry 3 --retry-delay 20 --retry-all-errors \
     -X POST "$URL" \
     -H 'Content-Type: application/json' \
     --data-binary "@$PAYLOAD"

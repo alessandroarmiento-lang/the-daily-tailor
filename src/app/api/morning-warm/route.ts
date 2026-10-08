@@ -7,8 +7,12 @@ import {
   getEditionDateKey,
   getNextEditionRollover,
 } from "@/lib/edition";
+import { withBudget } from "@/lib/with-budget";
 
 export const dynamic = "force-dynamic";
+
+/** Cap so a hung IMAP/CalDAV adapter cannot hold Fly / AGGIORNA forever. */
+const BUILD_BUDGET_MS = 60_000;
 
 /**
  * Generate / refresh the morning edition snapshot and warm section caches.
@@ -34,31 +38,46 @@ export async function GET(request: Request) {
     await clearEditionAdapterCache(editionDateKey);
   }
 
-  const { edition, created, path: savedPath } = await getOrBuildTodayEdition({
-    force,
-  });
+  try {
+    const { edition, created, path: savedPath } = await withBudget(
+      getOrBuildTodayEdition({ force }),
+      BUILD_BUDGET_MS,
+      "morning-warm",
+    );
 
-  return Response.json({
-    ok: true,
-    editionDateKey,
-    created,
-    path: savedPath ?? null,
-    nextRolloverAt: nextRollover.toISOString(),
-    sections: {
-      weather: edition.weather.status,
-      news: edition.news.status,
-      reminders: edition.reminders.status,
-      calendar: edition.calendar.status,
-      actionEmails: edition.actionEmails.status,
-      aphorism: edition.aphorism.dateKey,
-    },
-    weatherSource:
-      edition.weather.data && !edition.weather.data.isMock
-        ? edition.weather.data.source
-        : "mock",
-    weatherCity: edition.weather.data?.city ?? null,
-    newsFeed: edition.news.data?.feedLabel ?? null,
-    actionEmailSource: edition.actionEmails.data?.sourceLabel ?? null,
-    warmedAt: new Date().toISOString(),
-  });
+    return Response.json({
+      ok: true,
+      editionDateKey,
+      created,
+      path: savedPath ?? null,
+      nextRolloverAt: nextRollover.toISOString(),
+      sections: {
+        weather: edition.weather.status,
+        news: edition.news.status,
+        reminders: edition.reminders.status,
+        calendar: edition.calendar.status,
+        actionEmails: edition.actionEmails.status,
+        aphorism: edition.aphorism.dateKey,
+      },
+      weatherSource:
+        edition.weather.data && !edition.weather.data.isMock
+          ? edition.weather.data.source
+          : "mock",
+      weatherCity: edition.weather.data?.city ?? null,
+      newsFeed: edition.news.data?.feedLabel ?? null,
+      actionEmailSource: edition.actionEmails.data?.sourceLabel ?? null,
+      warmedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json(
+      {
+        ok: false,
+        editionDateKey,
+        nextRolloverAt: nextRollover.toISOString(),
+        error: message,
+      },
+      { status: 504 },
+    );
+  }
 }

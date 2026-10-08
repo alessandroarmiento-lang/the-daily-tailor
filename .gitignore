@@ -62,3 +62,4 @@ next-env.d.ts
 # Author-only UI prefs (Italian default). Public clones → English.
 /public/owner-prefs.json
 
+__pycache__/

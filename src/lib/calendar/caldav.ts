@@ -348,6 +348,7 @@ async function discoverGoogleLegacyCollections(
   try {
     const res = await fetch(home, {
       method: "PROPFIND",
+      signal: AbortSignal.timeout(15_000),
       headers: {
         Authorization: basicAuthHeader(account.username, account.password),
         Depth: "1",
@@ -402,6 +403,7 @@ async function reportGoogleCollection(
 
     const res = await fetch(collection.url, {
       method: "REPORT",
+      signal: AbortSignal.timeout(20_000),
       headers: {
         Authorization: basicAuthHeader(account.username, account.password),
         Depth: "1",

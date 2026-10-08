@@ -7,6 +7,7 @@ import { MorningReload } from "@/components/morning-reload";
 import { PrintToolbar } from "@/components/print-toolbar";
 import { LanguageProvider, useLang } from "@/lib/i18n/provider";
 import type { NewspaperEdition } from "@/lib/edition-types";
+import { fetchWithBudget } from "@/lib/fetch-with-budget";
 import { loadEditionForClient } from "@/lib/offline-editions";
 import {
   readWeatherGeoOverride,
@@ -23,8 +24,13 @@ type Props = {
   initialEdition?: NewspaperEdition | null;
 };
 
-/** Match deploy scripts; IMAP/CalDAV rebuilds can be slow but must not hang forever. */
-const WARM_TIMEOUT_MS = 120_000;
+/**
+ * Mobile AGGIORNA must not wait for a hung Fly IMAP/CalDAV rebuild.
+ * Production morning-warm often exceeds 30s; keep the toolbar responsive.
+ */
+const WARM_BUDGET_MS = 12_000;
+/** Absolute UI escape hatch if anything above misbehaves on iOS. */
+const REFRESH_SAFETY_MS = 18_000;
 
 function DailyPaperAppInner({
   dateKey,
@@ -43,7 +49,7 @@ function DailyPaperAppInner({
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialEdition);
-  /** AGGIORNA spinner — kept separate from first-load so a hung warm cannot look like a loop. */
+  /** AGGIORNA spinner — kept separate from first-load. */
   const [refreshing, setRefreshing] = useState(false);
   /**
    * Kept beside the edition, not merged into it: a later edition load
@@ -81,29 +87,28 @@ function DailyPaperAppInner({
       }
       setError(null);
 
+      const safety = window.setTimeout(() => {
+        if (gen !== refreshGen.current) return;
+        setLoading(false);
+        setRefreshing(false);
+      }, REFRESH_SAFETY_MS);
+
       try {
-        // AGGIORNA on "today" must rebuild live data (not only re-read disk/IDB).
+        // Best-effort rebuild: never throw on hang/timeout — always re-pull the sheet.
+        let warmNote: string | null = null;
         if (force && dateKey === "today") {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), WARM_TIMEOUT_MS);
-          try {
-            const warm = await fetch("/api/morning-warm?force=1", {
+          const warm = await fetchWithBudget(
+            "/api/morning-warm?force=1",
+            {
               cache: "no-store",
               headers: { "Cache-Control": "no-cache" },
-              signal: controller.signal,
-            });
-            if (!warm.ok) {
-              throw new Error(
-                tRef.current("warmFail", { status: warm.status }),
-              );
-            }
-          } catch (err) {
-            if (err instanceof Error && err.name === "AbortError") {
-              throw new Error(tRef.current("warmTimeout"));
-            }
-            throw err;
-          } finally {
-            clearTimeout(timer);
+            },
+            WARM_BUDGET_MS,
+          );
+          if (!warm) {
+            warmNote = tRef.current("warmTimeout");
+          } else if (!warm.ok) {
+            warmNote = tRef.current("warmFail", { status: warm.status });
           }
         }
 
@@ -114,8 +119,12 @@ function DailyPaperAppInner({
 
         // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
         setEdition((prev) => result.edition ?? prev);
-        setError(result.edition ? null : (result.error ?? null));
-        // AGGIORNA rebuilds from the stored fix, so take a fresh one too.
+        if (result.edition) {
+          setError(warmNote);
+        } else {
+          setError(result.error ?? warmNote);
+        }
+        // AGGIORNA: take a fresh GPS meteo even if warm was slow.
         if (force && dateKey === "today") {
           void refreshWeatherGeo();
         }
@@ -125,8 +134,7 @@ function DailyPaperAppInner({
           err instanceof Error ? err.message : tRef.current("loadFail"),
         );
       } finally {
-        // Always clear both flags for the latest generation so a force rebuild
-        // that supersedes the mount load cannot leave loading stuck true.
+        window.clearTimeout(safety);
         if (gen !== refreshGen.current) return;
         setLoading(false);
         setRefreshing(false);

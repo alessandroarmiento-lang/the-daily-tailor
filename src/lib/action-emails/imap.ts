@@ -217,7 +217,22 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
     const foundLabels: string[] = [];
 
     for (const account of accounts) {
-      const result = await fetchAccountRecent(account, since, scanCap);
+      // Hard budget per mailbox: socketTimeout alone still left AGGIORNA hanging on Fly.
+      const result = await Promise.race([
+        fetchAccountRecent(account, since, scanCap),
+        new Promise<{ messages: MailRawMessage[]; error?: string }>(
+          (resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  messages: [],
+                  error: `${account.label}: IMAP timed out`,
+                }),
+              25_000,
+            );
+          },
+        ),
+      ]);
       if (result.error) errors.push(result.error);
       else foundLabels.push(account.label);
       all.push(...result.messages);

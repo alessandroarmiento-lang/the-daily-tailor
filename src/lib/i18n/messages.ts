@@ -16,7 +16,7 @@ export const messages = {
     loadFail: "Caricamento edizione fallito",
     warmFail: "Aggiornamento fallito (HTTP {status})",
     warmTimeout:
-      "Aggiornamento interrotto: il server non ha risposto in tempo.",
+      "Edizione ricaricata — la rigenerazione sul server è lenta o non ha risposto.",
     backToday: "Torna a oggi",
     personalEdition: "Edizione personale",
     tagline: "Il giornale del mattino in una pagina, su misura per te",
@@ -89,7 +89,8 @@ export const messages = {
       "Open the app after 06:00 (with network) to download today’s paper, or generate on the Mac with /api/morning-warm.",
     loadFail: "Failed to load edition",
     warmFail: "Refresh failed (HTTP {status})",
-    warmTimeout: "Refresh stopped: the server did not respond in time.",
+    warmTimeout:
+      "Edition reloaded — server rebuild is slow or did not respond.",
     backToday: "Back to today",
     personalEdition: "Personal edition",
     tagline: "The morning paper in one page, tailored to you",

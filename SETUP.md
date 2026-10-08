@@ -201,6 +201,8 @@ python3 scripts/macos/build-reminders-shortcut.py \
 2. Create an Automation at **05:55** (before the 06:00 warm): run the shortcut with **Run Shortcut**, not **Open**.
 3. Optional Mac push while awake: `./scripts/macos/push-reminders-to-host.sh --warm`
 
+v3 retries the ingest POST up to **3 times** (20s between attempts) if the host is unreachable or the response has no `ok`. After 3 failures it shows a notification. Rebuild and re-**Add** the shortcut after pulling this change.
+
 The signed `.shortcut` embeds the token → treat the file as a secret (mode 0600; do not commit).
 
 ---

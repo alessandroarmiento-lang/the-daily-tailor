@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Build + sign the iPhone Shortcut that pushes open reminders to the host.
 
-v2 workflow (avoids iPhone flattening reminders to titles-only):
+v3 workflow (avoids iPhone flattening reminders to titles-only):
   1. Find Reminders where "Is Completed" is No
   2. Repeat with Each → Dictionary(title, listName, dueAt, notes, id)
-  3. Get Contents of URL — POST the dictionary list to /api/reminders/ingest
-
-The edition rebuild is not triggered here: the host already warms at 06:00
-(deploy/fly/crontab), five minutes after the 05:55 automation.
+  3. Repeat 3 times → POST /api/reminders/ingest?warm=1
+     On ok:true → stop. Otherwise wait 20s and retry (flaky Wi‑Fi / Fly).
 
 REMINDERS_INGEST_TOKEN is read from .env.local and embedded in the signed file
 (Shortcuts has no secret storage), so the .shortcut output is secret material:
@@ -39,6 +37,9 @@ DEFAULT_OUTPUT = "~/Desktop/Invia promemoria al giornale.shortcut"
 # ISO-8601 with +HH:MM (XXX). Never XXXXX (+HH:MM:SS) — JS Date rejects it.
 # Prefer Shortcuts built-in "ISO 8601" style; custom string is a fallback.
 DUE_AT_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
+
+POST_ATTEMPTS = 3
+POST_RETRY_WAIT_SECONDS = 20
 
 
 def read_token(env_file: Path) -> str:
@@ -230,11 +231,19 @@ def dictionary_action(fields: list, action_uuid: str) -> dict:
     }
 
 
-def post_reminders(url: str, token: str, reminders_ref: dict, action_uuid: str) -> dict:
+def post_reminders(
+    url: str,
+    token: str,
+    reminders_ref: dict,
+    action_uuid: str,
+    *,
+    output_name: str = "Ingest Response",
+) -> dict:
     return {
         "WFWorkflowActionIdentifier": "is.workflow.actions.downloadurl",
         "WFWorkflowActionParameters": {
             "UUID": action_uuid,
+            "CustomOutputName": output_name,
             "Advanced": True,
             "ShowHeaders": True,
             "WFHTTPMethod": "POST",
@@ -256,6 +265,105 @@ def post_reminders(url: str, token: str, reminders_ref: dict, action_uuid: str) 
     }
 
 
+def repeat_count_start(group_id: str, count: int) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.repeat.count",
+        "WFWorkflowActionParameters": {
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 0,
+            "WFRepeatCount": count,
+        },
+    }
+
+
+def repeat_count_end(group_id: str, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.repeat.count",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 2,
+        },
+    }
+
+
+def get_dictionary_value(
+    key: str, input_ref: dict, action_uuid: str, output_name: str
+) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.getvalueforkey",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "CustomOutputName": output_name,
+            "WFDictionaryKey": key,
+            "WFInput": attachment(input_ref),
+        },
+    }
+
+
+def if_has_any_value(group_id: str, input_ref: dict) -> dict:
+    """WFCondition 999 = Has Any Value (bendrucker / Shortcuts action refs)."""
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.conditional",
+        "WFWorkflowActionParameters": {
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 0,
+            "WFCondition": 999,
+            "WFInput": attachment(input_ref),
+        },
+    }
+
+
+def if_otherwise(group_id: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.conditional",
+        "WFWorkflowActionParameters": {
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 1,
+        },
+    }
+
+
+def if_end(group_id: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.conditional",
+        "WFWorkflowActionParameters": {
+            "GroupingIdentifier": group_id,
+            "WFControlFlowMode": 2,
+        },
+    }
+
+
+def delay_seconds(seconds: int, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.delay",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "WFDelayTime": seconds,
+        },
+    }
+
+
+def exit_shortcut(action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.exit",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+        },
+    }
+
+
+def notify(title: str, body: str, action_uuid: str) -> dict:
+    return {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.notification",
+        "WFWorkflowActionParameters": {
+            "UUID": action_uuid,
+            "WFNotificationActionTitle": title,
+            "WFNotificationActionBody": body,
+        },
+    }
+
+
 def build_workflow(host: str, token: str) -> dict:
     find_uuid = uid()
     group_id = uid()
@@ -268,7 +376,14 @@ def build_workflow(host: str, token: str) -> dict:
     id_text_uuid = uid()
     dict_uuid = uid()
     end_uuid = uid()
+    retry_group = uid()
+    retry_end_uuid = uid()
     post_uuid = uid()
+    ok_uuid = uid()
+    if_group = uid()
+    exit_uuid = uid()
+    delay_uuid = uid()
+    notify_uuid = uid()
 
     title_name = "Reminder Title"
     list_name = "Reminder List"
@@ -277,6 +392,11 @@ def build_workflow(host: str, token: str) -> dict:
     notes_name = "Reminder Notes"
     priority_name = "Reminder Priority"
     id_name = "Reminder Id"
+    post_name = "Ingest Response"
+    ok_name = "Ingest Ok"
+
+    ingest_url = f"{host.rstrip('/')}/api/reminders/ingest?warm=1"
+    reminders_ref = action_output(end_uuid, "Repeat Results")
 
     actions = [
         find_open_reminders(find_uuid),
@@ -309,12 +429,31 @@ def build_workflow(host: str, token: str) -> dict:
             dict_uuid,
         ),
         repeat_each_end(group_id, end_uuid),
+        # Up to 3 POSTs: success (ok key present) exits; else wait and retry.
+        repeat_count_start(retry_group, POST_ATTEMPTS),
         post_reminders(
-            # warm=1 so a manual/automation run refreshes the edition now.
-            f"{host.rstrip('/')}/api/reminders/ingest?warm=1",
+            ingest_url,
             token,
-            action_output(end_uuid, "Repeat Results"),
+            reminders_ref,
             post_uuid,
+            output_name=post_name,
+        ),
+        get_dictionary_value(
+            "ok",
+            action_output(post_uuid, post_name),
+            ok_uuid,
+            ok_name,
+        ),
+        if_has_any_value(if_group, action_output(ok_uuid, ok_name)),
+        exit_shortcut(exit_uuid),
+        if_otherwise(if_group),
+        delay_seconds(POST_RETRY_WAIT_SECONDS, delay_uuid),
+        if_end(if_group),
+        repeat_count_end(retry_group, retry_end_uuid),
+        notify(
+            "The Daily Tailor",
+            "Promemoria non inviati dopo 3 tentativi. Riprova a mano o all’apertura.",
+            notify_uuid,
         ),
     ]
     return {
@@ -388,18 +527,40 @@ def main() -> None:
             plistlib.dump(workflow, handle)
         subprocess.run(["plutil", "-lint", str(source)], check=True, capture_output=True)
 
-        # Sanity: v2 must include the Repeat + Dictionary path (not raw Reminders POST).
+        # Sanity: v3 must include Repeat-each + Dictionary + retry POST loop.
         action_ids = [
             a["WFWorkflowActionIdentifier"] for a in workflow["WFWorkflowActions"]
         ]
         if action_ids.count("is.workflow.actions.repeat.each") != 2:
-            raise SystemExit("shortcut v2: expected Repeat with Each start+end")
+            raise SystemExit("shortcut v3: expected Repeat with Each start+end")
+        if action_ids.count("is.workflow.actions.repeat.count") != 2:
+            raise SystemExit("shortcut v3: expected Repeat Count start+end (3 tries)")
         if "is.workflow.actions.dictionary" not in action_ids:
-            raise SystemExit("shortcut v2: expected Dictionary action")
+            raise SystemExit("shortcut v3: expected Dictionary action")
         if "is.workflow.actions.properties.reminders" not in action_ids:
-            raise SystemExit("shortcut v2: expected Get Details of Reminders")
+            raise SystemExit("shortcut v3: expected Get Details of Reminders")
         if "is.workflow.actions.gettext" not in action_ids:
-            raise SystemExit("shortcut v2: expected Text action for stable id")
+            raise SystemExit("shortcut v3: expected Text action for stable id")
+        if "is.workflow.actions.getvalueforkey" not in action_ids:
+            raise SystemExit("shortcut v3: expected Get Dictionary Value for ok")
+        if "is.workflow.actions.delay" not in action_ids:
+            raise SystemExit("shortcut v3: expected Wait between POST retries")
+        if "is.workflow.actions.exit" not in action_ids:
+            raise SystemExit("shortcut v3: expected Exit Shortcut on successful POST")
+        if "is.workflow.actions.notification" not in action_ids:
+            raise SystemExit("shortcut v3: expected Notification after 3 failed POSTs")
+        retry_starts = [
+            a
+            for a in workflow["WFWorkflowActions"]
+            if a["WFWorkflowActionIdentifier"] == "is.workflow.actions.repeat.count"
+            and a["WFWorkflowActionParameters"].get("WFControlFlowMode") == 0
+        ]
+        if not retry_starts or retry_starts[0]["WFWorkflowActionParameters"].get(
+            "WFRepeatCount"
+        ) != POST_ATTEMPTS:
+            raise SystemExit(
+                f"shortcut v3: expected WFRepeatCount={POST_ATTEMPTS} on retry loop"
+            )
         # DueAt must be Text-coerced (or Format Date) — never leave a bare Date
         # in the Dictionary (JSON body drops non-string date values).
         due_text_actions = [
@@ -411,7 +572,7 @@ def main() -> None:
         ]
         if not due_text_actions:
             raise SystemExit(
-                "shortcut v2: expected Text action 'Reminder DueAt' "
+                "shortcut v3: expected Text action 'Reminder DueAt' "
                 "(coerce Due Date to string; do not use Format Date alone)"
             )
         # Guard: invalid "Identifier" detail remaps to Elenco on Italian iOS.
@@ -426,7 +587,7 @@ def main() -> None:
             )
             if prop == "Identifier":
                 raise SystemExit(
-                    "shortcut v2: do not use Reminder Identifier detail "
+                    "shortcut v3: do not use Reminder Identifier detail "
                     "(Italian UI binds it to Elenco)"
                 )
             if isinstance(prop, str):
@@ -434,7 +595,7 @@ def main() -> None:
         for required in ("Title", "List", "Due Date", "Notes", "Priority"):
             if required not in reminder_props:
                 raise SystemExit(
-                    f"shortcut v2: missing Reminder detail {required!r}"
+                    f"shortcut v3: missing Reminder detail {required!r}"
                 )
         for action in workflow["WFWorkflowActions"]:
             if action["WFWorkflowActionIdentifier"] != (
@@ -444,13 +605,13 @@ def main() -> None:
             fmt = action["WFWorkflowActionParameters"].get("WFDateFormatString")
             if isinstance(fmt, str) and "XXXXX" in fmt:
                 raise SystemExit(
-                    "shortcut v2: dueAt format must use XXX (+HH:MM), "
+                    "shortcut v3: dueAt format must use XXX (+HH:MM), "
                     "not XXXXX (+HH:MM:SS) — JS Date rejects the latter"
                 )
             style = action["WFWorkflowActionParameters"].get("WFTimeFormatStyle")
             if style == "Custom":
                 raise SystemExit(
-                    "shortcut v2: WFTimeFormatStyle=Custom blanks dueAt on iPhone"
+                    "shortcut v3: WFTimeFormatStyle=Custom blanks dueAt on iPhone"
                 )
 
         if output.exists():
@@ -469,7 +630,8 @@ def main() -> None:
             check=True,
         )
     output.chmod(0o600)
-    print(f"Shortcut v2 firmato: {output}")
+    print(f"Shortcut v3 firmato: {output}")
+    print(f"POST ingest: fino a {POST_ATTEMPTS} tentativi, attesa {POST_RETRY_WAIT_SECONDS}s.")
     print("Contiene il token: trattalo come materiale segreto.")
     print("Non usare Automation/Shortcuts Events: doppio click sul file → Aggiungi.")
     if args.open:

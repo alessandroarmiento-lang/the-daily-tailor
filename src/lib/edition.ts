@@ -1,6 +1,10 @@
 import { config } from "@/lib/config";
 
-/** Morning edition rolls at this local hour (Europe/Rome by default). */
+/**
+ * Morning edition flip (Europe/Rome by default).
+ * Before this hour the passive sheet still belongs to yesterday; AGGIORNA can
+ * override with the civil day via `asOf=civil`, and the 06:00 warm rebuilds again.
+ */
 export const EDITION_ROLLOVER_HOUR = 6;
 
 type ZonedParts = {
@@ -61,6 +65,18 @@ export function shiftCivilDate(
 }
 
 /**
+ * Wall-clock civil YYYY-MM-DD in `timeZone` (ignores edition rollover).
+ * Used by AGGIORNA so a tap at 00:30 builds Friday even before 06:00.
+ */
+export function getCivilDateKey(
+  now: Date = new Date(),
+  timeZone: string = config.timezone,
+): string {
+  const p = zonedParts(now, timeZone);
+  return ymdKey(p.year, p.month, p.day);
+}
+
+/**
  * Edition date key for the morning sheet.
  * Before 06:00 local, the sheet still belongs to the previous calendar day
  * so aphorism + caches flip together at the morning rollover.
@@ -76,6 +92,16 @@ export function getEditionDateKey(
     return ymdKey(prev.year, prev.month, prev.day);
   }
   return ymdKey(p.year, p.month, p.day);
+}
+
+/** Resolve which day key a request wants: civil wall-clock or edition rollover. */
+export function resolveEditionAsOf(
+  asOf: string | null | undefined,
+  now: Date = new Date(),
+  timeZone: string = config.timezone,
+): string {
+  if (asOf === "civil") return getCivilDateKey(now, timeZone);
+  return getEditionDateKey(now, timeZone);
 }
 
 /** Stable day index from edition YYYY-MM-DD (for aphorism rotation). */

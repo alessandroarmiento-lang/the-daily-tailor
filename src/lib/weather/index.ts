@@ -102,12 +102,14 @@ function withPlace(
 
 export async function fetchWeatherSnapshot(
   location: WeatherLocation,
+  dateKey?: string,
 ): Promise<SectionResult<WeatherSnapshot>> {
   const provider = resolveWeatherProvider();
   const fetchLoc = {
     latitude: location.latitude,
     longitude: location.longitude,
     city: location.city,
+    dateKey,
   };
 
   try {
@@ -155,12 +157,12 @@ export async function fetchWeatherSnapshot(
  */
 export async function getWeather(
   locationInput?: WeatherLocationInput,
-  options?: { persistLocation?: boolean },
+  options?: { persistLocation?: boolean; dateKey?: string },
 ): Promise<SectionResult<WeatherSnapshot>> {
   const location = await prepareWeatherLocation(locationInput, {
     persist: options?.persistLocation === true,
   });
-  return fetchWeatherSnapshot(location);
+  return fetchWeatherSnapshot(location, options?.dateKey);
 }
 
 export type {

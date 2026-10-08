@@ -1,6 +1,8 @@
 import {
-  detachHeadlineRowsForCapture,
+  detachFittedRowsForCapture,
+  fitWholeItemsToLockedBoxes,
   requestAdaptiveRefit,
+  revealFittedItems,
 } from "@/lib/trim-overflowing-lists";
 
 /**
@@ -29,8 +31,16 @@ import {
  */
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
-/** Calendar spans weather+reminders so Promemoria never paint over Agenda. */
-const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders calendar news" "emails emails emails"`;
+/**
+ * Locked bands, same box on iPhone and Mac:
+ * meteo | agenda on the first band (agenda does not continue down),
+ * promemoria across the band under both, notizie spanning both,
+ * email the remaining band.
+ * Fractions do not grow with item count.
+ */
+const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
+const DESKTOP_GRID_ROWS =
+  "minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1.25fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -39,7 +49,7 @@ const A4_HEIGHT_PX = Math.round((297 / 25.4) * 96); // 1123
 const A4_PAD_X_PX = Math.round((12 / 25.4) * 96); // 45
 const A4_PAD_BOTTOM_PX = Math.round((10 / 25.4) * 96); // 38
 
-/** Selectors → on-screen `-webkit-line-clamp` line counts. */
+/** Card height. Items that do not fit whole are omitted, not sliced further. */
 const LINE_CLAMP_LINES: Array<[string, number]> = [
   [".headline-list__title", 3],
   [".headline-list__summary", 2],
@@ -141,6 +151,12 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   if (reminderList instanceof HTMLElement) touched.push(reminderList);
   const actionMailList = root.querySelector(".action-mail-list");
   if (actionMailList instanceof HTMLElement) touched.push(actionMailList);
+  const calWidget = root.querySelector(".cal-widget");
+  if (calWidget instanceof HTMLElement) touched.push(calWidget);
+
+  root.querySelectorAll(".sheet-section, .sheet-section__body").forEach((node) => {
+    if (node instanceof HTMLElement) touched.push(node);
+  });
 
   for (const [selector] of LINE_CLAMP_LINES) {
     root.querySelectorAll(selector).forEach((node) => {
@@ -169,14 +185,13 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     grid.style.flex = "1 1 auto";
     grid.style.minHeight = "0";
     grid.style.gridTemplateColumns = DESKTOP_GRID_COLUMNS;
-    // auto rows: pack from the top. stretch+max-content let iOS push emails
-    // past the A4 clip edge while the left mail cell was still mid-paint.
-    grid.style.gridTemplateRows = "auto auto auto";
+    // Fixed bands. Item count must not change row size.
+    grid.style.gridTemplateRows = DESKTOP_GRID_ROWS;
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";
-    grid.style.alignContent = "start";
-    grid.style.alignItems = "start";
+    grid.style.alignContent = "stretch";
+    grid.style.alignItems = "stretch";
     grid.style.overflow = "hidden";
   }
 
@@ -185,31 +200,49 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     if (el instanceof HTMLElement) {
       el.style.gridArea = area;
       el.style.position = "relative";
-      if (selector === ".area-news") {
-        // News spans two rows and must clip leftover headlines.
-        el.style.minHeight = "0";
-        el.style.overflow = "hidden";
-        el.style.alignSelf = "stretch";
-        el.style.height = "100%";
-      } else {
-        // Weather / calendar / reminders / emails size to content.
-        // Never overflow:hidden on emails — that clipped the bottom-left
-        // mail on iPhone when iOS font metrics ran slightly taller.
-        el.style.minHeight = "max-content";
-        el.style.overflow = "visible";
-        el.style.alignSelf = "start";
-        el.style.height = "auto";
+      el.style.minHeight = "0";
+      el.style.height = "100%";
+      el.style.maxHeight = "100%";
+      el.style.overflow = "hidden";
+      el.style.alignSelf = "stretch";
+      const section = el.querySelector(":scope > .sheet-section");
+      if (section instanceof HTMLElement) {
+        section.style.display = "flex";
+        section.style.flexDirection = "column";
+        section.style.height = "100%";
+        section.style.minHeight = "0";
+        section.style.maxHeight = "100%";
+        section.style.overflow = "hidden";
+        section.style.width = "100%";
+        if (selector === ".area-news") {
+          section.style.position = "absolute";
+          section.style.inset = "0";
+        } else {
+          section.style.position = "relative";
+        }
+      }
+      const body = el.querySelector(":scope > .sheet-section > .sheet-section__body");
+      if (body instanceof HTMLElement) {
+        body.style.flex = "1 1 auto";
+        body.style.minHeight = "0";
+        body.style.overflow = "hidden";
       }
     }
   }
 
-  // Viewport on iPhone stays narrow; Email still packs into two columns.
-  // Promemoria stay one column under Meteo (calendar owns the middle track).
+  if (calWidget instanceof HTMLElement) {
+    calWidget.style.display = "grid";
+    calWidget.style.gridTemplateColumns = "1fr";
+    calWidget.style.gap = "0.28rem";
+  }
+
+  // Same two-column lists on iPhone and Mac. The reminder band is under
+  // meteo and agenda, so six items fit without the agenda growing down.
   if (reminderList instanceof HTMLElement) {
     reminderList.style.display = "grid";
-    reminderList.style.gridTemplateColumns = "1fr";
-    reminderList.style.gap = "0";
-    reminderList.style.columnGap = "0";
+    reminderList.style.gridTemplateColumns = "1fr 1fr";
+    reminderList.style.gap = "0.15rem 0.75rem";
+    reminderList.style.columnGap = "0.75rem";
   }
   if (actionMailList instanceof HTMLElement) {
     actionMailList.style.display = "grid";
@@ -217,76 +250,15 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     actionMailList.style.gap = "0.15rem 0.75rem";
   }
 
+  return () => restoreStyles(backups);
+}
+
+/** Lock card heights after hidden rows are shown, so the packer measures them. */
+function applyLineClamps(root: HTMLElement): void {
   for (const [selector, lines] of LINE_CLAMP_LINES) {
     root.querySelectorAll(selector).forEach((node) => {
       if (node instanceof HTMLElement) {
         replaceWebkitClampWithMaxHeight(node, lines);
-      }
-    });
-  }
-
-  return () => restoreStyles(backups);
-}
-
-/**
- * If the email block (or footer) sits past the A4 clip edge — common on iPhone
- * where font metrics run a hair taller — shrink mail body previews, then cue
- * lines, until everything clears the sheet bottom padding.
- */
-function fitEmailsInsideSheet(root: HTMLElement): void {
-  const emails = root.querySelector(".area-emails");
-  const footer = root.querySelector(".sheet-footer");
-  if (!(emails instanceof HTMLElement)) return;
-
-  const sheetBottom =
-    root.getBoundingClientRect().top + root.clientHeight - 2;
-
-  const overflows = () => {
-    const emailBottom = emails.getBoundingClientRect().bottom;
-    const footerBottom =
-      footer instanceof HTMLElement
-        ? footer.getBoundingClientRect().bottom
-        : emailBottom;
-    return Math.max(emailBottom, footerBottom) > sheetBottom;
-  };
-
-  if (!overflows()) return;
-
-  const shrink = (selector: string, lines: number) => {
-    root.querySelectorAll(selector).forEach((node) => {
-      if (node instanceof HTMLElement) {
-        replaceWebkitClampWithMaxHeight(node, lines);
-      }
-    });
-  };
-
-  // Progressive tighten — keep all four mails, just shorter previews.
-  for (const lines of [2, 1, 0]) {
-    if (!overflows()) break;
-    if (lines === 0) {
-      root.querySelectorAll(".action-mail-list__body").forEach((node) => {
-        if (node instanceof HTMLElement) {
-          node.style.setProperty("display", "none", "important");
-          node.style.setProperty("height", "0", "important");
-          node.style.setProperty("max-height", "0", "important");
-          node.style.setProperty("margin", "0", "important");
-          node.style.setProperty("padding", "0", "important");
-        }
-      });
-    } else {
-      shrink(".action-mail-list__body", lines);
-    }
-  }
-
-  if (overflows()) {
-    shrink(".action-mail-list__cue", 1);
-    shrink(".action-mail-list__subject", 1);
-  }
-
-  if (overflows()) {
-    root.querySelectorAll(".action-mail-list__cue").forEach((node) => {
-      if (node instanceof HTMLElement) {
-        node.style.setProperty("display", "none", "important");
       }
     });
   }
@@ -351,13 +323,18 @@ export async function exportEditionPdf(fileStem: string): Promise<void> {
     );
   });
 
-  // Physically remove hidden / overflow / collapsed news rows for the snapshot.
-  // Do not AdaptiveFill-refit first: that re-shows rows and recreates ghost rules.
-  const restoreHeadlines = detachHeadlineRowsForCapture(sheet);
+  // Show every candidate, lock card height, then keep only whole items that fit.
+  // AdaptiveFill hid rows against the phone screen; the A4 box is taller.
+  revealFittedItems(sheet);
+  applyLineClamps(sheet);
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
-  fitEmailsInsideSheet(sheet);
+  fitWholeItemsToLockedBoxes(sheet);
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  const restoreHeadlines = detachFittedRowsForCapture(sheet);
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });

@@ -555,51 +555,69 @@ a.cal-event__link:hover {
   min-height: 0 !important;
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  grid-template-rows: auto auto auto !important;
+  /* Locked bands: meteo|agenda, promemoria under both, news spans both, email the rest. */
+  grid-template-rows: minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1.25fr) !important;
   grid-template-areas:
     "weather calendar news"
-    "reminders calendar news"
+    "reminders reminders news"
     "emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
-  align-content: start !important;
-  align-items: start !important;
+  align-content: stretch !important;
+  align-items: stretch !important;
   overflow: hidden !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather,
 .sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-reminders,
-.sheet-page.is-pdf-capture .area-emails {
+.sheet-page.is-pdf-capture .area-emails,
+.sheet-page.is-pdf-capture .area-news {
   position: relative !important;
-  min-height: max-content !important;
-  overflow: visible !important;
-  align-self: start !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  align-self: stretch !important;
   display: flex !important;
   flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.sheet-page.is-pdf-capture .area-weather,
+.sheet-page.is-pdf-capture .area-calendar,
+.sheet-page.is-pdf-capture .area-reminders,
+.sheet-page.is-pdf-capture .area-emails {
   z-index: 2 !important;
-  height: auto !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather > .sheet-section,
 .sheet-page.is-pdf-capture .area-calendar > .sheet-section,
 .sheet-page.is-pdf-capture .area-reminders > .sheet-section,
-.sheet-page.is-pdf-capture .area-emails > .sheet-section {
+.sheet-page.is-pdf-capture .area-emails > .sheet-section,
+.sheet-page.is-pdf-capture .area-news > .sheet-section {
   position: relative !important;
   inset: auto !important;
   display: flex !important;
   flex-direction: column !important;
-  height: auto !important;
-  overflow: visible !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
   width: 100% !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather .sheet-section__body,
 .sheet-page.is-pdf-capture .area-calendar .sheet-section__body,
 .sheet-page.is-pdf-capture .area-reminders .sheet-section__body,
-.sheet-page.is-pdf-capture .area-emails .sheet-section__body {
+.sheet-page.is-pdf-capture .area-emails .sheet-section__body,
+.sheet-page.is-pdf-capture .area-news .sheet-section__body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.sheet-page.is-pdf-capture .sheet-section__head {
   flex: 0 0 auto !important;
-  overflow: visible !important;
 }
 
 .sheet-page.is-pdf-capture .area-news {
@@ -644,15 +662,18 @@ a.cal-event__link:hover {
 }
 
 /*
- * iPhone PDF capture: viewport stays ~390px so @media (min-width: 700px) never
- * matches. Promemoria sit only under Meteo (narrow) — keep one column.
- * Email still spans the full mid-band width, so force two columns.
+ * iPhone and Mac share this capture. Promemoria span under Meteo and Agenda,
+ * two columns, so about six fit. Email is two columns across the bottom band.
  */
 .sheet-page.is-pdf-capture .reminder-list {
   display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 0 !important;
-  column-gap: 0 !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.15rem 0.75rem !important;
+  column-gap: 0.75rem !important;
+}
+
+.sheet-page.is-pdf-capture .reminder-list__item:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0 !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list {

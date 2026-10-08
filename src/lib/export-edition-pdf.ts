@@ -39,10 +39,10 @@ const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
  */
 const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders calendar news" "emails emails emails"`;
 /**
- * Fixed row sizes. Middle band fits six reminders under meteo (2×3).
+ * Fixed row sizes. Middle band fits six reminders under meteo (1 col).
  * Bottom band fits six emails (2×3). Agenda/news fill the tall mid column.
  */
-const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) 14.75rem 20.5rem";
+const DESKTOP_GRID_ROWS = "minmax(0, 1.05fr) 17.5rem 20.5rem";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -230,9 +230,10 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     if (body instanceof HTMLElement) {
       body.style.flex = "1 1 auto";
       body.style.minHeight = "0";
-      body.style.overflow = selector === ".area-reminders" || selector === ".area-emails" || selector === ".area-weather"
-        ? "visible"
-        : "hidden";
+      body.style.overflow =
+        selector === ".area-emails" || selector === ".area-weather"
+          ? "visible"
+          : "hidden";
     }
   }
 
@@ -251,12 +252,12 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     node.style.alignSelf = "start";
   });
 
-  // Six reminders under Meteo only (narrow): two columns.
+  // One column under Meteo only — two columns overflow into Agenda.
   if (reminderList instanceof HTMLElement) {
     reminderList.style.display = "grid";
-    reminderList.style.gridTemplateColumns = "1fr 1fr";
-    reminderList.style.gap = "0.15rem 0.55rem";
-    reminderList.style.columnGap = "0.55rem";
+    reminderList.style.gridTemplateColumns = "1fr";
+    reminderList.style.gap = "0";
+    reminderList.style.columnGap = "0";
   }
   if (actionMailList instanceof HTMLElement) {
     actionMailList.style.display = "grid";

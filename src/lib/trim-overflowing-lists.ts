@@ -140,23 +140,22 @@ function fitAgenda(root: HTMLElement): void {
   const body = root.querySelector(".area-calendar .sheet-section__body");
   if (!(body instanceof HTMLElement) || body.clientHeight < 24) return;
   const days = asElements(root.querySelectorAll(".area-calendar .cal-day"));
+
+  // Same day count as the web sheet (horizon). Never drop a day shell in PDF;
+  // only trim events that do not fit the locked A4 column.
   for (const day of days) {
-    hideNode(day);
+    showNode(day);
     for (const event of asElements(day.querySelectorAll(".cal-event"))) {
-      showNode(event);
+      hideNode(event);
     }
   }
 
-  // Greedy: keep empty day boxes to pack the column top-down.
   for (const day of days) {
-    showNode(day);
-    if (overflowsBody(day, body.getBoundingClientRect().bottom)) {
-      hideNode(day);
-      break;
-    }
     for (const event of asElements(day.querySelectorAll(".cal-event"))) {
+      showNode(event);
       if (overflowsBody(event, body.getBoundingClientRect().bottom)) {
         hideNode(event);
+        return;
       }
     }
   }

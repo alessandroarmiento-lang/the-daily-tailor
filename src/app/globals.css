@@ -665,15 +665,40 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .cal-widget {
   grid-template-columns: 1fr !important;
+  gap: 0.18rem !important;
   align-content: start !important;
   align-items: start !important;
 }
 
 .sheet-page.is-pdf-capture .cal-day {
   height: auto !important;
-  min-height: 2.4rem !important;
+  min-height: 1.55rem !important;
+  padding: 0.2rem 0.3rem 0.22rem !important;
   align-self: start !important;
   flex: 0 0 auto !important;
+}
+
+.sheet-page.is-pdf-capture .cal-day__label {
+  margin: 0 0 0.12rem !important;
+  font-size: 0.58rem !important;
+}
+
+.sheet-page.is-pdf-capture .cal-day__empty {
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
+}
+
+.sheet-page.is-pdf-capture .cal-event {
+  padding: 0.06rem 0 !important;
+}
+
+.sheet-page.is-pdf-capture .cal-event__time {
+  font-size: 0.58rem !important;
+}
+
+.sheet-page.is-pdf-capture .cal-event__title {
+  font-size: 0.72rem !important;
+  line-height: 1.15 !important;
 }
 
 .sheet-page.is-pdf-capture .area-news {

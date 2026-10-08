@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v17: six reminders (day+upcoming) and six emails; empty agenda days.
  * v16: reminders due on edition day only; agenda keeps empty day boxes.
  * v15: AGGIORNA warm retries ×3; status line at top of toolbar.
  * v14: AGGIORNA must leave Aggiorno… when morning-warm hangs on Fly.
@@ -19,7 +20,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v16";
+const SHELL_CACHE = "daily-tailor-shell-v17";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

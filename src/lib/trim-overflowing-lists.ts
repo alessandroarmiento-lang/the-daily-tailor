@@ -164,7 +164,7 @@ function fitAgenda(root: HTMLElement): void {
   }
 }
 
-/** News and agenda fill whatever is left. Reminders (6) and emails (4) stay whole. */
+/** News and agenda fill whatever is left. Reminders (6) and emails (6) stay whole. */
 export function fitWholeItemsToLockedBoxes(root: HTMLElement): void {
   fitItemList(root.querySelector(".area-news .headline-list"), ".headline-list__item");
   fitAgenda(root);

@@ -9,15 +9,13 @@ Production is `https://the-daily-tailor.fly.dev`. Code on `origin/main` is not l
 
 ## One-time (if `FLY_API_TOKEN` is missing)
 
-On Mac, remind Alessandro at session start if deploy/auth is needed:
+On Mac, remind Alessandro at session start (first message) and run or point to:
 
 ```bash
-fly auth login
-fly tokens create deploy -x 999999h -a the-daily-tailor
-gh secret set FLY_API_TOKEN --repo alessandroarmiento-lang/the-daily-tailor
+./deploy/fly/bootstrap-cloud-token.sh
 ```
 
-Same token → Cursor Cloud Agent environment secret `FLY_API_TOKEN` (dashboard / secrets UI).
+That creates the deploy token and sets the GitHub Actions secret. He must still paste the printed token into the Cursor Cloud Agent environment secret `FLY_API_TOKEN`.
 
 ## After the token exists
 

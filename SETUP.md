@@ -244,16 +244,15 @@ open "https://${FLY_APP}.fly.dev/"
 
 ### Deploy without the Mac (Cloud Agent + GitHub Actions) — one-time
 
-Landing on `main` must update Fly without a Mac session. Do this **once**:
+Landing on `main` must update Fly without a Mac session. On the Mac, **once**:
 
 ```bash
-fly tokens create deploy -x 999999h
+./deploy/fly/bootstrap-cloud-token.sh
 ```
 
-1. Paste the token as **Cloud Agent environment secret** `FLY_API_TOKEN` (Cursor dashboard → this project’s environment). Agents then run `./deploy/fly/deploy.sh` from the VM.
-2. Paste the **same** token as GitHub Actions secret `FLY_API_TOKEN` (repo → Settings → Secrets → Actions). Workflow `.github/workflows/fly-deploy.yml` deploys on every push to `main`.
+That creates a long-lived deploy token and sets the GitHub Actions secret. Then paste the printed token as **Cloud Agent environment secret** `FLY_API_TOKEN` (Cursor dashboard / chat secret request).
 
-After that: `./deploy/land_on_main.sh` (or a Cloud Agent land) → Actions deploys Fly; no Mac deploy step.
+After that: `./deploy/land_on_main.sh` (Mac / Cloud / Mobile) → Actions + optional local deploy update Fly; no further Mac deploy steps.
 
 Details: `Dockerfile`, `fly.toml`, `deploy/fly/`, `.github/workflows/fly-deploy.yml`.
 

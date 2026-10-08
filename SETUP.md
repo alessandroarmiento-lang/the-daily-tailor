@@ -231,7 +231,7 @@ export FLY_REGION=fra   # or your region
 ./deploy/fly/deploy.sh
 ```
 
-This creates the app/volume if needed, imports secrets from `.env.local` (names only logged), and deploys. Mail: **at least one** of iCloud or Gmail pairs is required. Add `REMINDERS_INGEST_TOKEN` for iPhone push.
+This creates the app/volume if needed, imports secrets from `.env.local` when present (names only logged), and deploys. Mail: **at least one** of iCloud or Gmail pairs is required. Add `REMINDERS_INGEST_TOKEN` for iPhone push.
 
 5. Verify:
 
@@ -242,7 +242,20 @@ open "https://${FLY_APP}.fly.dev/"
 
 6. iPhone: Safari → that URL → **Share → Add to Home Screen**. First open after warm downloads today’s edition for offline use.
 
-Details: `Dockerfile`, `fly.toml`, `deploy/fly/`.
+### Deploy without the Mac (Cloud Agent + GitHub Actions) — one-time
+
+Landing on `main` must update Fly without a Mac session. Do this **once**:
+
+```bash
+fly tokens create deploy -x 999999h
+```
+
+1. Paste the token as **Cloud Agent environment secret** `FLY_API_TOKEN` (Cursor dashboard → this project’s environment). Agents then run `./deploy/fly/deploy.sh` from the VM.
+2. Paste the **same** token as GitHub Actions secret `FLY_API_TOKEN` (repo → Settings → Secrets → Actions). Workflow `.github/workflows/fly-deploy.yml` deploys on every push to `main`.
+
+After that: `./deploy/land_on_main.sh` (or a Cloud Agent land) → Actions deploys Fly; no Mac deploy step.
+
+Details: `Dockerfile`, `fly.toml`, `deploy/fly/`, `.github/workflows/fly-deploy.yml`.
 
 ---
 

@@ -86,7 +86,6 @@ export function AdaptiveFill({
         return;
       }
 
-      let visible = nodes.length;
       const apply = (n: number) => {
         for (let i = 0; i < nodes.length; i += 1) {
           const hide = i >= n;
@@ -97,10 +96,16 @@ export function AdaptiveFill({
         }
       };
 
-      while (visible > minCount && !fits()) {
-        visible -= step;
-        if (visible < minCount) visible = minCount;
-        apply(visible);
+      // Greedy pack: grow while the body still fits, so leftover height is used.
+      let visible = Math.min(minCount, nodes.length);
+      apply(visible);
+      while (visible + step <= nodes.length) {
+        apply(visible + step);
+        if (!fits()) {
+          apply(visible);
+          break;
+        }
+        visible += step;
       }
       while (visible > 0 && !fits()) {
         visible -= step;
@@ -109,6 +114,23 @@ export function AdaptiveFill({
       }
 
       // Catch partial rows clipped by overflow:hidden (ghost dotted rules).
+      hideGeometricOverflow(nodes);
+      markLastVisible(nodes);
+
+      // If geometric hide freed space, try one more whole item.
+      visible = nodes.filter((n) => !n.hidden).length;
+      while (visible + step <= nodes.length) {
+        apply(visible + step);
+        const bodyBottom = body.getBoundingClientRect().bottom;
+        const overflow = nodes
+          .slice(0, visible + step)
+          .some((n) => !n.hidden && n.getBoundingClientRect().bottom > bodyBottom + 1);
+        if (!fits() || overflow) {
+          apply(visible);
+          break;
+        }
+        visible += step;
+      }
       hideGeometricOverflow(nodes);
       markLastVisible(nodes);
     };

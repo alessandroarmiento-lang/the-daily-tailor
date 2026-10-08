@@ -36,19 +36,15 @@ export function reminderDueDateKey(
 }
 
 /**
- * Dated reminders for the Promemoria slot: due on the edition day or later.
- * Overdue and undated items are excluded — fill the six slots going forward.
+ * Open reminders eligible for the six-slot Promemoria band.
+ * Ranking (not this filter) decides today → upcoming → overdue → undated.
  */
 export function isReminderForEditionDay(
   item: ReminderItem,
-  dateKey: string,
-  timeZone: string,
+  _dateKey: string,
+  _timeZone: string,
 ): boolean {
-  if (item.isCompleted) return false;
-  if (!item.dueAt) return false;
-  const dueKey = reminderDueDateKey(item.dueAt, timeZone);
-  if (!dueKey) return false;
-  return dueKey >= dateKey;
+  return !item.isCompleted;
 }
 
 export function filterRemindersForEditionDay(
@@ -61,7 +57,10 @@ export function filterRemindersForEditionDay(
   );
 }
 
-/** Sort bucket: edition day first, then future days (overdue/undated last). */
+/**
+ * Sort bucket for the A4 slot:
+ * 0 edition day → 1 upcoming → 2 overdue → 3 undated.
+ */
 export function editionDayBucket(
   item: ReminderItem,
   dateKey: string,

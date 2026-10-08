@@ -353,33 +353,64 @@ export function toActionEmailItems(
   return items;
 }
 
+function isDeniedNoiseMail(msg: MailRawMessage): boolean {
+  const sender = msg.sender || "";
+  const subject = msg.subject || "";
+  const { address } = parseSender(sender);
+  const allow = isAllowDomain(address, sender);
+  if (DENY_SUBJECT.test(subject) && !allow) return true;
+  if (DENY_SENDER.test(sender) && !allow) return true;
+  return false;
+}
+
+function toActionEmailItem(msg: MailRawMessage, index: number): ActionEmailItem {
+  const { name, address } = parseSender(msg.sender);
+  const fromId = messageUrlFromId(msg.id, msg.account);
+  const messageUrl =
+    fromId ??
+    (msg.messageUrl?.startsWith("https://") ? msg.messageUrl : undefined);
+  return {
+    id: msg.id || `mail-${index}-${msg.receivedAt}`,
+    subject: msg.subject || "(senza oggetto)",
+    senderName: name,
+    senderAddress: address,
+    actionCue: actionCueFromMessage(msg),
+    bodyPreview: bodyPreviewFromMessage(msg),
+    receivedAt: msg.receivedAt,
+    messageUrl,
+    account: msg.account,
+  };
+}
+
 export function toActionEmailItemsWithOverflow(
   messages: MailRawMessage[],
   maxItems: number,
   ctx: ActionClassifyContext = {},
 ): { items: ActionEmailItem[]; hiddenCount: number } {
   const ranked = rankActionableMail(messages, ctx);
-  const hiddenCount = Math.max(0, ranked.length - maxItems);
   const picked = ranked.slice(0, maxItems);
-  const items = picked.map((msg, i) => {
-    const { name, address } = parseSender(msg.sender);
-    const fromId = messageUrlFromId(msg.id, msg.account);
-    // Never keep a stale/broken `message:` URL (e.g. `@*` Message-IDs).
-    const messageUrl =
-      fromId ??
-      (msg.messageUrl?.startsWith("https://") ? msg.messageUrl : undefined);
-    return {
-      id: msg.id || `mail-${i}-${msg.receivedAt}`,
-      subject: msg.subject || "(senza oggetto)",
-      senderName: name,
-      senderAddress: address,
-      actionCue: actionCueFromMessage(msg),
-      bodyPreview: bodyPreviewFromMessage(msg),
-      receivedAt: msg.receivedAt,
-      messageUrl,
-      account: msg.account,
-    };
-  });
+
+  // Pad the six-slot band with recent non-noise mail when actionable is short.
+  if (picked.length < maxItems) {
+    const taken = new Set(
+      picked.map((m) => m.id).filter((id): id is string => Boolean(id)),
+    );
+    const fillers = [...messages]
+      .filter((m) => m.id && !taken.has(m.id) && !isDeniedNoiseMail(m))
+      .sort((a, b) => {
+        const tb = Date.parse(b.receivedAt) || 0;
+        const ta = Date.parse(a.receivedAt) || 0;
+        return tb - ta;
+      });
+    for (const msg of fillers) {
+      if (picked.length >= maxItems) break;
+      picked.push(msg);
+      taken.add(msg.id);
+    }
+  }
+
+  const hiddenCount = Math.max(0, ranked.length - Math.min(maxItems, ranked.length));
+  const items = picked.map((msg, i) => toActionEmailItem(msg, i));
   return { items, hiddenCount };
 }
 

@@ -1,5 +1,5 @@
 /**
- * Quick sanity checks for edition-day + upcoming reminder filtering.
+ * Quick sanity checks for Promemoria ranking (today → upcoming → overdue → undated).
  * Run: npx --yes tsx scripts/check-reminders-edition-day.ts
  */
 import {
@@ -36,13 +36,10 @@ const samples: ReminderItem[] = [
     title: "Due that day evening",
     dueAt: "2026-09-30T18:00:00+02:00",
   }),
-  item({
-    id: "6",
-    title: "Tomorrow",
-    dueAt: "2026-10-01T08:00:00",
-  }),
+  item({ id: "6", title: "Tomorrow", dueAt: "2026-10-01T08:00:00" }),
   item({ id: "7", title: "Far future", dueAt: "2026-10-05T12:00:00" }),
   item({ id: "8", title: "Also tomorrow", dueAt: "2026-10-01T14:00:00" }),
+  item({ id: "9", title: "Done", dueAt: "2026-09-30T12:00:00", isCompleted: true }),
 ];
 
 let failed = 0;
@@ -56,34 +53,30 @@ function assert(cond: boolean, msg: string) {
 }
 
 assert(reminderDueDateKey("2026-09-30T09:00:00", tz) === day, "local due key");
-assert(
-  isReminderForEditionDay(samples[0]!, day, tz),
-  "include due that day",
-);
-assert(!isReminderForEditionDay(samples[1]!, day, tz), "exclude overdue");
-assert(!isReminderForEditionDay(samples[2]!, day, tz), "exclude undated");
-assert(isReminderForEditionDay(samples[3]!, day, tz), "include future");
-assert(isReminderForEditionDay(samples[5]!, day, tz), "include tomorrow");
+assert(isReminderForEditionDay(samples[0]!, day, tz), "include open dated");
+assert(isReminderForEditionDay(samples[2]!, day, tz), "include undated");
+assert(isReminderForEditionDay(samples[1]!, day, tz), "include overdue");
+assert(!isReminderForEditionDay(samples[8]!, day, tz), "exclude completed");
 
 const filtered = filterRemindersForEditionDay(samples, day, tz);
 assert(
-  filtered.map((r) => r.id).sort().join(",") === "1,4,5,6,7,8",
-  `filtered ids=${filtered.map((r) => r.id).join(",")}`,
+  !filtered.some((r) => r.id === "9"),
+  "filtered drops completed",
 );
 
 const ranked = rankReminders(samples, { dateKey: day, timeZone: tz });
 assert(
-  ranked.map((r) => r.id).join(",") === "1,5,6,8,4,7",
-  `chrono order got ${ranked.map((r) => r.id).join(",")}`,
+  ranked.map((r) => r.id).join(",") === "1,5,6,8,4,7,2,3",
+  `order got ${ranked.map((r) => r.id).join(",")}`,
 );
 
 const capped = rankAndCapReminders(samples, 6, { dateKey: day, timeZone: tz });
 assert(capped.items.length === 6, `cap to 6 got ${capped.items.length}`);
 assert(
   capped.items.map((r) => r.id).join(",") === "1,5,6,8,4,7",
-  `capped order got ${capped.items.map((r) => r.id).join(",")}`,
+  `capped got ${capped.items.map((r) => r.id).join(",")}`,
 );
-assert(capped.hiddenCount === 0, `hidden ${capped.hiddenCount}`);
+assert(capped.hiddenCount === 2, `hidden ${capped.hiddenCount}`);
 
 if (failed > 0) {
   console.error(`\n${failed} failure(s)`);

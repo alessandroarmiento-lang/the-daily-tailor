@@ -1,19 +1,20 @@
 import type { ReminderItem } from "./types";
 import { capRanked } from "@/lib/section-overflow";
 import {
+  editionDayBucket,
   filterRemindersForEditionDay,
   reminderDueDateKey,
 } from "./for-edition-day";
 
 export type RankRemindersOptions = {
-  /** Newspaper edition day (YYYY-MM-DD). When set, keep that day + upcoming. */
+  /** Newspaper edition day (YYYY-MM-DD). */
   dateKey?: string;
   timeZone?: string;
 };
 
 /**
- * Chronological order for the A4 slot: edition day first, then future dates,
- * earliest dueAt within each day. Always capped to maxVisible (six).
+ * Fill up to six slots: edition day, then upcoming (chrono), then overdue
+ * (most recent first), then undated.
  */
 export function rankReminders(
   items: ReminderItem[],
@@ -26,18 +27,26 @@ export function rankReminders(
           options.dateKey,
           options.timeZone,
         )
-      : items.filter((r) => !r.isCompleted && !!r.dueAt);
+      : items.filter((r) => !r.isCompleted);
 
   const tz = options?.timeZone ?? "UTC";
+  const day = options?.dateKey;
 
-  return [...scoped]
-    .filter((r) => !r.isCompleted)
-    .sort((a, b) => {
-      const aKey = a.dueAt ? reminderDueDateKey(a.dueAt, tz) ?? "" : "";
-      const bKey = b.dueAt ? reminderDueDateKey(b.dueAt, tz) ?? "" : "";
-      if (aKey !== bKey) return aKey.localeCompare(bKey);
-      return (a.dueAt ?? "").localeCompare(b.dueAt ?? "");
-    });
+  return [...scoped].sort((a, b) => {
+    if (day) {
+      const ba = editionDayBucket(a, day, tz);
+      const bb = editionDayBucket(b, day, tz);
+      if (ba !== bb) return ba - bb;
+      // Overdue: most recently overdue first.
+      if (ba === 2) {
+        return (b.dueAt ?? "").localeCompare(a.dueAt ?? "");
+      }
+    }
+    const aKey = a.dueAt ? reminderDueDateKey(a.dueAt, tz) ?? "9999-99-99" : "9999-99-99";
+    const bKey = b.dueAt ? reminderDueDateKey(b.dueAt, tz) ?? "9999-99-99" : "9999-99-99";
+    if (aKey !== bKey) return aKey.localeCompare(bKey);
+    return (a.dueAt ?? "").localeCompare(b.dueAt ?? "");
+  });
 }
 
 export function rankAndCapReminders(

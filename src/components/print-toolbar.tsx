@@ -43,6 +43,11 @@ export function PrintToolbar({
 
   return (
     <div className="no-print toolbar">
+      {alertText ? (
+        <p className="toolbar__status toolbar__status--top" role="alert">
+          {alertText}
+        </p>
+      ) : null}
       <div className="toolbar__lang" role="group" aria-label={t("langAria")}>
         <button
           type="button"
@@ -92,15 +97,6 @@ export function PrintToolbar({
           {exporting ? t("pdfBusy") : t("pdf")}
         </button>
       </div>
-      {alertText ? (
-        <p
-          className="toolbar__status"
-          role="alert"
-          style={{ flexBasis: "100%", textAlign: "right", margin: 0 }}
-        >
-          {alertText}
-        </p>
-      ) : null}
     </div>
   );
 }

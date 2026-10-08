@@ -46,12 +46,14 @@ RUN set -eux; \
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --chown=nextjs:nodejs deploy/fly/crontab /app/deploy/fly/crontab
 COPY --chown=nextjs:nodejs deploy/fly/entrypoint.sh /app/deploy/fly/entrypoint.sh
+# Public assets must be world-readable (nextjs user); a 0600 file → 500 on /sw.js.
 RUN chmod +x /app/deploy/fly/entrypoint.sh \
+  && chmod -R a+rX /app/public \
   && mkdir -p /data/editions \
   && chown -R nextjs:nodejs /data
 

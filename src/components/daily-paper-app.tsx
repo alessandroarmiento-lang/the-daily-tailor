@@ -25,12 +25,15 @@ type Props = {
 };
 
 /**
- * Mobile AGGIORNA must not wait for a hung Fly IMAP/CalDAV rebuild.
- * Production morning-warm often exceeds 30s; keep the toolbar responsive.
+ * Mobile AGGIORNA: short per-attempt budget + a few retries (same idea as
+ * Shortcut ingest). One long 40s wait feels stuck; 3×15s recovers when the
+ * first warm finishes on the server between attempts.
  */
-const WARM_BUDGET_MS = 12_000;
-/** Absolute UI escape hatch if anything above misbehaves on iOS. */
-const REFRESH_SAFETY_MS = 18_000;
+const WARM_BUDGET_MS = 15_000;
+const WARM_ATTEMPTS = 3;
+const WARM_RETRY_GAP_MS = 1_500;
+/** Covers 3 warm attempts + gaps + edition reload. */
+const REFRESH_SAFETY_MS = 55_000;
 
 function DailyPaperAppInner({
   dateKey,
@@ -97,18 +100,28 @@ function DailyPaperAppInner({
         // Best-effort rebuild: never throw on hang/timeout — always re-pull the sheet.
         let warmNote: string | null = null;
         if (force && dateKey === "today") {
-          const warm = await fetchWithBudget(
-            "/api/morning-warm?force=1",
-            {
-              cache: "no-store",
-              headers: { "Cache-Control": "no-cache" },
-            },
-            WARM_BUDGET_MS,
-          );
-          if (!warm) {
-            warmNote = tRef.current("warmTimeout");
-          } else if (!warm.ok) {
-            warmNote = tRef.current("warmFail", { status: warm.status });
+          for (let attempt = 1; attempt <= WARM_ATTEMPTS; attempt++) {
+            if (gen !== refreshGen.current) return;
+            const warm = await fetchWithBudget(
+              "/api/morning-warm?force=1",
+              {
+                cache: "no-store",
+                headers: { "Cache-Control": "no-cache" },
+              },
+              WARM_BUDGET_MS,
+            );
+            if (warm?.ok) {
+              warmNote = null;
+              break;
+            }
+            if (!warm) {
+              warmNote = tRef.current("warmTimeout");
+            } else {
+              warmNote = tRef.current("warmFail", { status: warm.status });
+            }
+            if (attempt < WARM_ATTEMPTS) {
+              await new Promise((r) => setTimeout(r, WARM_RETRY_GAP_MS));
+            }
           }
         }
 

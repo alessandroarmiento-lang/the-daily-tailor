@@ -467,27 +467,11 @@ def build_workflow(host: str, token: str) -> dict:
             "WFWorkflowIconStartColor": 4292093695,
         },
         "WFWorkflowImportQuestions": [],
-        "WFWorkflowInputContentItemClasses": [
-            "WFAppContentItem",
-            "WFAppStoreAppContentItem",
-            "WFArticleContentItem",
-            "WFContactContentItem",
-            "WFDateContentItem",
-            "WFEmailAddressContentItem",
-            "WFFolderContentItem",
-            "WFGenericFileContentItem",
-            "WFImageContentItem",
-            "WFiTunesProductContentItem",
-            "WFLocationContentItem",
-            "WFDCMapsLinkContentItem",
-            "WFAVAssetContentItem",
-            "WFPDFContentItem",
-            "WFPhoneNumberContentItem",
-            "WFRichTextContentItem",
-            "WFSafariWebPageContentItem",
-            "WFStringContentItem",
-            "WFURLContentItem",
-        ],
+        # Empty: otherwise «Esegui questo Shortcut» from an Automation
+        # (e.g. Invia memo a TDT @ 05:55) requires Input → «Scegli variabile»
+        # and there is often no «Niente» on macOS. This shortcut finds
+        # reminders itself and must not advertise any input types.
+        "WFWorkflowInputContentItemClasses": [],
         "WFWorkflowMinimumClientVersion": 900,
         "WFWorkflowMinimumClientVersionString": "900",
         "WFWorkflowOutputContentItemClasses": [],

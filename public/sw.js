@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v19: agenda spans mid column; compact empty days; six rem/mail.
  * v18: fill leftover news height; six reminders/emails.
  * v17: six reminders (day+upcoming) and six emails; empty agenda days.
  * v16: reminders due on edition day only; agenda keeps empty day boxes.
@@ -21,7 +22,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v18";
+const SHELL_CACHE = "daily-tailor-shell-v19";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

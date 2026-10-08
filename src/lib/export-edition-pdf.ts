@@ -32,19 +32,17 @@ import {
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
 /**
- * Locked bands, same box on iPhone and Mac:
- * meteo | agenda on the first band (agenda does not continue down),
- * promemoria across the band under both, notizie spanning both,
- * email the remaining band.
- * Fractions do not grow with item count.
+ * Locked bands, same box on iPhone and Mac (red-box A4):
+ * meteo | agenda | news on top; promemoria under meteo only;
+ * agenda and news continue through the middle band; email at the bottom.
+ * Counts do not resize the rows.
  */
-const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
+const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders calendar news" "emails emails emails"`;
 /**
- * Fixed row sizes on every device. Middle band fits six reminders (2×3).
- * Bottom band fits six emails (2×3). Top band is the rest: agenda and news
- * drop whole items to stay inside it. Counts do not resize the rows.
+ * Fixed row sizes. Middle band fits six reminders under meteo (2×3).
+ * Bottom band fits six emails (2×3). Agenda/news fill the tall mid column.
  */
-const DESKTOP_GRID_ROWS = "minmax(0, 1fr) 14.75rem 20.5rem";
+const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) 14.75rem 20.5rem";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -157,6 +155,9 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   if (actionMailList instanceof HTMLElement) touched.push(actionMailList);
   const calWidget = root.querySelector(".cal-widget");
   if (calWidget instanceof HTMLElement) touched.push(calWidget);
+  root.querySelectorAll(".cal-day").forEach((node) => {
+    if (node instanceof HTMLElement) touched.push(node);
+  });
 
   root.querySelectorAll(".sheet-section, .sheet-section__body").forEach((node) => {
     if (node instanceof HTMLElement) touched.push(node);
@@ -239,15 +240,23 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     calWidget.style.display = "grid";
     calWidget.style.gridTemplateColumns = "1fr";
     calWidget.style.gap = "0.28rem";
+    calWidget.style.alignContent = "start";
+    calWidget.style.alignItems = "stretch";
   }
+  root.querySelectorAll(".cal-day").forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    // Do not stretch day boxes to fill the column — empty days stay compact.
+    node.style.height = "auto";
+    node.style.minHeight = "2.4rem";
+    node.style.alignSelf = "start";
+  });
 
-  // Same two-column lists on iPhone and Mac. The reminder band is under
-  // meteo and agenda, so six items fit without the agenda growing down.
+  // Six reminders under Meteo only (narrow): two columns.
   if (reminderList instanceof HTMLElement) {
     reminderList.style.display = "grid";
     reminderList.style.gridTemplateColumns = "1fr 1fr";
-    reminderList.style.gap = "0.15rem 0.75rem";
-    reminderList.style.columnGap = "0.75rem";
+    reminderList.style.gap = "0.15rem 0.55rem";
+    reminderList.style.columnGap = "0.55rem";
   }
   if (actionMailList instanceof HTMLElement) {
     actionMailList.style.display = "grid";

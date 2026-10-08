@@ -39,8 +39,8 @@ const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
  * Fractions do not grow with item count.
  */
 const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
-const DESKTOP_GRID_ROWS =
-  "minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1.25fr)";
+/** Weather, six reminders and four emails size their rows. News and agenda fit the rest. */
+const DESKTOP_GRID_ROWS = "max-content max-content max-content";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -190,43 +190,45 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";
-    grid.style.alignContent = "stretch";
+    grid.style.alignContent = "start";
     grid.style.alignItems = "stretch";
     grid.style.overflow = "hidden";
   }
 
+  const fixedAreas = new Set([".area-weather", ".area-reminders", ".area-emails"]);
+
   for (const [selector, area] of orderedAreas) {
     const el = root.querySelector(selector);
-    if (el instanceof HTMLElement) {
-      el.style.gridArea = area;
-      el.style.position = "relative";
-      el.style.minHeight = "0";
-      el.style.height = "100%";
-      el.style.maxHeight = "100%";
-      el.style.overflow = "hidden";
-      el.style.alignSelf = "stretch";
-      const section = el.querySelector(":scope > .sheet-section");
-      if (section instanceof HTMLElement) {
-        section.style.display = "flex";
-        section.style.flexDirection = "column";
-        section.style.height = "100%";
-        section.style.minHeight = "0";
-        section.style.maxHeight = "100%";
-        section.style.overflow = "hidden";
-        section.style.width = "100%";
-        if (selector === ".area-news") {
-          section.style.position = "absolute";
-          section.style.inset = "0";
-        } else {
-          section.style.position = "relative";
-        }
+    if (!(el instanceof HTMLElement)) continue;
+    const fixed = fixedAreas.has(selector);
+    el.style.gridArea = area;
+    el.style.position = "relative";
+    el.style.alignSelf = fixed ? "start" : "stretch";
+    el.style.minHeight = fixed ? "max-content" : "0";
+    el.style.height = fixed ? "auto" : "100%";
+    el.style.maxHeight = fixed ? "none" : "100%";
+    el.style.overflow = fixed ? "visible" : "hidden";
+    const section = el.querySelector(":scope > .sheet-section");
+    if (section instanceof HTMLElement) {
+      section.style.display = "flex";
+      section.style.flexDirection = "column";
+      section.style.width = "100%";
+      section.style.minHeight = fixed ? "max-content" : "0";
+      section.style.height = fixed ? "auto" : "100%";
+      section.style.maxHeight = fixed ? "none" : "100%";
+      section.style.overflow = fixed ? "visible" : "hidden";
+      if (selector === ".area-news") {
+        section.style.position = "absolute";
+        section.style.inset = "0";
+      } else {
+        section.style.position = "relative";
       }
-      const body = el.querySelector(":scope > .sheet-section > .sheet-section__body");
-      if (body instanceof HTMLElement) {
-        body.style.flex = "1 1 auto";
-        body.style.minHeight = "0";
-        body.style.overflow = "hidden";
-      }
+    }
+    const body = el.querySelector(":scope > .sheet-section > .sheet-section__body");
+    if (body instanceof HTMLElement) {
+      body.style.flex = fixed ? "0 0 auto" : "1 1 auto";
+      body.style.minHeight = fixed ? "max-content" : "0";
+      body.style.overflow = fixed ? "visible" : "hidden";
     }
   }
 

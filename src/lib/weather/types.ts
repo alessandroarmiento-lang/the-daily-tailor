@@ -75,6 +75,8 @@ export type WeatherFetchLocation = {
   latitude: number;
   longitude: number;
   city: string;
+  /** Civil/edition day for precip + high/low (AGGIORNA may pass wall-clock day). */
+  dateKey?: string;
 };
 
 export interface WeatherProvider {

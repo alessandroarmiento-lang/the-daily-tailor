@@ -165,6 +165,7 @@ async function fetchEditionJson(
  */
 export async function loadEditionForClient(
   dateKey: "today" | string,
+  options?: { asOf?: "civil" },
 ): Promise<{
   edition: NewspaperEdition | null;
   source: EditionLoadSource;
@@ -172,7 +173,9 @@ export async function loadEditionForClient(
 }> {
   const path =
     dateKey === "today"
-      ? "/api/edition/today"
+      ? options?.asOf === "civil"
+        ? "/api/edition/today?asOf=civil"
+        : "/api/edition/today"
       : `/api/edition/${encodeURIComponent(dateKey)}`;
 
   let networkError: string | undefined;
@@ -235,6 +238,7 @@ async function peekTodayKeyFromLocal(): Promise<string | null> {
       hourCycle: "h23",
     }).format(new Date()),
   );
+  // Keep in sync with EDITION_ROLLOVER_HOUR in edition.ts (06:00).
   if (hour < 6) {
     const [y, m, d] = civil.split("-").map(Number);
     const prev = new Date(Date.UTC(y, m - 1, d - 1));

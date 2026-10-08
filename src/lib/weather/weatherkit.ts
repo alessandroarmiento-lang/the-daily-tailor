@@ -117,8 +117,8 @@ function createWeatherKitJwt(): string {
 function buildPrecipitation(
   json: WeatherKitResponse,
   timezone: string,
+  dayKey: string = getEditionDateKey(new Date(), timezone),
 ): PrecipitationForecast {
-  const dayKey = getEditionDateKey(new Date(), timezone);
   const days = json.forecastDaily?.days ?? [];
   const day =
     days.find((d) => d.forecastStart && d.forecastStart.startsWith(dayKey)) ??
@@ -166,6 +166,7 @@ export const weatherKitProvider: WeatherProvider = {
     latitude: number;
     longitude: number;
     city: string;
+    dateKey?: string;
   }): Promise<WeatherSnapshot> {
     if (!weatherKitConfigured()) {
       throw new Error(
@@ -177,6 +178,8 @@ export const weatherKitProvider: WeatherProvider = {
     const latitude = location?.latitude ?? config.weather.latitude;
     const longitude = location?.longitude ?? config.weather.longitude;
     const city = location?.city ?? config.weather.city;
+    const dayKey =
+      location?.dateKey ?? getEditionDateKey(new Date(), config.timezone);
     const lang = "it";
     const params = new URLSearchParams({
       dataSets: "currentWeather,forecastDaily,forecastHourly",
@@ -206,8 +209,11 @@ export const weatherKitProvider: WeatherProvider = {
     }
 
     const condition = conditionFromWeatherKit(current.conditionCode ?? "");
-    const day = json.forecastDaily?.days?.[0];
-    const precipitation = buildPrecipitation(json, config.timezone);
+    const days = json.forecastDaily?.days ?? [];
+    const day =
+      days.find((d) => d.forecastStart && d.forecastStart.startsWith(dayKey)) ??
+      days[0];
+    const precipitation = buildPrecipitation(json, config.timezone, dayKey);
 
     return {
       city,

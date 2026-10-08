@@ -4,8 +4,8 @@ import { getOrBuildTodayEdition } from "@/lib/build-edition";
 import {
   DAILY_TAILOR_CACHE_TAG,
   editionCacheTag,
-  getEditionDateKey,
   getNextEditionRollover,
+  resolveEditionAsOf,
 } from "@/lib/edition";
 import { withBudget } from "@/lib/with-budget";
 
@@ -18,14 +18,16 @@ const BUILD_BUDGET_MS = 60_000;
  * Generate / refresh the morning edition snapshot and warm section caches.
  * Intended for launchd at 06:00 Europe/Rome (and manual curls).
  *
+ * `?asOf=civil` — AGGIORNA: build the wall-clock civil day even before the
+ * 06:00 edition rollover; the 06:00 cron warms again without this flag.
+ *
  * Does not push to the iPhone — Safari cannot receive silent background
  * downloads. The phone pulls when opened (or via Shortcuts notification).
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const force = url.searchParams.get("force") !== "0";
-
-  const editionDateKey = getEditionDateKey();
+  const editionDateKey = resolveEditionAsOf(url.searchParams.get("asOf"));
   const nextRollover = getNextEditionRollover();
 
   // Next 16 requires a cacheLife profile as the second argument.
@@ -40,7 +42,7 @@ export async function GET(request: Request) {
 
   try {
     const { edition, created, path: savedPath } = await withBudget(
-      getOrBuildTodayEdition({ force }),
+      getOrBuildTodayEdition({ force, dateKey: editionDateKey }),
       BUILD_BUDGET_MS,
       "morning-warm",
     );

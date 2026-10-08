@@ -33,8 +33,9 @@ const WARM_WAIT_MS = 8_000;
 const REFRESH_SAFETY_MS = 20_000;
 
 function kickMorningWarm(): Promise<Response | null> {
+  // asOf=civil: wall-clock day now, even before the 06:00 edition rollover.
   // No AbortController: the server must finish the rebuild after the UI moves on.
-  return fetch("/api/morning-warm?force=1", {
+  return fetch("/api/morning-warm?force=1&asOf=civil", {
     cache: "no-store",
     headers: { "Cache-Control": "no-cache" },
   }).catch(() => null);
@@ -126,7 +127,10 @@ function DailyPaperAppInner({
 
         if (gen !== refreshGen.current) return;
 
-        const result = await loadEditionForClient(dateKey);
+        // AGGIORNA pulls civil wall-clock day; passive open keeps edition rollover.
+        const loadAsOf =
+          force && dateKey === "today" ? ("civil" as const) : undefined;
+        const result = await loadEditionForClient(dateKey, { asOf: loadAsOf });
         if (gen !== refreshGen.current) return;
 
         // Keep SSR / previous sheet if network+IDB both miss — don't blank the page.
@@ -145,7 +149,9 @@ function DailyPaperAppInner({
         if (force && dateKey === "today" && warmPromise && warmNote) {
           void warmPromise.then(async (late) => {
             if (gen !== refreshGen.current || !late?.ok) return;
-            const again = await loadEditionForClient(dateKey);
+            const again = await loadEditionForClient("today", {
+              asOf: "civil",
+            });
             if (gen !== refreshGen.current) return;
             if (again.edition) {
               setEdition(again.edition);

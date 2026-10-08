@@ -12,7 +12,7 @@ export const messages = {
     loadingApp: "Caricamento The Daily Tailor…",
     noEdition: "Nessuna edizione disponibile.",
     noEditionHint:
-      "Apri l’app dopo le 06:00 (con rete) per scaricare il giornale del giorno, oppure genera sul Mac con /api/morning-warm.",
+      "Apri l’app con rete e premi AGGIORNA per il giorno corrente, oppure aspetta il warm delle 06:00.",
     loadFail: "Caricamento edizione fallito",
     warmFail: "Server lento — ricaricata l’ultima edizione (HTTP {status})",
     warmTimeout: "Server lento — ricaricata l’ultima edizione",
@@ -85,7 +85,7 @@ export const messages = {
     loadingApp: "Loading The Daily Tailor…",
     noEdition: "No edition available.",
     noEditionHint:
-      "Open the app after 06:00 (with network) to download today’s paper, or generate on the Mac with /api/morning-warm.",
+      "Open the app online and tap Refresh for the current day, or wait for the 06:00 warm.",
     loadFail: "Failed to load edition",
     warmFail: "Slow server — last edition reloaded (HTTP {status})",
     warmTimeout: "Slow server — last edition reloaded",

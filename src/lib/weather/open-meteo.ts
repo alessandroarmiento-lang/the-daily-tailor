@@ -48,8 +48,8 @@ function dailyIndexForEditionDay(
 function buildPrecipitation(
   json: OpenMeteoResponse,
   timezone: string,
+  dayKey: string = getEditionDateKey(new Date(), timezone),
 ): PrecipitationForecast {
-  const dayKey = getEditionDateKey(new Date(), timezone);
   const dayIndex = dailyIndexForEditionDay(json, dayKey);
 
   // Never fall back to daily[0]: before 06:00 the edition day is yesterday and
@@ -96,10 +96,13 @@ export const openMeteoProvider: WeatherProvider = {
     latitude: number;
     longitude: number;
     city: string;
+    dateKey?: string;
   }): Promise<WeatherSnapshot> {
     const latitude = location?.latitude ?? config.weather.latitude;
     const longitude = location?.longitude ?? config.weather.longitude;
     const city = location?.city ?? config.weather.city;
+    const dayKey =
+      location?.dateKey ?? getEditionDateKey(new Date(), config.timezone);
     const params = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
@@ -132,8 +135,7 @@ export const openMeteoProvider: WeatherProvider = {
 
     const timezone = json.timezone ?? config.timezone;
     const condition = conditionFromWmo(json.current.weather_code);
-    const precipitation = buildPrecipitation(json, timezone);
-    const dayKey = getEditionDateKey(new Date(), timezone);
+    const precipitation = buildPrecipitation(json, timezone, dayKey);
     const dayIndex = dailyIndexForEditionDay(json, dayKey);
     // High/low: prefer edition day; if missing (should not with past_days),
     // use wall-clock today rather than a silent index-0 mismatch.

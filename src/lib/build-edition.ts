@@ -29,7 +29,7 @@ export async function buildEdition(
   dateKey: string = getEditionDateKey(),
 ): Promise<NewspaperEdition> {
   const [weather, news, reminders, calendar, actionEmails] = await Promise.all([
-    getWeather(),
+    getWeather(undefined, { dateKey }),
     getWorldNews(),
     getReminders(dateKey),
     getCalendar(dateKey),
@@ -62,17 +62,19 @@ type BuiltToday = {
   path?: string;
 };
 
-/** Coalesce concurrent force rebuilds (AGGIORNA retries used to stack IMAP). */
-let forceBuildInflight: Promise<BuiltToday> | null = null;
+/** Coalesce concurrent force rebuilds per date key (AGGIORNA used to stack IMAP). */
+const forceBuildInflight = new Map<string, Promise<BuiltToday>>();
 
 /**
- * Return today's persisted edition, building + saving if missing.
- * Pass `force: true` to regenerate (morning-warm / launchd).
+ * Return a persisted edition for `dateKey`, building + saving if missing.
+ * Pass `force: true` to regenerate (morning-warm / AGGIORNA / launchd).
  */
 export async function getOrBuildTodayEdition(options?: {
   force?: boolean;
+  /** Override edition rollover (e.g. civil wall-clock day for AGGIORNA). */
+  dateKey?: string;
 }): Promise<BuiltToday> {
-  const dateKey = getEditionDateKey();
+  const dateKey = options?.dateKey ?? getEditionDateKey();
   if (!options?.force) {
     const existing = await loadEdition(dateKey);
     if (existing) {
@@ -91,18 +93,20 @@ export async function getOrBuildTodayEdition(options?: {
     return { edition: cleaned, created: true, path };
   }
 
-  if (forceBuildInflight) {
-    return forceBuildInflight;
+  const existingInflight = forceBuildInflight.get(dateKey);
+  if (existingInflight) {
+    return existingInflight;
   }
 
-  forceBuildInflight = (async () => {
+  const inflight = (async () => {
     const edition = await buildEdition(dateKey);
     const { edition: cleaned } = sanitizeEditionReminders(edition);
     const path = await saveEdition(cleaned);
     return { edition: cleaned, created: true, path };
   })().finally(() => {
-    forceBuildInflight = null;
+    forceBuildInflight.delete(dateKey);
   });
 
-  return forceBuildInflight;
+  forceBuildInflight.set(dateKey, inflight);
+  return inflight;
 }

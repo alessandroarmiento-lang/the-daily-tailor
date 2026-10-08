@@ -192,16 +192,15 @@ REMINDERS_INGEST_TOKEN=…your hex…
 Point `--host` at **your** public URL (not someone else’s):
 
 ```bash
-python3 scripts/macos/build-reminders-shortcut.py \
-  --host "https://YOUR-APP.fly.dev" \
-  --output ~/Desktop/"Send reminders to newspaper.shortcut"
+# Both names (manual + 05:55 Automation). Opens Desktop files to tap Add.
+./scripts/macos/install-reminders-shortcuts.sh --host "https://YOUR-APP.fly.dev"
 ```
 
-1. Double-click the `.shortcut` → tap **Add** on the iPhone (human step; cannot be automated).
-2. Create an Automation at **05:55** (before the 06:00 warm): run the shortcut with **Run Shortcut**, not **Open**.
+1. Tap **Add** on each `.shortcut` (iPhone/Mac — human step; cannot be automated).
+2. Automation at **05:55** (before the 06:00 warm): **Run Shortcut** → `Invia memo a TDT` (or the giornale twin). Not **Open**.
 3. Optional Mac push while awake: `./scripts/macos/push-reminders-to-host.sh --warm`
 
-v3 retries the ingest POST up to **3 times** (20s between attempts) if the host is unreachable or the response has no `ok`. After 3 failures it shows a notification. Rebuild and re-**Add** the shortcut after pulling this change.
+v4 retries the ingest POST up to **3 times** (20s between attempts). Success shows «Promemoria inviati al giornale.» Failure after 3 tries notifies. Rebuild and re-**Add** after pulling this change (old builds with `ShowHeaders` on always looked failed).
 
 The signed `.shortcut` embeds the token → treat the file as a secret (mode 0600; do not commit).
 

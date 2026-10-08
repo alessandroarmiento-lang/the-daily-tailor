@@ -163,11 +163,9 @@ function fitAgenda(root: HTMLElement): void {
   }
 }
 
-/** Pack news, reminders, agenda tasks and emails into the locked PDF boxes. */
+/** News and agenda fill whatever is left. Reminders (6) and emails (4) stay whole. */
 export function fitWholeItemsToLockedBoxes(root: HTMLElement): void {
   fitItemList(root.querySelector(".area-news .headline-list"), ".headline-list__item");
-  fitItemList(root.querySelector(".area-reminders .reminder-list"), ".reminder-list__item");
-  fitItemList(root.querySelector(".area-emails .action-mail-list"), ".action-mail-list__item");
   fitAgenda(root);
 }
 

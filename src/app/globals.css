@@ -551,23 +551,34 @@ a.cal-event__link:hover {
   min-height: 0 !important;
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  /* Locked bands: meteo|agenda, promemoria under both, news spans both, email the rest. */
-  grid-template-rows: minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1.25fr) !important;
+  /* Six reminders and four emails size their rows. Agenda and news fit what is left. */
+  grid-template-rows: max-content max-content max-content !important;
   grid-template-areas:
     "weather calendar news"
     "reminders reminders news"
     "emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
-  align-content: stretch !important;
+  align-content: start !important;
   align-items: stretch !important;
   overflow: hidden !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather,
-.sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-reminders,
-.sheet-page.is-pdf-capture .area-emails,
+.sheet-page.is-pdf-capture .area-emails {
+  position: relative !important;
+  min-height: max-content !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  align-self: start !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 2 !important;
+}
+
+.sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-news {
   position: relative !important;
   min-height: 0 !important;
@@ -579,18 +590,25 @@ a.cal-event__link:hover {
   max-height: 100% !important;
 }
 
-.sheet-page.is-pdf-capture .area-weather,
-.sheet-page.is-pdf-capture .area-calendar,
-.sheet-page.is-pdf-capture .area-reminders,
-.sheet-page.is-pdf-capture .area-emails {
+.sheet-page.is-pdf-capture .area-calendar {
   z-index: 2 !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather > .sheet-section,
-.sheet-page.is-pdf-capture .area-calendar > .sheet-section,
 .sheet-page.is-pdf-capture .area-reminders > .sheet-section,
-.sheet-page.is-pdf-capture .area-emails > .sheet-section,
-.sheet-page.is-pdf-capture .area-news > .sheet-section {
+.sheet-page.is-pdf-capture .area-emails > .sheet-section {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: max-content !important;
+  overflow: visible !important;
+  width: 100% !important;
+}
+
+.sheet-page.is-pdf-capture .area-calendar > .sheet-section {
   position: relative !important;
   inset: auto !important;
   display: flex !important;
@@ -603,10 +621,14 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .area-weather .sheet-section__body,
-.sheet-page.is-pdf-capture .area-calendar .sheet-section__body,
 .sheet-page.is-pdf-capture .area-reminders .sheet-section__body,
-.sheet-page.is-pdf-capture .area-emails .sheet-section__body,
-.sheet-page.is-pdf-capture .area-news .sheet-section__body {
+.sheet-page.is-pdf-capture .area-emails .sheet-section__body {
+  flex: 0 0 auto !important;
+  min-height: max-content !important;
+  overflow: visible !important;
+}
+
+.sheet-page.is-pdf-capture .area-calendar .sheet-section__body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow: hidden !important;

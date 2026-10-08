@@ -56,13 +56,22 @@ export async function buildEdition(
   return edition;
 }
 
+type BuiltToday = {
+  edition: NewspaperEdition;
+  created: boolean;
+  path?: string;
+};
+
+/** Coalesce concurrent force rebuilds (AGGIORNA retries used to stack IMAP). */
+let forceBuildInflight: Promise<BuiltToday> | null = null;
+
 /**
  * Return today's persisted edition, building + saving if missing.
  * Pass `force: true` to regenerate (morning-warm / launchd).
  */
 export async function getOrBuildTodayEdition(options?: {
   force?: boolean;
-}): Promise<{ edition: NewspaperEdition; created: boolean; path?: string }> {
+}): Promise<BuiltToday> {
   const dateKey = getEditionDateKey();
   if (!options?.force) {
     const existing = await loadEdition(dateKey);
@@ -76,9 +85,24 @@ export async function getOrBuildTodayEdition(options?: {
         created: false,
       };
     }
+    const edition = await buildEdition(dateKey);
+    const { edition: cleaned } = sanitizeEditionReminders(edition);
+    const path = await saveEdition(cleaned);
+    return { edition: cleaned, created: true, path };
   }
-  const edition = await buildEdition(dateKey);
-  const { edition: cleaned } = sanitizeEditionReminders(edition);
-  const path = await saveEdition(cleaned);
-  return { edition: cleaned, created: true, path };
+
+  if (forceBuildInflight) {
+    return forceBuildInflight;
+  }
+
+  forceBuildInflight = (async () => {
+    const edition = await buildEdition(dateKey);
+    const { edition: cleaned } = sanitizeEditionReminders(edition);
+    const path = await saveEdition(cleaned);
+    return { edition: cleaned, created: true, path };
+  })().finally(() => {
+    forceBuildInflight = null;
+  });
+
+  return forceBuildInflight;
 }

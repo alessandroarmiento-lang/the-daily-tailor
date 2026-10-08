@@ -7,7 +7,6 @@ import { MorningReload } from "@/components/morning-reload";
 import { PrintToolbar } from "@/components/print-toolbar";
 import { LanguageProvider, useLang } from "@/lib/i18n/provider";
 import type { NewspaperEdition } from "@/lib/edition-types";
-import { fetchWithBudget } from "@/lib/fetch-with-budget";
 import { loadEditionForClient } from "@/lib/offline-editions";
 import {
   readWeatherGeoOverride,
@@ -25,15 +24,21 @@ type Props = {
 };
 
 /**
- * Mobile AGGIORNA: short per-attempt budget + a few retries (same idea as
- * Shortcut ingest). One long 40s wait feels stuck; 3×15s recovers when the
- * first warm finishes on the server between attempts.
+ * Mobile AGGIORNA: kick morning-warm once and leave the button within
+ * WARM_WAIT_MS even if IMAP/CalDAV on Fly still runs (often 30–45s).
+ * Retries ×3 stacked concurrent force rebuilds and left “Aggiorno…” ~50s.
  */
-const WARM_BUDGET_MS = 15_000;
-const WARM_ATTEMPTS = 3;
-const WARM_RETRY_GAP_MS = 1_500;
-/** Covers 3 warm attempts + gaps + edition reload. */
-const REFRESH_SAFETY_MS = 55_000;
+const WARM_WAIT_MS = 8_000;
+/** Hard cap so “Aggiorno…” cannot stick if a promise misbehaves. */
+const REFRESH_SAFETY_MS = 20_000;
+
+function kickMorningWarm(): Promise<Response | null> {
+  // No AbortController: the server must finish the rebuild after the UI moves on.
+  return fetch("/api/morning-warm?force=1", {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" },
+  }).catch(() => null);
+}
 
 function DailyPaperAppInner({
   dateKey,
@@ -97,31 +102,25 @@ function DailyPaperAppInner({
       }, REFRESH_SAFETY_MS);
 
       try {
-        // Best-effort rebuild: never throw on hang/timeout — always re-pull the sheet.
         let warmNote: string | null = null;
+        let warmPromise: Promise<Response | null> | null = null;
+
         if (force && dateKey === "today") {
-          for (let attempt = 1; attempt <= WARM_ATTEMPTS; attempt++) {
-            if (gen !== refreshGen.current) return;
-            const warm = await fetchWithBudget(
-              "/api/morning-warm?force=1",
-              {
-                cache: "no-store",
-                headers: { "Cache-Control": "no-cache" },
-              },
-              WARM_BUDGET_MS,
-            );
-            if (warm?.ok) {
-              warmNote = null;
-              break;
-            }
-            if (!warm) {
-              warmNote = tRef.current("warmTimeout");
-            } else {
-              warmNote = tRef.current("warmFail", { status: warm.status });
-            }
-            if (attempt < WARM_ATTEMPTS) {
-              await new Promise((r) => setTimeout(r, WARM_RETRY_GAP_MS));
-            }
+          warmPromise = kickMorningWarm();
+          // Leave “Aggiorno…” after a short wait; warm may still be building.
+          const warm = await Promise.race([
+            warmPromise,
+            new Promise<null>((resolve) => {
+              window.setTimeout(() => resolve(null), WARM_WAIT_MS);
+            }),
+          ]);
+          if (gen !== refreshGen.current) return;
+          if (warm?.ok) {
+            warmNote = null;
+          } else if (warm) {
+            warmNote = tRef.current("warmFail", { status: warm.status });
+          } else {
+            warmNote = tRef.current("warmTimeout");
           }
         }
 
@@ -140,6 +139,20 @@ function DailyPaperAppInner({
         // AGGIORNA: take a fresh GPS meteo even if warm was slow.
         if (force && dateKey === "today") {
           void refreshWeatherGeo();
+        }
+
+        // When warm finishes after the UI moved on, pull the new sheet once.
+        if (force && dateKey === "today" && warmPromise && warmNote) {
+          void warmPromise.then(async (late) => {
+            if (gen !== refreshGen.current || !late?.ok) return;
+            const again = await loadEditionForClient(dateKey);
+            if (gen !== refreshGen.current) return;
+            if (again.edition) {
+              setEdition(again.edition);
+              setError(null);
+            }
+            void refreshWeatherGeo();
+          });
         }
       } catch (err) {
         if (gen !== refreshGen.current) return;

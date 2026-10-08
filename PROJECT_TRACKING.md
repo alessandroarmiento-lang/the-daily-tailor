@@ -4,8 +4,8 @@
 
 | | Amount |
 |---|---|
-| **Logged work hours (active chat, Cursor)** | **~8.5 h** |
-| **Equivalent traditional programmer hours** | **~42.5 h** *(Cursor × 5)* |
+| **Logged work hours (active chat, Cursor)** | **~9.7 h** |
+| **Equivalent traditional programmer hours** | **~48.5 h** *(Cursor × 5)* |
 
 ## Work hours — how we count
 
@@ -31,9 +31,9 @@ Recompute when asked (“aggiorna le ore”) or at end of day.
 | 2026-09-19 | ~0.3 h | ~1.5 h | |
 | 2026-09-20 | ~2.2 h | ~11.0 h | |
 | 2026-09-21 | ~2.4 h | ~12.0 h | |
-| 2026-10-08 | ~0.6 h | ~3.0 h | AGGIORNA hang / evening |
+| 2026-10-08 | ~1.8 h | ~9.0 h | AGGIORNA hang + Shortcuts v4 (ShowHeaders/ok) |
 | 2026-10-09 | ~1.9 h | ~9.5 h | Civil AGGIORNA, precip, PDF agenda |
-| **Total** | **~8.5 h** | **~42.5 h** | |
+| **Total** | **~9.7 h** | **~48.5 h** | |
 
 ### Session blocks (detail)
 
@@ -45,4 +45,5 @@ Recompute when asked (“aggiorna le ore”) or at end of day.
 | 2026-09-20 | 20:04–22:32 | 2.2 |
 | 2026-09-21 | 20:53–23:31 | 2.4 |
 | 2026-10-08 | 23:24–00:11 | 0.6 |
+| 2026-10-08 | 23:47–00:54 | 1.2 |
 | 2026-10-09 | 00:42–02:52 | 1.9 |

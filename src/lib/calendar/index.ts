@@ -1,5 +1,6 @@
 import { config } from "@/lib/config";
 import { calendarAuthMessage } from "@/lib/apple/permissions";
+import { getEditionDateKey } from "@/lib/edition";
 import { CalDavCalendarAdapter } from "./caldav";
 import { EventKitCalendarAdapter } from "./eventkit";
 import { MockCalendarAdapter } from "./mock";
@@ -57,18 +58,23 @@ function dayLabel(dateKey: string, timeZone: string, locale: string): string {
   }).format(date);
 }
 
+function addCivilDays(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d + days, 12));
+  return utc.toISOString().slice(0, 10);
+}
+
 function groupByDay(
   events: CalendarEventItem[],
   horizonDays: number,
+  editionDateKey: string,
 ): CalendarDayGroup[] {
   const { timezone, locale } = config;
-  const todayKey = dateKeyInTz(new Date().toISOString(), timezone);
+  const todayKey = editionDateKey;
   const keys: string[] = [];
 
   for (let i = 0; i < horizonDays; i += 1) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    keys.push(dateKeyInTz(d.toISOString(), timezone));
+    keys.push(addCivilDays(editionDateKey, i));
   }
 
   const byKey = new Map<string, CalendarEventItem[]>();
@@ -90,7 +96,9 @@ function groupByDay(
   }));
 }
 
-export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
+export async function getCalendar(
+  dateKey: string = getEditionDateKey(),
+): Promise<SectionResult<CalendarBriefing>> {
   const adapter = resolveAdapter();
   const horizon = config.calendar.horizonDays;
   const useMock = adapter.id === "mock";
@@ -100,7 +108,7 @@ export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
     return {
       status: "ok",
       data: {
-        days: groupByDay(events, horizon),
+        days: groupByDay(events, horizon, dateKey),
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
         horizonLabel: `Prossimi ${horizon} giorni`,
@@ -116,7 +124,7 @@ export async function getCalendar(): Promise<SectionResult<CalendarBriefing>> {
       status: "error",
       message,
       data: {
-        days: groupByDay([], horizon),
+        days: groupByDay([], horizon, dateKey),
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
         horizonLabel: `Prossimi ${horizon} giorni`,

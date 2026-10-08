@@ -41,8 +41,9 @@ function resolveAdapter(): RemindersAdapter {
 }
 
 /**
- * Open reminders for the newspaper day (`dateKey`), not wall-clock "today"
- * when they differ (e.g. before the 06:00 edition rollover).
+ * Reminders due on the newspaper day (`dateKey`) only — not overdue,
+ * undated, or future. Uses the edition day, not wall-clock "today", when
+ * they differ (e.g. before the 06:00 edition rollover).
  */
 export async function getReminders(
   dateKey: string = getEditionDateKey(),

@@ -49,16 +49,6 @@ export async function CalendarSection() {
 
   const briefing = result.data!;
   const days = briefing.days;
-  const hasAny = days.some((day) => day.events.length > 0);
-  if (!hasAny) {
-    return (
-      <SectionEmpty
-        title="Agenda"
-        kicker="Prossimi giorni"
-        message="Nessun evento nei prossimi giorni."
-      />
-    );
-  }
 
   return (
     <SectionShell
@@ -80,7 +70,9 @@ export async function CalendarSection() {
               {day.isToday ? "Oggi · " : ""}
               {day.label}
             </p>
-            {day.events.length === 0 ? null : (
+            {day.events.length === 0 ? (
+              <p className="cal-day__empty">—</p>
+            ) : (
               <ul className="cal-day__events">
                 {day.events.map((event) => {
                   const hint = calendarHint(event.calendarName);

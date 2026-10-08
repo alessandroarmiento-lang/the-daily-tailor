@@ -36,9 +36,8 @@ export function reminderDueDateKey(
 }
 
 /**
- * Reminders that belong on the newspaper day:
- * due that day, overdue before it, or undated (open).
- * Future-dated items are excluded — they belong to later editions.
+ * Reminders scheduled for the newspaper day only (due that civil day).
+ * Overdue, undated and future items are excluded.
  */
 export function isReminderForEditionDay(
   item: ReminderItem,
@@ -46,10 +45,10 @@ export function isReminderForEditionDay(
   timeZone: string,
 ): boolean {
   if (item.isCompleted) return false;
-  if (!item.dueAt) return true;
+  if (!item.dueAt) return false;
   const dueKey = reminderDueDateKey(item.dueAt, timeZone);
-  if (!dueKey) return true;
-  return dueKey <= dateKey;
+  if (!dueKey) return false;
+  return dueKey === dateKey;
 }
 
 export function filterRemindersForEditionDay(
@@ -62,7 +61,7 @@ export function filterRemindersForEditionDay(
   );
 }
 
-/** Sort bucket: overdue → due that day → undated (future already filtered). */
+/** Sort bucket after edition-day filter: due that day first, then leftovers. */
 export function editionDayBucket(
   item: ReminderItem,
   dateKey: string,
@@ -71,7 +70,7 @@ export function editionDayBucket(
   if (!item.dueAt) return 2;
   const dueKey = reminderDueDateKey(item.dueAt, timeZone);
   if (!dueKey) return 2;
-  if (dueKey < dateKey) return 0;
-  if (dueKey === dateKey) return 1;
+  if (dueKey === dateKey) return 0;
+  if (dueKey < dateKey) return 1;
   return 3;
 }

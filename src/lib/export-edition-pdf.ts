@@ -29,7 +29,8 @@ import {
  */
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
-const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
+/** Calendar spans weather+reminders so Promemoria never paint over Agenda. */
+const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders calendar news" "emails emails emails"`;
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -202,13 +203,13 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     }
   }
 
-  // Viewport on iPhone stays narrow; media queries that pack lists into two
-  // columns never fire. Set them inline so PDF capture matches desktop A4.
+  // Viewport on iPhone stays narrow; Email still packs into two columns.
+  // Promemoria stay one column under Meteo (calendar owns the middle track).
   if (reminderList instanceof HTMLElement) {
     reminderList.style.display = "grid";
-    reminderList.style.gridTemplateColumns = "1fr 1fr";
-    reminderList.style.gap = "0 0.55rem";
-    reminderList.style.columnGap = "0.55rem";
+    reminderList.style.gridTemplateColumns = "1fr";
+    reminderList.style.gap = "0";
+    reminderList.style.columnGap = "0";
   }
   if (actionMailList instanceof HTMLElement) {
     actionMailList.style.display = "grid";

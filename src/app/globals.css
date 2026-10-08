@@ -400,9 +400,14 @@ a.cal-event__link:hover {
     grid-template-columns: 0.95fr 1.05fr 1.2fr;
     /* max-content: rows never shrink below section content (stops overlaps). */
     grid-template-rows: max-content max-content max-content;
+    /*
+     * Calendar spans weather+reminders so Promemoria stay under Meteo only.
+     * Spanning reminders under Agenda (`reminders reminders`) put the 2-col
+     * list on top of day cells whenever row 1 sized to weather, not calendar.
+     */
     grid-template-areas:
       "weather calendar news"
-      "reminders reminders news"
+      "reminders calendar news"
       "emails emails emails";
     gap: 0.85rem 1rem;
     align-items: stretch;
@@ -473,6 +478,8 @@ a.cal-event__link:hover {
   }
   .area-calendar {
     grid-area: calendar;
+    /* Fill weather+reminders rows so the middle column is one continuous band. */
+    align-self: stretch;
   }
   .area-news {
     grid-area: news;
@@ -547,7 +554,7 @@ a.cal-event__link:hover {
   grid-template-rows: auto auto auto !important;
   grid-template-areas:
     "weather calendar news"
-    "reminders reminders news"
+    "reminders calendar news"
     "emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
@@ -620,6 +627,7 @@ a.cal-event__link:hover {
 }
 .sheet-page.is-pdf-capture .area-calendar {
   grid-area: calendar !important;
+  align-self: stretch !important;
 }
 .sheet-page.is-pdf-capture .area-news {
   grid-area: news !important;
@@ -633,14 +641,14 @@ a.cal-event__link:hover {
 
 /*
  * iPhone PDF capture: viewport stays ~390px so @media (min-width: 700px) never
- * matches. Force the mid-band reminder + email lists to two columns anyway —
- * otherwise Promemoria stays a tall single column and Email is crushed to 2.
+ * matches. Promemoria sit only under Meteo (narrow) — keep one column.
+ * Email still spans the full mid-band width, so force two columns.
  */
 .sheet-page.is-pdf-capture .reminder-list {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 0 0.55rem !important;
-  column-gap: 0.55rem !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  column-gap: 0 !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list {
@@ -649,7 +657,6 @@ a.cal-event__link:hover {
   gap: 0.15rem 0.75rem !important;
 }
 
-.sheet-page.is-pdf-capture .reminder-list__item:nth-last-child(2):nth-child(odd),
 .sheet-page.is-pdf-capture .action-mail-list__item:nth-last-child(2):nth-child(odd) {
   border-bottom: 0 !important;
 }
@@ -1055,33 +1062,15 @@ a.cal-event__link:hover {
   list-style: none;
 }
 
-/* Mid-band under Meteo/Agenda: pack more reminders in two columns. */
+/*
+ * Promemoria sit under Meteo only (narrow left column on desktop). Always one
+ * column — a sheet-wide 2-col grid used to paint the right half over Agenda.
+ */
 .reminder-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0 0.85rem;
-  column-gap: 0.85rem;
-}
-
-/*
- * Prefer sheet width over viewport: on iPhone PDF capture the sheet is forced
- * to 210mm while the viewport stays ~390px, so min-width media alone never
- * packs Promemoria into two columns (and Email gets crushed).
- */
-@container sheet (min-width: 36rem) {
-  .reminder-list {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .reminder-list__item:nth-last-child(2):nth-child(odd) {
-    border-bottom: 0;
-  }
-}
-
-@media (min-width: 700px) {
-  .reminder-list {
-    grid-template-columns: 1fr 1fr;
-  }
+  gap: 0;
+  column-gap: 0;
 }
 
 .reminder-list__item {
@@ -1092,16 +1081,10 @@ a.cal-event__link:hover {
   border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
 }
 
-/* Drop trailing dotted rule on the last row (incl. bottom-left in 2-col grids). */
+/* Drop trailing dotted rule on the last item. */
 .reminder-list__item:last-child,
 .action-mail-list__item:last-child {
   border-bottom: 0;
-}
-
-@media (min-width: 700px) {
-  .reminder-list__item:nth-last-child(2):nth-child(odd) {
-    border-bottom: 0;
-  }
 }
 
 @media (min-width: 640px) {
@@ -1454,7 +1437,7 @@ a.cal-event__link:hover {
     grid-template-rows: max-content max-content max-content !important;
     grid-template-areas:
       "weather calendar news"
-      "reminders reminders news"
+      "reminders calendar news"
       "emails emails emails" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
@@ -1528,6 +1511,7 @@ a.cal-event__link:hover {
   }
   .area-calendar {
     grid-area: calendar;
+    align-self: stretch !important;
   }
   .area-news {
     grid-area: news;
@@ -1741,8 +1725,8 @@ a.cal-event__link:hover {
 
   .reminder-list {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0 0.55rem;
+    grid-template-columns: 1fr !important;
+    gap: 0;
   }
 
   .reminder-list__item {
@@ -1800,7 +1784,6 @@ a.cal-event__link:hover {
     border-top-color: #000000 !important;
   }
 
-  .reminder-list__item:nth-last-child(2):nth-child(odd),
   .action-mail-list__item:nth-last-child(2):nth-child(odd) {
     border-bottom: 0 !important;
   }

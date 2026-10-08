@@ -1,46 +1,20 @@
 import type { ReminderItem } from "./types";
 import { capRanked } from "@/lib/section-overflow";
 import {
-  editionDayBucket,
   filterRemindersForEditionDay,
+  reminderDueDateKey,
 } from "./for-edition-day";
 
-const PRIORITY_SCORE: Record<ReminderItem["priority"], number> = {
-  high: 400,
-  medium: 250,
-  low: 100,
-  none: 0,
-};
-
 export type RankRemindersOptions = {
-  /** Newspaper edition day (YYYY-MM-DD). When set, drop future-dated items. */
+  /** Newspaper edition day (YYYY-MM-DD). When set, keep that day + upcoming. */
   dateKey?: string;
   timeZone?: string;
 };
 
-/** Higher = more important for the A4 Promemoria slot. */
-export function reminderImportanceScore(
-  item: ReminderItem,
-  options?: RankRemindersOptions,
-): number {
-  let score = PRIORITY_SCORE[item.priority] ?? 0;
-  if (options?.dateKey && options.timeZone) {
-    const bucket = editionDayBucket(item, options.dateKey, options.timeZone);
-    // due that day ranks above anything else still in the pool
-    score += (3 - bucket) * 120;
-  }
-  if (item.dueAt) {
-    score += 80;
-    const due = new Date(item.dueAt).getTime();
-    if (!Number.isNaN(due)) {
-      // Earlier due today ranks higher.
-      score += Math.max(0, 40 - Math.floor(due / 3_600_000) % 40);
-    }
-  }
-  if (item.notes) score += 10;
-  return score;
-}
-
+/**
+ * Chronological order for the A4 slot: edition day first, then future dates,
+ * earliest dueAt within each day. Always capped to maxVisible (six).
+ */
 export function rankReminders(
   items: ReminderItem[],
   options?: RankRemindersOptions,
@@ -52,18 +26,17 @@ export function rankReminders(
           options.dateKey,
           options.timeZone,
         )
-      : items;
+      : items.filter((r) => !r.isCompleted && !!r.dueAt);
+
+  const tz = options?.timeZone ?? "UTC";
 
   return [...scoped]
     .filter((r) => !r.isCompleted)
     .sort((a, b) => {
-      const d =
-        reminderImportanceScore(b, options) -
-        reminderImportanceScore(a, options);
-      if (d !== 0) return d;
-      const aDue = a.dueAt ?? "";
-      const bDue = b.dueAt ?? "";
-      return aDue.localeCompare(bDue);
+      const aKey = a.dueAt ? reminderDueDateKey(a.dueAt, tz) ?? "" : "";
+      const bKey = b.dueAt ? reminderDueDateKey(b.dueAt, tz) ?? "" : "";
+      if (aKey !== bKey) return aKey.localeCompare(bKey);
+      return (a.dueAt ?? "").localeCompare(b.dueAt ?? "");
     });
 }
 

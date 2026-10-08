@@ -36,8 +36,8 @@ export function reminderDueDateKey(
 }
 
 /**
- * Reminders scheduled for the newspaper day only (due that civil day).
- * Overdue, undated and future items are excluded.
+ * Dated reminders for the Promemoria slot: due on the edition day or later.
+ * Overdue and undated items are excluded — fill the six slots going forward.
  */
 export function isReminderForEditionDay(
   item: ReminderItem,
@@ -48,7 +48,7 @@ export function isReminderForEditionDay(
   if (!item.dueAt) return false;
   const dueKey = reminderDueDateKey(item.dueAt, timeZone);
   if (!dueKey) return false;
-  return dueKey === dateKey;
+  return dueKey >= dateKey;
 }
 
 export function filterRemindersForEditionDay(
@@ -61,16 +61,16 @@ export function filterRemindersForEditionDay(
   );
 }
 
-/** Sort bucket after edition-day filter: due that day first, then leftovers. */
+/** Sort bucket: edition day first, then future days (overdue/undated last). */
 export function editionDayBucket(
   item: ReminderItem,
   dateKey: string,
   timeZone: string,
 ): number {
-  if (!item.dueAt) return 2;
+  if (!item.dueAt) return 3;
   const dueKey = reminderDueDateKey(item.dueAt, timeZone);
-  if (!dueKey) return 2;
+  if (!dueKey) return 3;
   if (dueKey === dateKey) return 0;
-  if (dueKey < dateKey) return 1;
-  return 3;
+  if (dueKey > dateKey) return 1;
+  return 2;
 }

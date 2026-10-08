@@ -1,0 +1,32 @@
+---
+description: Fly deploy works from Mac, Cloud Agent, and Cursor Mobile — one-time token then automatic
+alwaysApply: true
+---
+
+# Fly deploy (The Daily Tailor)
+
+Production is `https://the-daily-tailor.fly.dev`. Code on `origin/main` is not live until Fly is deployed.
+
+## One-time (if `FLY_API_TOKEN` is missing)
+
+On Mac, remind Alessandro at session start if deploy/auth is needed:
+
+```bash
+fly auth login
+fly tokens create deploy -x 999999h -a the-daily-tailor
+gh secret set FLY_API_TOKEN --repo alessandroarmiento-lang/the-daily-tailor
+```
+
+Same token → Cursor Cloud Agent environment secret `FLY_API_TOKEN` (dashboard / secrets UI).
+
+## After the token exists
+
+- Push/land on `main` → GitHub Actions `.github/workflows/fly-deploy.yml` deploys.
+- Cloud Agent / any VM with the secret: `./deploy/fly/deploy.sh` (no Mac).
+- Do not tell Alessandro to deploy on the Mac if `FLY_API_TOKEN` is available here — run deploy yourself.
+- After a fix that must hit the iPhone PWA, verify production (`/sw.js` cache version, or that `/api/morning-warm` does not hang past the server budget) before closing.
+
+## Do not
+
+- Leave production on a stale Fly image while claiming the bug is fixed on `main`.
+- Commit tokens or `.env.local`.

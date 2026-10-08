@@ -37,21 +37,31 @@ type OpenMeteoResponse = {
   };
 };
 
+function dailyIndexForEditionDay(
+  json: OpenMeteoResponse,
+  dayKey: string,
+): number {
+  const dailyTimes = json.daily?.time ?? [];
+  return dailyTimes.findIndex((t) => t.slice(0, 10) === dayKey);
+}
+
 function buildPrecipitation(
   json: OpenMeteoResponse,
   timezone: string,
 ): PrecipitationForecast {
   const dayKey = getEditionDateKey(new Date(), timezone);
-  const dailyTimes = json.daily?.time ?? [];
-  let dayIndex = dailyTimes.findIndex((t) => t.slice(0, 10) === dayKey);
-  if (dayIndex < 0) dayIndex = 0;
+  const dayIndex = dailyIndexForEditionDay(json, dayKey);
 
+  // Never fall back to daily[0]: before 06:00 the edition day is yesterday and
+  // forecast_days alone starts at wall-clock today — that mismatched 3 mm with
+  // an all-zero 07–22 strip.
   const todayChance =
+    dayIndex >= 0 &&
     json.daily?.precipitation_probability_max?.[dayIndex] != null
       ? Math.round(json.daily.precipitation_probability_max[dayIndex]!)
       : null;
   const dailySum =
-    json.daily?.precipitation_sum?.[dayIndex] != null
+    dayIndex >= 0 && json.daily?.precipitation_sum?.[dayIndex] != null
       ? Math.round(json.daily.precipitation_sum[dayIndex]! * 10) / 10
       : null;
 
@@ -99,7 +109,9 @@ export const openMeteoProvider: WeatherProvider = {
       daily:
         "temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum",
       timezone: config.timezone,
-      // Two civil days so 07–22 of the edition day is always covered.
+      // past_days: edition day is still "yesterday" before 06:00 Rome.
+      // forecast_days: cover the rest of the daytime strip after rollover.
+      past_days: "1",
       forecast_days: "2",
     });
 
@@ -122,9 +134,19 @@ export const openMeteoProvider: WeatherProvider = {
     const condition = conditionFromWmo(json.current.weather_code);
     const precipitation = buildPrecipitation(json, timezone);
     const dayKey = getEditionDateKey(new Date(), timezone);
-    const dailyTimes = json.daily?.time ?? [];
-    let dayIndex = dailyTimes.findIndex((t) => t.slice(0, 10) === dayKey);
-    if (dayIndex < 0) dayIndex = 0;
+    const dayIndex = dailyIndexForEditionDay(json, dayKey);
+    // High/low: prefer edition day; if missing (should not with past_days),
+    // use wall-clock today rather than a silent index-0 mismatch.
+    const wallToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    const highLowIndex =
+      dayIndex >= 0
+        ? dayIndex
+        : dailyIndexForEditionDay(json, wallToday);
 
     return {
       city,
@@ -143,12 +165,14 @@ export const openMeteoProvider: WeatherProvider = {
       condition,
       conditionLabelIt: labelForCondition(condition),
       highC:
-        json.daily?.temperature_2m_max?.[dayIndex] != null
-          ? Math.round(json.daily.temperature_2m_max[dayIndex]!)
+        highLowIndex >= 0 &&
+        json.daily?.temperature_2m_max?.[highLowIndex] != null
+          ? Math.round(json.daily.temperature_2m_max[highLowIndex]!)
           : null,
       lowC:
-        json.daily?.temperature_2m_min?.[dayIndex] != null
-          ? Math.round(json.daily.temperature_2m_min[dayIndex]!)
+        highLowIndex >= 0 &&
+        json.daily?.temperature_2m_min?.[highLowIndex] != null
+          ? Math.round(json.daily.temperature_2m_min[highLowIndex]!)
           : null,
       precipitation:
         precipitation.nextHours.length > 0 ||

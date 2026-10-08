@@ -246,11 +246,15 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   }
   root.querySelectorAll(".cal-day").forEach((node) => {
     if (!(node instanceof HTMLElement)) return;
-    // Do not stretch day boxes to fill the column — empty days stay compact.
+    // Compact shells so the full 6-day horizon fits the locked A4 column.
     node.style.height = "auto";
-    node.style.minHeight = "2.4rem";
+    node.style.minHeight = "1.55rem";
+    node.style.padding = "0.2rem 0.3rem 0.22rem";
     node.style.alignSelf = "start";
   });
+  if (calWidget instanceof HTMLElement) {
+    calWidget.style.gap = "0.18rem";
+  }
 
   // One column under Meteo only — two columns overflow into Agenda.
   if (reminderList instanceof HTMLElement) {

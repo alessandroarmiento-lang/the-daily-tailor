@@ -91,10 +91,10 @@ a.cal-event__link:hover {
 
 .toolbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 0.75rem;
+  gap: 0.35rem 0.75rem;
   max-width: 210mm;
   margin: 0 auto;
   padding: calc(0.75rem + var(--safe-top)) 1rem 0;
@@ -102,11 +102,6 @@ a.cal-event__link:hover {
   top: 0;
   z-index: 20;
   background: #ffffff;
-}
-
-/* History page also shows title/status between lang and actions. */
-.toolbar:has(.toolbar__copy) {
-  flex-wrap: wrap;
 }
 
 .toolbar__spacer {
@@ -121,6 +116,15 @@ a.cal-event__link:hover {
   font-size: 0.75rem;
   line-height: 1.3;
   color: var(--ink-muted);
+}
+
+/* Full-width single line above IT/EN + actions. */
+.toolbar__status--top {
+  flex: 1 1 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
 }
 
 .toolbar__status--solo {

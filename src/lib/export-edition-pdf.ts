@@ -39,8 +39,12 @@ const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
  * Fractions do not grow with item count.
  */
 const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders reminders news" "emails emails emails"`;
-/** Weather, six reminders and four emails size their rows. News and agenda fit the rest. */
-const DESKTOP_GRID_ROWS = "max-content max-content max-content";
+/**
+ * Fixed row sizes on every device. Middle band fits six reminders (2×3).
+ * Bottom band fits four emails (2×2). Top band is the rest: agenda and news
+ * drop whole items to stay inside it. Counts do not resize the rows.
+ */
+const DESKTOP_GRID_ROWS = "minmax(0, 1fr) 14.75rem 16.25rem";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -190,33 +194,30 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
     grid.style.gap = "0.85rem 1rem";
     grid.style.marginTop = "0.85rem";
-    grid.style.alignContent = "start";
+    grid.style.alignContent = "stretch";
     grid.style.alignItems = "stretch";
     grid.style.overflow = "hidden";
   }
 
-  const fixedAreas = new Set([".area-weather", ".area-reminders", ".area-emails"]);
-
   for (const [selector, area] of orderedAreas) {
     const el = root.querySelector(selector);
     if (!(el instanceof HTMLElement)) continue;
-    const fixed = fixedAreas.has(selector);
     el.style.gridArea = area;
     el.style.position = "relative";
-    el.style.alignSelf = fixed ? "start" : "stretch";
-    el.style.minHeight = fixed ? "max-content" : "0";
-    el.style.height = fixed ? "auto" : "100%";
-    el.style.maxHeight = fixed ? "none" : "100%";
-    el.style.overflow = fixed ? "visible" : "hidden";
+    el.style.alignSelf = "stretch";
+    el.style.minHeight = "0";
+    el.style.height = "100%";
+    el.style.maxHeight = "100%";
+    el.style.overflow = "hidden";
     const section = el.querySelector(":scope > .sheet-section");
     if (section instanceof HTMLElement) {
       section.style.display = "flex";
       section.style.flexDirection = "column";
       section.style.width = "100%";
-      section.style.minHeight = fixed ? "max-content" : "0";
-      section.style.height = fixed ? "auto" : "100%";
-      section.style.maxHeight = fixed ? "none" : "100%";
-      section.style.overflow = fixed ? "visible" : "hidden";
+      section.style.minHeight = "0";
+      section.style.height = "100%";
+      section.style.maxHeight = "100%";
+      section.style.overflow = "hidden";
       if (selector === ".area-news") {
         section.style.position = "absolute";
         section.style.inset = "0";
@@ -226,9 +227,11 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     }
     const body = el.querySelector(":scope > .sheet-section > .sheet-section__body");
     if (body instanceof HTMLElement) {
-      body.style.flex = fixed ? "0 0 auto" : "1 1 auto";
-      body.style.minHeight = fixed ? "max-content" : "0";
-      body.style.overflow = fixed ? "visible" : "hidden";
+      body.style.flex = "1 1 auto";
+      body.style.minHeight = "0";
+      body.style.overflow = selector === ".area-reminders" || selector === ".area-emails" || selector === ".area-weather"
+        ? "visible"
+        : "hidden";
     }
   }
 

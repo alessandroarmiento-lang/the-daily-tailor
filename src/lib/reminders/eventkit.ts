@@ -11,6 +11,7 @@ import {
   runEventKitBinJson,
   runOsascriptJson,
 } from "@/lib/apple/run-osascript";
+import { getEditionDateKey } from "@/lib/edition";
 import { rankReminders, remindersFetchPool } from "./rank";
 import type { ReminderItem, RemindersAdapter } from "./types";
 
@@ -49,10 +50,14 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
     // Fetch a wider incomplete set; Node filters to the edition day.
     const fetchLimit = Math.max(poolSize * 3, 60);
+    const cacheKey = dateKey ?? getEditionDateKey();
     const rankOpts = dateKey
       ? { dateKey, timeZone: config.timezone }
       : undefined;
-    const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
+    const cached = await readEditionCacheEnvelope<ReminderItem[]>(
+      "reminders",
+      cacheKey,
+    );
     if (cached?.data) {
       return rankReminders(cached.data, rankOpts).slice(0, poolSize);
     }
@@ -87,11 +92,9 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
       throw new Error(result.error ?? "Promemoria: fetch fallito");
     }
 
-    const ranked = rankReminders(mapItems(result.items ?? []), rankOpts).slice(
-      0,
-      poolSize,
-    );
-    await writeEditionCache("reminders", ranked);
-    return ranked;
+    // Cache the full incomplete pool; rank per edition day on read/build.
+    const mapped = mapItems(result.items ?? []);
+    await writeEditionCache("reminders", mapped, cacheKey);
+    return rankReminders(mapped, rankOpts).slice(0, poolSize);
   }
 }

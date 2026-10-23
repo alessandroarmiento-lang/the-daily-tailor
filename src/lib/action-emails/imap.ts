@@ -10,6 +10,7 @@ import {
   readEditionCacheEnvelope,
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
+import { getEditionDateKey } from "@/lib/edition";
 import {
   actionEmailFetchPool,
   toActionEmailItemsWithOverflow,
@@ -191,10 +192,15 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "imap";
   readonly label = "IMAP (iCloud + Gmail)";
 
-  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(
+    editionDateKey?: string,
+  ): Promise<ActionEmailItem[]> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
-    const cached =
-      await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
+    const cacheKey = editionDateKey ?? getEditionDateKey();
+    const cached = await readEditionCacheEnvelope<ActionEmailItem[]>(
+      "action-emails",
+      cacheKey,
+    );
     if (cached?.data) {
       return cached.data.slice(0, poolSize);
     }
@@ -252,7 +258,7 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
         ? `IMAP (${foundLabels.join(" + ")})`
         : this.label;
 
-    await writeEditionCache("action-emails", items);
+    await writeEditionCache("action-emails", items, cacheKey);
     if (errors.length > 0 && items.length === 0) {
       throw new Error(errors.join("; "));
     }

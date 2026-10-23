@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v25: open agenda/reminders links on iPhone; adapter cache uses edition day.
  * v24: AGGIORNA uses civil day (asOf=civil); 06:00 rollover warms again.
  * v23: PDF keeps all agenda days; Open-Meteo past_days for precip coverage.
  * v22: AGGIORNA leaves Aggiorno… in 8s; warm finishes in background.
@@ -27,7 +28,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v24";
+const SHELL_CACHE = "daily-tailor-shell-v25";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

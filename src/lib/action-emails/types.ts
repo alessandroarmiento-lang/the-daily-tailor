@@ -36,6 +36,9 @@ export type SectionResult<T> =
 export interface ActionEmailAdapter {
   readonly id: string;
   readonly label: string;
-  /** Latest actionable emails (newest first); caller caps to maxItems. */
-  getRecentActionEmails(): Promise<ActionEmailItem[]>;
+  /**
+   * Latest actionable emails (newest first); caller caps to maxItems.
+   * `editionDateKey` keys the adapter disk cache (must match morning-warm clear).
+   */
+  getRecentActionEmails(editionDateKey?: string): Promise<ActionEmailItem[]>;
 }

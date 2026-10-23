@@ -13,6 +13,9 @@ const REMINDER_UUID_RE =
 
 const OPEN_HELPER = "http://127.0.0.1:3855/open";
 
+/** Apple reference date for `calshow:` (2001-01-01 UTC), in unix seconds. */
+const APPLE_EPOCH_UNIX = Date.UTC(2001, 0, 1) / 1000;
+
 export type NativeOpenKind = "mail" | "reminder" | "event";
 
 export type NativeOpenPayload = {
@@ -48,9 +51,21 @@ export function reminderDeepLink(id: string): string | undefined {
   return "x-apple-reminderkit://";
 }
 
+/** Open Calendar at an instant (`calshow:` works on iPhone + Mac). */
+export function calshowDeepLink(startsAt: string): string | undefined {
+  const instant = new Date(startsAt);
+  if (Number.isNaN(instant.getTime())) return undefined;
+  const seconds = Math.floor(instant.getTime() / 1000 - APPLE_EPOCH_UNIX);
+  return `calshow:${seconds}`;
+}
+
 export function calendarEventDeepLink(
   id: string,
-  options?: { title?: string; calendarName?: string | null },
+  options?: {
+    title?: string;
+    calendarName?: string | null;
+    startsAt?: string | null;
+  },
 ): string | undefined {
   const bare = id.trim();
   const title = options?.title?.trim();
@@ -60,8 +75,13 @@ export function calendarEventDeepLink(
       return `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent(title)}`;
     }
   }
+  // Prefer calshow so iPhone PWA / Safari can leave the sheet (ical:// is Mac-oriented).
+  if (options?.startsAt) {
+    const show = calshowDeepLink(options.startsAt);
+    if (show) return show;
+  }
   if (!bare) return undefined;
-  // EventKit / CalDAV uid — best-effort; Mac helper matches by title+start.
+  // EventKit / CalDAV uid — Mac Calendar fallback when startsAt is missing.
   return `ical://ekevent/${encodeURIComponent(bare)}`;
 }
 
@@ -119,7 +139,8 @@ export function mailOpenPayload(item: {
   };
 }
 
-function isAppleMobile(): boolean {
+/** True on iPhone/iPad Safari and Home Screen PWA. */
+export function isAppleMobileClient(): boolean {
   if (typeof navigator === "undefined") return false;
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
@@ -145,10 +166,17 @@ export async function tryNativeOpen(
   payload: NativeOpenPayload,
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  // iPhone: no local helper — use Gmail https / reminderkit hrefs.
-  if (isAppleMobile()) return false;
+  // iPhone: no local helper — use Gmail https / reminderkit / calshow hrefs.
+  if (isAppleMobileClient()) return false;
 
-  // Fast path: HTTP helper (Chrome / local http). Safari HTTPS blocks this.
+  // HTTPS page cannot fetch http://127.0.0.1 (mixed content). Navigate to the
+  // custom scheme in the same turn so Safari keeps the user gesture.
+  if (window.location.protocol === "https:") {
+    window.location.href = tdtOpenSchemeUrl(payload);
+    return true;
+  }
+
+  // Local http:// paper: POST to the helper when it is running.
   try {
     const res = await fetch(OPEN_HELPER, {
       method: "POST",
@@ -161,10 +189,9 @@ export async function tryNativeOpen(
       if (body.ok === true) return true;
     }
   } catch {
-    // mixed content or helper down
+    // helper down
   }
 
-  // Safari / mixed-content fallback: custom URL scheme → TDT Open.app
   window.location.href = tdtOpenSchemeUrl(payload);
   return true;
 }

@@ -11,6 +11,7 @@ import {
 } from "@/lib/apple/edition-cache";
 import { runOsascriptJson } from "@/lib/apple/run-osascript";
 import { loadContactEmails } from "@/lib/contacts/carddav";
+import { getEditionDateKey } from "@/lib/edition";
 import {
   actionEmailFetchPool,
   messageUrlFromId,
@@ -31,9 +32,15 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "applemail";
   label = "Apple Mail (iCloud + Gmail)";
 
-  async getRecentActionEmails(): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(
+    editionDateKey?: string,
+  ): Promise<ActionEmailItem[]> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
-    const cached = await readEditionCacheEnvelope<ActionEmailItem[]>("action-emails");
+    const cacheKey = editionDateKey ?? getEditionDateKey();
+    const cached = await readEditionCacheEnvelope<ActionEmailItem[]>(
+      "action-emails",
+      cacheKey,
+    );
     if (cached?.data) {
       return cached.data.slice(0, poolSize);
     }
@@ -63,7 +70,7 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
     const { items } = toActionEmailItemsWithOverflow(raw, poolSize, {
       contactEmails: contacts,
     });
-    await writeEditionCache("action-emails", items);
+    await writeEditionCache("action-emails", items, cacheKey);
     return items;
   }
 }

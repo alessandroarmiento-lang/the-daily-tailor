@@ -104,7 +104,7 @@ export async function getCalendar(
   const useMock = adapter.id === "mock";
 
   try {
-    const events = await adapter.getUpcomingEvents(horizon);
+    const events = await adapter.getUpcomingEvents(horizon, dateKey);
     return {
       status: "ok",
       data: {

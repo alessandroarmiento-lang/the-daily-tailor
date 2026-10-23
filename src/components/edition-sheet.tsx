@@ -397,6 +397,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                               const href = calendarEventDeepLink(event.id, {
                                 title: event.title,
                                 calendarName: event.calendarName,
+                                startsAt: event.startsAt,
                               });
                               const title = (
                                 <NativeOpenLink

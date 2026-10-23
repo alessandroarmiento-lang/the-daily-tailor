@@ -14,6 +14,7 @@ import {
   readEditionCacheEnvelope,
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
+import { getEditionDateKey } from "@/lib/edition";
 import {
   birthdayEventsForHorizon,
   loadContactBirthdays,
@@ -543,9 +544,14 @@ export class CalDavCalendarAdapter implements CalendarAdapter {
   readonly id = "caldav";
   label = "CalDAV (iCloud)";
 
-  async getUpcomingEvents(horizonDays: number): Promise<CalendarEventItem[]> {
-    const cached =
-      await readEditionCacheEnvelope<CalendarEventItem[]>("calendar");
+  async getUpcomingEvents(
+    horizonDays: number,
+    editionDateKey: string = getEditionDateKey(),
+  ): Promise<CalendarEventItem[]> {
+    const cached = await readEditionCacheEnvelope<CalendarEventItem[]>(
+      "calendar",
+      editionDateKey,
+    );
 
     const birthdays = birthdayEventsForHorizon(
       await loadContactBirthdays(),
@@ -588,7 +594,7 @@ export class CalDavCalendarAdapter implements CalendarAdapter {
     this.label =
       labels.length > 0 ? `CalDAV (${labels.join(" + ")})` : this.label;
 
-    await writeEditionCache("calendar", merged);
+    await writeEditionCache("calendar", merged, editionDateKey);
     return merged;
   }
 }

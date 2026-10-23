@@ -9,6 +9,7 @@ import {
   readEditionCacheEnvelope,
   writeEditionCache,
 } from "@/lib/apple/edition-cache";
+import { getEditionDateKey } from "@/lib/edition";
 import { rankReminders, remindersFetchPool } from "./rank";
 import type { ReminderItem, RemindersAdapter } from "./types";
 
@@ -115,10 +116,14 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
 
   async getTodaysOpenReminders(dateKey?: string): Promise<ReminderItem[]> {
     const poolSize = remindersFetchPool(config.reminders.maxItems);
+    const cacheKey = dateKey ?? getEditionDateKey();
     const rankOpts = dateKey
       ? { dateKey, timeZone: config.timezone }
       : undefined;
-    const cached = await readEditionCacheEnvelope<ReminderItem[]>("reminders");
+    const cached = await readEditionCacheEnvelope<ReminderItem[]>(
+      "reminders",
+      cacheKey,
+    );
     if (cached?.data) {
       if (cached.data.length === 0) {
         this.label =
@@ -182,8 +187,8 @@ export class CalDavRemindersAdapter implements RemindersAdapter {
           : "CalDAV (iCloud Reminders — nessun VTODO)";
     }
 
-    const ranked = rankReminders(items, rankOpts).slice(0, poolSize);
-    await writeEditionCache("reminders", ranked);
-    return ranked;
+    // Cache the full VTODO pool; rank per edition day on read/build.
+    await writeEditionCache("reminders", items, cacheKey);
+    return rankReminders(items, rankOpts).slice(0, poolSize);
   }
 }

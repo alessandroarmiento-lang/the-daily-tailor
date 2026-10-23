@@ -37,6 +37,12 @@ export type SectionResult<T> =
 export interface CalendarAdapter {
   readonly id: string;
   readonly label: string;
-  /** Upcoming events for the next few days (compact widget horizon). */
-  getUpcomingEvents(horizonDays: number): Promise<CalendarEventItem[]>;
+  /**
+   * Upcoming events for the next few days (compact widget horizon).
+   * `editionDateKey` keys the adapter disk cache (must match morning-warm clear).
+   */
+  getUpcomingEvents(
+    horizonDays: number,
+    editionDateKey?: string,
+  ): Promise<CalendarEventItem[]>;
 }

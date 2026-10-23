@@ -33,7 +33,7 @@ export async function buildEdition(
     getWorldNews(),
     getReminders(dateKey),
     getCalendar(dateKey),
-    getActionEmails(),
+    getActionEmails(dateKey),
   ]);
 
   const edition: NewspaperEdition = {
@@ -75,6 +75,15 @@ export async function getOrBuildTodayEdition(options?: {
   dateKey?: string;
 }): Promise<BuiltToday> {
   const dateKey = options?.dateKey ?? getEditionDateKey();
+
+  // AGGIORNA kicks morning-warm (force) then fetches /api/edition/today.
+  // If a force rebuild is already in flight for this day, wait for it —
+  // otherwise the non-force path would return the stale file on disk.
+  const existingInflight = forceBuildInflight.get(dateKey);
+  if (existingInflight) {
+    return existingInflight;
+  }
+
   if (!options?.force) {
     const existing = await loadEdition(dateKey);
     if (existing) {
@@ -91,11 +100,6 @@ export async function getOrBuildTodayEdition(options?: {
     const { edition: cleaned } = sanitizeEditionReminders(edition);
     const path = await saveEdition(cleaned);
     return { edition: cleaned, created: true, path };
-  }
-
-  const existingInflight = forceBuildInflight.get(dateKey);
-  if (existingInflight) {
-    return existingInflight;
   }
 
   const inflight = (async () => {

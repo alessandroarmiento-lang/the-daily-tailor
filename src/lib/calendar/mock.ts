@@ -79,7 +79,10 @@ export class MockCalendarAdapter implements CalendarAdapter {
   readonly id = "mock";
   readonly label = "Calendar (mock)";
 
-  async getUpcomingEvents(horizonDays: number): Promise<CalendarEventItem[]> {
+  async getUpcomingEvents(
+    horizonDays: number,
+    _editionDateKey?: string,
+  ): Promise<CalendarEventItem[]> {
     const now = new Date();
     const end = new Date();
     end.setDate(end.getDate() + horizonDays);

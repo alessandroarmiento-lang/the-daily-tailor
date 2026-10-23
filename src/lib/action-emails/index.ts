@@ -85,14 +85,14 @@ function briefingFromPool(
   };
 }
 
-export async function getActionEmails(): Promise<
-  SectionResult<ActionEmailBriefing>
-> {
+export async function getActionEmails(
+  editionDateKey?: string,
+): Promise<SectionResult<ActionEmailBriefing>> {
   const adapter = resolveAdapter();
   const useMock = adapter.id === "mock";
 
   try {
-    const pool = await adapter.getRecentActionEmails();
+    const pool = await adapter.getRecentActionEmails(editionDateKey);
     return {
       status: "ok",
       data: briefingFromPool(pool, adapter, useMock),

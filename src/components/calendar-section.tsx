@@ -79,6 +79,7 @@ export async function CalendarSection() {
                   const href = calendarEventDeepLink(event.id, {
                     title: event.title,
                     calendarName: event.calendarName,
+                    startsAt: event.startsAt,
                   });
                   const titleNode = (
                     <NativeOpenLink

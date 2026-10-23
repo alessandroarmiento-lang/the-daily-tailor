@@ -11,6 +11,7 @@ import {
   runEventKitBinJson,
   runOsascriptJson,
 } from "@/lib/apple/run-osascript";
+import { getEditionDateKey } from "@/lib/edition";
 import type { CalendarAdapter, CalendarEventItem } from "./types";
 
 type ScriptResult = {
@@ -49,9 +50,14 @@ export class EventKitCalendarAdapter implements CalendarAdapter {
   readonly id = "eventkit";
   label = "Apple Calendar";
 
-  async getUpcomingEvents(horizonDays: number): Promise<CalendarEventItem[]> {
-    const cached =
-      await readEditionCacheEnvelope<CalendarEventItem[]>("calendar");
+  async getUpcomingEvents(
+    horizonDays: number,
+    editionDateKey: string = getEditionDateKey(),
+  ): Promise<CalendarEventItem[]> {
+    const cached = await readEditionCacheEnvelope<CalendarEventItem[]>(
+      "calendar",
+      editionDateKey,
+    );
     if (cached?.data) {
       return cached.data;
     }
@@ -86,7 +92,7 @@ export class EventKitCalendarAdapter implements CalendarAdapter {
     }
 
     const items = mapItems(result.items ?? []);
-    await writeEditionCache("calendar", items);
+    await writeEditionCache("calendar", items, editionDateKey);
     return items;
   }
 }

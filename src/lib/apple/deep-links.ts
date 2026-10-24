@@ -4,6 +4,10 @@
  * Safari blocks HTTPS → http://127.0.0.1 fetch (mixed content), so the paper
  * uses the custom URL scheme `tdt-open://` registered by TDT Open.app.
  * HTTP POST to :3855 remains for local smoke tests / non-Safari.
+ *
+ * iPhone Home Screen PWA cannot open custom schemes directly (Safari shows
+ * “indirizzo non è valido”). Non-https targets go through same-origin `/apri`,
+ * opened with target=_blank so Safari can hand off to Reminders / Calendar.
  */
 
 import { isValidRfcMessageId } from "@/lib/action-emails/actionable";
@@ -47,7 +51,7 @@ export function reminderDeepLink(id: string): string | undefined {
   if (uuid) {
     return `x-apple-reminderkit://REMCDReminder/${uuid}`;
   }
-  // listName|title from iPhone Shortcut — helper opens the exact item on Mac.
+  // Opens the Reminders app (listName|title → exact item only via Mac helper).
   return "x-apple-reminderkit://";
 }
 
@@ -75,13 +79,12 @@ export function calendarEventDeepLink(
       return `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent(title)}`;
     }
   }
-  // Prefer calshow so iPhone PWA / Safari can leave the sheet (ical:// is Mac-oriented).
+  // Prefer calshow so iPhone can leave the sheet (ical:// is Mac-oriented).
   if (options?.startsAt) {
     const show = calshowDeepLink(options.startsAt);
     if (show) return show;
   }
   if (!bare) return undefined;
-  // EventKit / CalDAV uid — Mac Calendar fallback when startsAt is missing.
   return `ical://ekevent/${encodeURIComponent(bare)}`;
 }
 
@@ -129,8 +132,6 @@ export function mailOpenPayload(item: {
     kind: "mail",
     id: item.id,
     title: item.subject,
-    // Gmail opens via https in the browser (NativeOpenLink). Helper is for
-    // Apple Mail / iCloud only — pass Message-ID when Mail can resolve it.
     messageId: isGmail
       ? undefined
       : isValidRfcMessageId(bare)
@@ -139,10 +140,23 @@ export function mailOpenPayload(item: {
   };
 }
 
-/** True on iPhone/iPad Safari and Home Screen PWA. */
-export function isAppleMobileClient(): boolean {
+/**
+ * iPhone / iPad — including iPadOS “desktop” UA (Macintosh + touch)
+ * and Home Screen standalone.
+ */
+export function isAppleTouchClient(): boolean {
   if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) {
+    return true;
+  }
+  return false;
+}
+
+/** @deprecated use isAppleTouchClient */
+export function isAppleMobileClient(): boolean {
+  return isAppleTouchClient();
 }
 
 /** Custom scheme handled by TDT Open.app (bypasses mixed-content). */
@@ -158,25 +172,91 @@ export function tdtOpenSchemeUrl(payload: NativeOpenPayload): string {
   return `tdt-open://open?${q.toString()}`;
 }
 
+/** Same-origin bridge so iOS PWA can open native schemes via Safari. */
+export function apriBridgeHref(
+  payload: NativeOpenPayload,
+  fallbackHref?: string,
+): string {
+  const q = new URLSearchParams();
+  q.set("kind", payload.kind);
+  if (payload.title) q.set("title", payload.title);
+  if (payload.listName) q.set("listName", payload.listName);
+  if (payload.startsAt) q.set("startsAt", payload.startsAt);
+  if (payload.messageId) q.set("messageId", payload.messageId);
+  if (payload.id) q.set("id", payload.id);
+  if (payload.calendarName) q.set("calendarName", payload.calendarName);
+  if (fallbackHref) q.set("href", fallbackHref);
+  return `/apri?${q.toString()}`;
+}
+
+export function isAllowedNativeScheme(url: string): boolean {
+  const u = url.trim();
+  return (
+    u.startsWith("x-apple-reminderkit://") ||
+    u.startsWith("x-apple-reminder://") ||
+    u.startsWith("calshow:") ||
+    u.startsWith("ical://") ||
+    u.startsWith("message:") ||
+    u.startsWith("mailto:") ||
+    u.startsWith("https://") ||
+    u.startsWith("http://")
+  );
+}
+
+/** Resolve the native URL for `/apri` (and reject unknown schemes). */
+export function nativeSchemeFromApriParams(
+  params: URLSearchParams,
+): string | undefined {
+  const kind = params.get("kind");
+  const href = (params.get("href") || "").trim();
+
+  if (kind === "reminder") {
+    const id = params.get("id") || "";
+    const link = reminderDeepLink(id);
+    if (link && isAllowedNativeScheme(link)) return link;
+    return "x-apple-reminderkit://";
+  }
+
+  if (kind === "event") {
+    const link = calendarEventDeepLink(params.get("id") || "", {
+      title: params.get("title") || undefined,
+      calendarName: params.get("calendarName"),
+      startsAt: params.get("startsAt"),
+    });
+    if (link && isAllowedNativeScheme(link)) return link;
+    if (href && isAllowedNativeScheme(href)) return href;
+    return "calshow:";
+  }
+
+  if (kind === "mail") {
+    if (href && isAllowedNativeScheme(href)) return href;
+    const messageId = (params.get("messageId") || "").trim();
+    if (messageId && isValidRfcMessageId(messageId)) {
+      return `message://${messageId}`;
+    }
+    return undefined;
+  }
+
+  if (href && isAllowedNativeScheme(href)) return href;
+  return undefined;
+}
+
 /**
  * Ask the Mac opener to open the exact item and activate the app.
  * Returns true when handled (caller should not navigate to href).
+ * Never used on iPhone — custom schemes go through `/apri`.
  */
 export async function tryNativeOpen(
   payload: NativeOpenPayload,
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  // iPhone: no local helper — use Gmail https / reminderkit / calshow hrefs.
-  if (isAppleMobileClient()) return false;
+  if (isAppleTouchClient()) return false;
 
-  // HTTPS page cannot fetch http://127.0.0.1 (mixed content). Navigate to the
-  // custom scheme in the same turn so Safari keeps the user gesture.
   if (window.location.protocol === "https:") {
     window.location.href = tdtOpenSchemeUrl(payload);
     return true;
   }
 
-  // Local http:// paper: POST to the helper when it is running.
   try {
     const res = await fetch(OPEN_HELPER, {
       method: "POST",

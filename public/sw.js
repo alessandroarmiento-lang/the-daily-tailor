@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v26: iOS PWA opens reminders/agenda via same-origin /apri bridge.
  * v25: open agenda/reminders links on iPhone; adapter cache uses edition day.
  * v24: AGGIORNA uses civil day (asOf=civil); 06:00 rollover warms again.
  * v23: PDF keeps all agenda days; Open-Meteo past_days for precip coverage.
@@ -28,7 +29,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v25";
+const SHELL_CACHE = "daily-tailor-shell-v26";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 
@@ -84,6 +85,12 @@ self.addEventListener("fetch", (event) => {
 
   // Cache-bust query (?v=…) → network only for navigations/shell.
   if (url.searchParams.has("v")) {
+    event.respondWith(networkOnly(req));
+    return;
+  }
+
+  // Native-scheme bridge must never be served from a stale shell cache.
+  if (url.pathname === "/apri") {
     event.respondWith(networkOnly(req));
     return;
   }

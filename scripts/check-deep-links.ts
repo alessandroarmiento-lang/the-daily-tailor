@@ -4,10 +4,14 @@
  */
 import assert from "node:assert/strict";
 import {
+  apriBridgeHref,
   calendarEventDeepLink,
   calshowDeepLink,
+  isAllowedNativeScheme,
+  nativeSchemeFromApriParams,
   reminderDeepLink,
   reminderKitUuid,
+  reminderOpenPayload,
   tdtOpenSchemeUrl,
 } from "../src/lib/apple/deep-links";
 
@@ -52,5 +56,24 @@ const scheme = tdtOpenSchemeUrl({
 assert.ok(scheme.startsWith("tdt-open://open?"));
 assert.ok(scheme.includes("kind=reminder"));
 assert.ok(scheme.includes("title=Latte"));
+
+const bridge = apriBridgeHref(
+  reminderOpenPayload({
+    id: uuid,
+    title: "Autolettura gas",
+    listName: "Famiglia",
+  }),
+  reminderDeepLink(uuid),
+);
+assert.ok(bridge.startsWith("/apri?"));
+const bridgeParams = new URL(bridge, "https://example.test").searchParams;
+assert.equal(
+  nativeSchemeFromApriParams(bridgeParams),
+  `x-apple-reminderkit://REMCDReminder/${uuid}`,
+);
+assert.ok(
+  isAllowedNativeScheme(`x-apple-reminderkit://REMCDReminder/${uuid}`),
+);
+assert.equal(isAllowedNativeScheme("javascript:alert(1)"), false);
 
 console.log("check-deep-links: ok");

@@ -61,9 +61,6 @@ export async function ActionEmailsSection() {
         result.status === "error" ? result.message : undefined
       }
     >
-      {briefing.analysis ? (
-        <p className="action-mail-list__analysis">{briefing.analysis}</p>
-      ) : null}
       <ul className="action-mail-list">
         {cards.map((item) => (
           <li key={item.id} className="action-mail-list__item">

@@ -628,7 +628,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 Math.max(0, cells - items.length),
               );
               const cards = [...items, ...notable];
-              const analysis = emailsResult.data.analysis;
               const hidden =
                 typeof emailsResult.data.hiddenCount === "number"
                   ? emailsResult.data.hiddenCount
@@ -674,9 +673,6 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       </li>
                     ))}
                   </ul>
-                  {analysis ? (
-                    <p className="action-mail-list__analysis">{analysis}</p>
-                  ) : null}
                 </SectionShell>
               );
             })()

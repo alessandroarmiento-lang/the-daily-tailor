@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v37: no commentary line under the mail cards. The sheet layout stays locked.
  * v36: mail is locked at two rows of three.
  * v35: the mail band spans the full page width, three columns.
  * v34: the mail band is three columns.
@@ -39,7 +40,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v36";
+const SHELL_CACHE = "daily-tailor-shell-v37";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

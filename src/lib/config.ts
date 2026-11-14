@@ -78,7 +78,7 @@ export const config = {
     rows: 2,
     /** Locked: columns × rows. Notable cards only fill cells left empty. */
     maxItems: 6,
-    /** Ranked for the analysis line. Cards appear only inside the six cells. */
+    /** Ranked internally. Cards appear only inside the six cells. The sheet shows no line under the mail. */
     notableMax: 3,
     /** How far back IMAP/Mail scan for actionable mail (rolling last-N). */
     lookbackDays: Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "45"),

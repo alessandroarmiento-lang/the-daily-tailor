@@ -13,7 +13,7 @@ const DENY_SENDER =
 
 /** Subject patterns that are usually noise (deny), unless allow-domain. */
 const DENY_SUBJECT =
-  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno|risparmia|\d+\s*%|dimagrire|salumi|confezionat|offerta|coupon|black friday|solo oggi|ti aspetta|conto corrente italiano/i;
+  /newsletter|unsubscribe|scont[oi]|promo(zione)?|advertisement|view in browser|punto[i]? scad|hai visto|classifica|glp-1|controllo gratuito|attività settimanale|report dell['’]attività|essentiali per iniziare|you're invited|plancia|la mia storia continua|digest settimanale|weekly digest|show\/case|leggerezza che performa|quando hai bisogno|risparmia|\d+\s*%|dimagrire|salumi|confezionat|offerta|coupon|black friday|solo oggi|ti aspetta|conto corrente italiano|bestseller|bonus|operazione a premi|\bpremi\b|scopri ora/i;
 
 /**
  * Prefer / allow sender domains (Italian life ops).
@@ -362,7 +362,12 @@ function isDeniedNoiseMail(msg: MailRawMessage): boolean {
   const subject = msg.subject || "";
   const { address } = parseSender(sender);
   const allow = isAllowDomain(address, sender);
-  if (DENY_SUBJECT.test(subject) && !allow) return true;
+  const opsSubject =
+    /scadenz|fattura|addebito|bonifico|ritir|spedizion|otp|avviso bonario|giacenza|pagopa|cartella|bollettino/i.test(
+      subject,
+    );
+  // A bank domain does not make a promo an action. Same bar as isActionableMail.
+  if (DENY_SUBJECT.test(subject) && !opsSubject) return true;
   if (DENY_SENDER.test(sender) && !allow) return true;
   return false;
 }
@@ -429,10 +434,22 @@ function isInboxPath(mailbox: string | undefined): boolean {
   return /^inbox$/i.test(name);
 }
 
+/** Gmail/iCloud folders the user did not choose: trash, promos, the Important label. */
+function isAutoMailbox(mailbox: string | undefined): boolean {
+  if (!mailbox) return false;
+  return /trash|junk|spam|draft|cestino|indesiderat|bozze|deleted messages|deleted items|posta eliminata|promotions|promozioni|important|starred|contrassegn/i.test(
+    mailbox,
+  );
+}
+
+function isUserFiled(mailbox: string | undefined): boolean {
+  return Boolean(mailbox) && !isInboxPath(mailbox) && !isAutoMailbox(mailbox);
+}
+
 function notableCue(msg: MailRawMessage, ctx: ActionClassifyContext): string {
   const { address } = parseSender(msg.sender);
   if (isContact(address, ctx.contactEmails)) return "Persona in rubrica.";
-  if (msg.mailbox && !isInboxPath(msg.mailbox)) return "Tenuta in un'altra cartella.";
+  if (isUserFiled(msg.mailbox)) return "Tenuta in un'altra cartella.";
   if (msg.toUser) return "Scritta direttamente a te.";
   if (/^(re|rif|fwd|i)\s*:/i.test(msg.subject || "")) {
     return "È una risposta, non una lista.";
@@ -450,12 +467,13 @@ function isNotableMail(
   const { address } = parseSender(msg.sender || "");
   const bulk = looksBulkSender(msg.sender || "", address);
   if (bulk && !isAllowDomain(address, msg.sender || "")) return false;
+  if (isAutoMailbox(msg.mailbox)) return false;
   if (isContact(address, ctx.contactEmails)) return true;
   const human = Boolean(address) && !bulk;
-  const filed = Boolean(msg.mailbox) && !isInboxPath(msg.mailbox);
   const reply = /^(re|rif|fwd|i)\s*:/i.test(msg.subject || "");
-  if (human && filed) return true;
-  if (human && msg.toUser && (reply || msg.unread)) return true;
+  // Another folder is a reason only when he filed it, and the sender is a person.
+  if (human && isUserFiled(msg.mailbox)) return true;
+  if (human && msg.toUser && (reply || msg.unread || msg.flagged)) return true;
   if (human && reply && msg.unread) return true;
   return false;
 }
@@ -464,7 +482,7 @@ function notableRank(msg: MailRawMessage, ctx: ActionClassifyContext): number {
   const { address } = parseSender(msg.sender || "");
   let score = 0;
   if (isContact(address, ctx.contactEmails)) score += 8;
-  if (msg.mailbox && !isInboxPath(msg.mailbox)) score += 4;
+  if (isUserFiled(msg.mailbox)) score += 4;
   if (msg.toUser) score += 3;
   if (msg.unread) score += 2;
   if (msg.flagged) score += 2;
@@ -478,7 +496,7 @@ export function notableAnalysis(
   if (picked.length === 0) {
     return "Nelle altre cartelle non c'è posta diretta oltre a quella che chiede un gesto.";
   }
-  const filed = picked.some((msg) => msg.mailbox && !isInboxPath(msg.mailbox));
+  const filed = picked.some((msg) => isUserFiled(msg.mailbox));
   const people = picked.some((msg) =>
     isContact(parseSender(msg.sender || "").address, ctx.contactEmails),
   );
@@ -531,9 +549,7 @@ export function pictureFromMessages(
     };
   });
   const notableIds = new Set(picked.map((msg) => msg.id));
-  const sawOtherFolders = messages.some(
-    (msg) => msg.mailbox && !isInboxPath(msg.mailbox),
-  );
+  const sawOtherFolders = messages.some((msg) => isUserFiled(msg.mailbox));
   const analysis =
     picked.length > 0
       ? notableAnalysis(picked, ctx)

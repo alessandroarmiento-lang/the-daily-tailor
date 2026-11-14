@@ -109,7 +109,7 @@ function isReceivedMailbox(box: {
   if (box.flags?.has("\\Noselect")) return false;
   if (box.specialUse && SKIP_SPECIAL.has(box.specialUse)) return false;
   const label = `${box.path} ${box.name ?? ""}`.toLowerCase();
-  return !/trash|junk|spam|draft|cestino|indesiderat|bozze|\bsent\b|inviat|all mail|tutti i messaggi|starred|contrassegn/.test(
+  return !/trash|junk|spam|draft|cestino|indesiderat|bozze|deleted messages|deleted items|posta eliminata|\bsent\b|inviat|all mail|tutti i messaggi|starred|contrassegn|promotions|promozioni/.test(
     label,
   );
 }

@@ -395,9 +395,9 @@ a.cal-event__link:hover {
 .area-weather { order: 1; }
 .area-calendar { order: 2; }
 .area-news { order: 3; }
-.area-emails { order: 4; }
-.area-health { order: 5; }
-.area-reminders { order: 6; }
+.area-health { order: 4; }
+.area-reminders { order: 5; }
+.area-emails { order: 6; }
 
 .sheet-grid > *,
 .sheet-section,
@@ -418,17 +418,18 @@ a.cal-event__link:hover {
  */
 @media (min-width: 700px) {
   .sheet-grid {
-    grid-template-columns: 1.35fr 0.85fr 1.15fr;
+    /* Track 1 is weather only. Agenda takes 2–3, news the last. Health and reminders split the left width. */
+    grid-template-columns: 1fr 0.095fr 1.095fr 1.43fr;
     /* max-content: rows never shrink below section content (stops overlaps). */
     grid-template-rows: max-content max-content max-content;
     /*
-     * Email owns the left column. Health sits above reminders in the middle.
-     * News runs the full right side.
+     * Health and reminders share the band above the mail.
+     * Mail spans those two columns at the bottom. News runs the full right side.
      */
     grid-template-areas:
-      "weather calendar news"
-      "emails health news"
-      "emails reminders news";
+      "weather calendar calendar news"
+      "health health reminders news"
+      "emails emails emails news";
     gap: 0.85rem 1rem;
     align-items: stretch;
     align-content: start;
@@ -530,7 +531,6 @@ a.cal-event__link:hover {
   }
   .area-calendar {
     grid-area: calendar;
-    /* Fill weather+reminders rows so the middle column is one continuous band. */
     align-self: stretch;
   }
   .area-news {
@@ -552,6 +552,15 @@ a.cal-event__link:hover {
   }
   .area-emails {
     grid-area: emails;
+  }
+
+  .weather__deg {
+    font-size: 2.45rem;
+  }
+
+  .area-emails .action-mail-list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1rem;
   }
 }
 
@@ -592,7 +601,7 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .weather__deg {
-  font-size: 3rem !important;
+  font-size: 2.45rem !important;
 }
 
 .sheet-page.is-pdf-capture .headline-list__title {
@@ -613,13 +622,13 @@ a.cal-event__link:hover {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   display: grid !important;
-  grid-template-columns: 1.35fr 0.85fr 1.15fr !important;
-  /* Top band, health, then the shorter reminders band. Email spans the lower two. */
-  grid-template-rows: minmax(0, 0.92fr) minmax(0, 1.05fr) minmax(0, 0.42fr) !important;
+  grid-template-columns: 1fr 0.095fr 1.095fr 1.43fr !important;
+  /* Top band, then health beside reminders, then mail across the bottom. */
+  grid-template-rows: minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.7fr) !important;
   grid-template-areas:
-    "weather calendar news"
-    "emails health news"
-    "emails reminders news" !important;
+    "weather calendar calendar news"
+    "health health reminders news"
+    "emails emails emails news" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
   align-content: stretch !important;
@@ -798,8 +807,17 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .action-mail-list {
   display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 0.12rem 0 !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.04rem 0.7rem !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list__item {
+  padding: 0.06rem 0 !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list__subject,
+.sheet-page.is-pdf-capture .action-mail-list__body {
+  -webkit-line-clamp: 1 !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item:nth-last-child(2):nth-child(odd) {
@@ -1370,8 +1388,10 @@ a.cal-event__link:hover {
   overflow: hidden;
 }
 
-.area-emails .action-mail-list {
-  grid-template-columns: 1fr !important;
+@media (max-width: 699px) {
+  .area-emails .action-mail-list {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .area-emails .action-mail-list__cue,
@@ -1635,12 +1655,12 @@ a.cal-event__link:hover {
     flex: 1 1 auto;
     min-height: 0 !important;
     display: grid !important;
-    grid-template-columns: 1.35fr 0.85fr 1.15fr !important;
+    grid-template-columns: 1fr 0.095fr 1.095fr 1.43fr !important;
     grid-template-rows: max-content max-content max-content !important;
     grid-template-areas:
-      "weather calendar news"
-      "emails health news"
-      "emails reminders news" !important;
+      "weather calendar calendar news"
+      "health health reminders news"
+      "emails emails emails news" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
     overflow: hidden !important;
@@ -1962,8 +1982,8 @@ a.cal-event__link:hover {
   }
 
   .action-mail-list {
-    grid-template-columns: 1fr !important;
-    gap: 0.12rem 0;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.12rem 0.45rem;
   }
 
   .action-mail-list__item {

@@ -10,15 +10,16 @@ The morning sheet stays on one A4. Do not change the layout, the grid, or these 
 ## Grid
 
 Top band: weather, agenda, news.
-Lower band, three columns: email, reminders, health.
-Health is its own column. Do not stretch it into another column.
+News continues down the right column.
+Left column under the weather: email, with a short body line.
+Middle column: health above reminders. Those two stay in that column.
 
 ## Counts
 
 - Agenda: 4 day cards.
-- News: 5.
+- News: 7.
 - Reminders: 3.
-- Email: 6.
+- Email: 6 action items, plus up to 3 important messages from the other folders and one analysis line.
 - Health column: sleep, arterial pressure, and activity, each with a judgment and one piece of advice. A general line only when something else is off or getting worse. No figures, no device names, no "not from yesterday" preface.
 
 Screen, PDF capture, and print use the same map.

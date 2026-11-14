@@ -13,11 +13,17 @@ import {
 import { getEditionDateKey } from "@/lib/edition";
 import {
   actionEmailFetchPool,
-  toActionEmailItemsWithOverflow,
+  pictureFromMessages,
   type MailRawMessage,
 } from "./actionable";
 import { loadContactEmails } from "@/lib/contacts/carddav";
-import type { ActionEmailAdapter, ActionEmailItem } from "./types";
+import type { ActionEmailAdapter, ActionEmailItem, MailScan } from "./types";
+
+function asMailScan(data: MailScan | ActionEmailItem[] | undefined): MailScan | null {
+  if (!data || Array.isArray(data)) return null;
+  if (Array.isArray(data.items) && typeof data.analysis === "string") return data;
+  return null;
+}
 
 type ImapAccount = {
   id: string;
@@ -85,6 +91,43 @@ function lookbackSince(timeZone: string, lookbackDays: number): Date {
   return since;
 }
 
+const SKIP_SPECIAL = new Set([
+  "\\Trash",
+  "\\Junk",
+  "\\Drafts",
+  "\\Sent",
+  "\\All",
+  "\\Flagged",
+]);
+
+function isReceivedMailbox(box: {
+  path: string;
+  name?: string;
+  specialUse?: string;
+  flags?: Set<string>;
+}): boolean {
+  if (box.flags?.has("\\Noselect")) return false;
+  if (box.specialUse && SKIP_SPECIAL.has(box.specialUse)) return false;
+  const label = `${box.path} ${box.name ?? ""}`.toLowerCase();
+  return !/trash|junk|spam|draft|cestino|indesiderat|bozze|\bsent\b|inviat|all mail|tutti i messaggi|starred|contrassegn/.test(
+    label,
+  );
+}
+
+function formatAddress(entry?: { name?: string; address?: string }): string {
+  if (!entry) return "";
+  if (entry.name && entry.address) return `${entry.name} <${entry.address}>`;
+  return entry.address || entry.name || "";
+}
+
+function addressedToUser(
+  to: Array<{ address?: string }> | undefined,
+  user: string,
+): boolean {
+  const want = user.toLowerCase();
+  return (to ?? []).some((entry) => (entry.address ?? "").toLowerCase() === want);
+}
+
 async function fetchAccountRecent(
   account: ImapAccount,
   since: Date,
@@ -105,77 +148,125 @@ async function fetchAccountRecent(
   const messages: MailRawMessage[] = [];
   try {
     await client.connect();
-    const lock = await client.getMailboxLock("INBOX");
-    try {
-      let uids: number[] = [];
+    const listed = await client.list();
+    const boxes = listed
+      .filter((box) => isReceivedMailbox(box))
+      .sort((a, b) => {
+        const aInbox = a.specialUse === "\\Inbox" || a.path === "INBOX" ? 0 : 1;
+        const bInbox = b.specialUse === "\\Inbox" || b.path === "INBOX" ? 0 : 1;
+        return aInbox - bInbox;
+      })
+      .slice(0, 12);
+
+    type Hit = {
+      path: string;
+      uid: number;
+      id: string;
+      subject: string;
+      sender: string;
+      receivedAt: string;
+      unread: boolean;
+      flagged: boolean;
+      toUser: boolean;
+    };
+    const hits: Hit[] = [];
+    const seenIds = new Set<string>();
+
+    for (const box of boxes) {
+      let lock: { release: () => void } | undefined;
       try {
-        const found = await client.search({ since });
-        uids = Array.isArray(found) ? found : [];
-      } catch {
-        const found = await client.search({ all: true });
-        uids = Array.isArray(found) ? found : [];
-      }
-
-      // Newest first
-      uids = uids.sort((a, b) => b - a).slice(0, scanCap);
-
-      for (const uid of uids) {
+        lock = await client.getMailboxLock(box.path);
+        let uids: number[] = [];
         try {
-          const downloaded = await client.download(uid);
-          if (!downloaded?.content) continue;
-          const parsed = await simpleParser(downloaded.content);
-          const received = parsed.date;
-          if (!received || received < since) continue;
-
-          const from =
-            parsed.from?.text ||
-            parsed.from?.value?.[0]?.address ||
-            "";
-          const subject = parsed.subject || "(senza oggetto)";
-          const textPart = (parsed.text || "").trim();
-          const htmlPart = (parsed.html || "").trim();
-          const previewSource =
-            textPart ||
-            htmlPart
-              .replace(/<style[\s\S]*?<\/style>/gi, " ")
-              .replace(/<script[\s\S]*?<\/script>/gi, " ")
-              .replace(/<[^>]+>/g, " ");
-          const preview = previewSource
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 500);
-          const messageId =
-            (typeof parsed.messageId === "string" && parsed.messageId) ||
-            `imap-${account.id}-${uid}`;
-
-          let unread = false;
-          let flagged = false;
-          try {
-            const meta = await client.fetchOne(uid, { flags: true });
-            const flags = meta && "flags" in meta ? meta.flags : undefined;
-            unread = flags ? !flags.has("\\Seen") : false;
-            flagged = flags ? flags.has("\\Flagged") : false;
-          } catch {
-            unread = false;
-            flagged = false;
-          }
-
-          messages.push({
-            id: messageId,
-            subject,
-            sender: from,
-            receivedAt: received.toISOString(),
-            unread,
-            flagged,
-            preview,
-            account: account.label,
-          });
+          const found = await client.search({ since }, { uid: true });
+          uids = Array.isArray(found) ? found : [];
         } catch {
-          // skip bad message
+          uids = [];
         }
+        uids = uids.sort((a, b) => b - a).slice(0, 18);
+        if (uids.length === 0) continue;
+        for await (const msg of client.fetch(
+          uids,
+          { uid: true, envelope: true, flags: true, internalDate: true },
+          { uid: true },
+        )) {
+          const envelope = msg.envelope;
+          const receivedRaw = msg.internalDate ?? envelope?.date;
+          const received = receivedRaw ? new Date(receivedRaw) : undefined;
+          if (!received || Number.isNaN(received.getTime()) || received < since) continue;
+          const id =
+            (envelope?.messageId && String(envelope.messageId)) ||
+            `imap-${account.id}-${box.path}-${msg.uid}`;
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          const flags = msg.flags;
+          hits.push({
+            path: box.path,
+            uid: msg.uid,
+            id,
+            subject: envelope?.subject || "(senza oggetto)",
+            sender: formatAddress(envelope?.from?.[0]),
+            receivedAt: received.toISOString(),
+            unread: flags ? !flags.has("\\Seen") : false,
+            flagged: flags ? flags.has("\\Flagged") : false,
+            toUser: addressedToUser(envelope?.to, account.user),
+          });
+        }
+      } catch {
+        // One folder must not abort the account.
+      } finally {
+        lock?.release();
       }
-    } finally {
-      lock.release();
+    }
+
+    const download = [...hits]
+      .sort((a, b) => (Date.parse(b.receivedAt) || 0) - (Date.parse(a.receivedAt) || 0))
+      .slice(0, Math.min(40, scanCap));
+
+    for (const hit of download) {
+      let lock: { release: () => void } | undefined;
+      try {
+        lock = await client.getMailboxLock(hit.path);
+        const downloaded = await client.download(String(hit.uid), undefined, {
+          uid: true,
+        });
+        if (!downloaded?.content) continue;
+        const parsed = await simpleParser(downloaded.content);
+        const textPart = (parsed.text || "").trim();
+        const htmlPart = (typeof parsed.html === "string" ? parsed.html : "").trim();
+        const previewSource =
+          textPart ||
+          htmlPart
+            .replace(/<style[\s\S]*?<\/style>/gi, " ")
+            .replace(/<script[\s\S]*?<\/script>/gi, " ")
+            .replace(/<[^>]+>/g, " ");
+        messages.push({
+          id: hit.id,
+          subject: parsed.subject || hit.subject,
+          sender: parsed.from?.text || hit.sender,
+          receivedAt: hit.receivedAt,
+          unread: hit.unread,
+          flagged: hit.flagged,
+          preview: previewSource.replace(/\s+/g, " ").trim().slice(0, 500),
+          account: account.label,
+          mailbox: hit.path,
+          toUser: hit.toUser,
+        });
+      } catch {
+        messages.push({
+          id: hit.id,
+          subject: hit.subject,
+          sender: hit.sender,
+          receivedAt: hit.receivedAt,
+          unread: hit.unread,
+          flagged: hit.flagged,
+          account: account.label,
+          mailbox: hit.path,
+          toUser: hit.toUser,
+        });
+      } finally {
+        lock?.release();
+      }
     }
     await client.logout();
   } catch (err) {
@@ -185,7 +276,12 @@ async function fetchAccountRecent(
       /* ignore */
     }
     const message = err instanceof Error ? err.message : String(err);
-    return { messages: [], error: `${account.label}: ${message}` };
+    const response =
+      err && typeof err === "object" && "responseText" in err
+        ? String((err as { responseText?: unknown }).responseText ?? "")
+        : "";
+    const detail = response && !response.includes(account.pass) ? ` (${response.slice(0, 120)})` : "";
+    return { messages: [], error: `${account.label}: ${message}${detail}` };
   }
 
   return { messages };
@@ -195,18 +291,15 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "imap";
   readonly label = "IMAP (iCloud + Gmail)";
 
-  async getRecentActionEmails(
-    editionDateKey?: string,
-  ): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(editionDateKey?: string): Promise<MailScan> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
     const cacheKey = editionDateKey ?? getEditionDateKey();
-    const cached = await readEditionCacheEnvelope<ActionEmailItem[]>(
+    const cached = await readEditionCacheEnvelope<MailScan | ActionEmailItem[]>(
       "action-emails",
       cacheKey,
     );
-    if (cached?.data) {
-      return cached.data.slice(0, poolSize);
-    }
+    const cachedScan = asMailScan(cached?.data);
+    if (cachedScan) return cachedScan;
 
     const accounts = configuredImapAccounts();
     if (accounts.length === 0) {
@@ -252,19 +345,17 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
     }
 
     const contacts = await loadContactEmails();
-    const { items } = toActionEmailItemsWithOverflow(all, poolSize, {
-      contactEmails: contacts,
-    });
+    const picture = pictureFromMessages(all, poolSize, { contactEmails: contacts }, config.actionEmails.notableMax);
 
     (this as { label: string }).label =
       foundLabels.length > 0
         ? `IMAP (${foundLabels.join(" + ")})`
         : this.label;
 
-    await writeEditionCache("action-emails", items, cacheKey);
-    if (errors.length > 0 && items.length === 0) {
+    await writeEditionCache("action-emails", picture, cacheKey);
+    if (errors.length > 0 && picture.items.length === 0 && picture.notable.length === 0) {
       throw new Error(errors.join("; "));
     }
-    return items;
+    return picture;
   }
 }

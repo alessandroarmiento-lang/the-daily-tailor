@@ -394,10 +394,10 @@ a.cal-event__link:hover {
 
 .area-weather { order: 1; }
 .area-calendar { order: 2; }
-.area-reminders { order: 3; }
-.area-health { order: 4; }
-.area-news { order: 5; }
-.area-emails { order: 6; }
+.area-news { order: 3; }
+.area-emails { order: 4; }
+.area-health { order: 5; }
+.area-reminders { order: 6; }
 
 .sheet-grid > *,
 .sheet-section,
@@ -418,17 +418,17 @@ a.cal-event__link:hover {
  */
 @media (min-width: 700px) {
   .sheet-grid {
-    grid-template-columns: 0.95fr 1.05fr 1.2fr;
+    grid-template-columns: 1.35fr 0.85fr 1.15fr;
     /* max-content: rows never shrink below section content (stops overlaps). */
-    grid-template-rows: max-content max-content;
+    grid-template-rows: max-content max-content max-content;
     /*
-     * Calendar spans weather+reminders so Promemoria stay under Meteo only.
-     * Spanning reminders under Agenda (`reminders reminders`) put the 2-col
-     * list on top of day cells whenever row 1 sized to weather, not calendar.
+     * Email owns the left column. Health sits above reminders in the middle.
+     * News runs the full right side.
      */
     grid-template-areas:
       "weather calendar news"
-      "emails reminders health";
+      "emails health news"
+      "emails reminders news";
     gap: 0.85rem 1rem;
     align-items: stretch;
     align-content: start;
@@ -613,12 +613,13 @@ a.cal-event__link:hover {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   display: grid !important;
-  grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-  /* Fixed bands. Agenda spans mid; six reminders under meteo (1 col); six emails. */
-  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr) !important;
+  grid-template-columns: 1.35fr 0.85fr 1.15fr !important;
+  /* Top band, health, then the shorter reminders band. Email spans the lower two. */
+  grid-template-rows: minmax(0, 0.92fr) minmax(0, 1.05fr) minmax(0, 0.42fr) !important;
   grid-template-areas:
     "weather calendar news"
-    "emails reminders health" !important;
+    "emails health news"
+    "emails reminders news" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
   align-content: stretch !important;
@@ -1328,6 +1329,23 @@ a.cal-event__link:hover {
   color: var(--ink-muted);
 }
 
+.action-mail-list__analysis {
+  margin: 0.45rem 0 0.15rem;
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.action-mail-list__reason {
+  margin: 0.12rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
 .action-mail-list__cue {
   margin: 0.12rem 0 0;
   font-family: var(--font-sans);
@@ -1357,9 +1375,7 @@ a.cal-event__link:hover {
 }
 
 .area-emails .action-mail-list__cue,
-.area-emails .action-mail-list__body,
-.sheet-page.is-pdf-capture .action-mail-list__cue,
-.sheet-page.is-pdf-capture .action-mail-list__body {
+.sheet-page.is-pdf-capture .action-mail-list__cue {
   display: none !important;
 }
 
@@ -1619,11 +1635,12 @@ a.cal-event__link:hover {
     flex: 1 1 auto;
     min-height: 0 !important;
     display: grid !important;
-    grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-    grid-template-rows: max-content max-content !important;
+    grid-template-columns: 1.35fr 0.85fr 1.15fr !important;
+    grid-template-rows: max-content max-content max-content !important;
     grid-template-areas:
       "weather calendar news"
-      "emails reminders health" !important;
+      "emails health news"
+      "emails reminders news" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
     overflow: hidden !important;
@@ -1634,6 +1651,7 @@ a.cal-event__link:hover {
   .area-weather,
   .area-calendar,
   .area-reminders,
+  .area-health,
   .area-emails {
     position: relative !important;
     min-height: max-content !important;
@@ -1648,6 +1666,7 @@ a.cal-event__link:hover {
   .area-weather > .sheet-section,
   .area-calendar > .sheet-section,
   .area-reminders > .sheet-section,
+  .area-health > .sheet-section,
   .area-emails > .sheet-section {
     position: relative !important;
     inset: auto !important;
@@ -1662,6 +1681,7 @@ a.cal-event__link:hover {
   .area-weather .sheet-section__body,
   .area-calendar .sheet-section__body,
   .area-reminders .sheet-section__body,
+  .area-health .sheet-section__body,
   .area-emails .sheet-section__body {
     flex: 0 0 auto !important;
     overflow: visible !important;

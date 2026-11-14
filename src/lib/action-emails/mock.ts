@@ -1,4 +1,4 @@
-import type { ActionEmailAdapter, ActionEmailItem } from "./types";
+import type { ActionEmailAdapter, ActionEmailItem, MailScan } from "./types";
 
 function yesterdayAt(hours: number, minutes: number): string {
   const d = new Date();
@@ -54,9 +54,25 @@ export class MockActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "mock";
   readonly label = "Action email (mock)";
 
-  async getRecentActionEmails(
-    _editionDateKey?: string,
-  ): Promise<ActionEmailItem[]> {
-    return MOCK_ACTION_EMAILS;
+  async getRecentActionEmails(_editionDateKey?: string): Promise<MailScan> {
+    return {
+      items: MOCK_ACTION_EMAILS.map((item) => ({ ...item, lane: "action" as const })),
+      notable: [
+        {
+          id: "ae-note-1",
+          lane: "notable",
+          mailbox: "Archivio",
+          subject: "Nota sul progetto di settembre",
+          senderName: "Giulia Neri",
+          senderAddress: "giulia.neri@example",
+          actionCue: "Tenuta in un'altra cartella.",
+          bodyPreview:
+            "Ti lascio qui la nota che avevamo messo da parte, così la ritrovi senza cercarla nella posta in arrivo.",
+          receivedAt: yesterdayAt(8, 5),
+        },
+      ],
+      analysis:
+        "Oltre alle richieste, contano anche messaggi tenuti fuori dalla posta in arrivo.",
+    };
   }
 }

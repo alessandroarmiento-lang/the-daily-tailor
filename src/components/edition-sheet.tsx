@@ -616,12 +616,19 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
               title={t("email")}
               message={emailsResult.message}
             />
-          ) : emailsResult.data && emailsResult.data.items.length > 0 ? (
+          ) : emailsResult.data &&
+            (emailsResult.data.items.length > 0 ||
+              (emailsResult.data.notable?.length ?? 0) > 0) ? (
             (() => {
               const items = emailsResult.data.items.slice(
                 0,
                 config.actionEmails.maxItems,
               );
+              const notable = (emailsResult.data.notable ?? []).slice(
+                0,
+                config.actionEmails.notableMax,
+              );
+              const analysis = emailsResult.data.analysis;
               const hidden =
                 typeof emailsResult.data.hiddenCount === "number"
                   ? emailsResult.data.hiddenCount
@@ -667,6 +674,42 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                       </li>
                     ))}
                   </ul>
+                  {analysis ? (
+                    <p className="action-mail-list__analysis">{analysis}</p>
+                  ) : null}
+                  {notable.length > 0 ? (
+                    <ul className="action-mail-list">
+                      {notable.map((item) => (
+                        <li key={item.id} className="action-mail-list__item">
+                          <p className="action-mail-list__subject">
+                            <NativeOpenLink
+                              href={item.messageUrl}
+                              className="action-mail-list__link"
+                              payload={mailOpenPayload(item)}
+                            >
+                              {item.subject}
+                            </NativeOpenLink>
+                          </p>
+                          <p className="action-mail-list__from">
+                            {item.senderName}
+                            {item.account ? ` · ${item.account}` : ""}
+                            <span className="action-mail-list__when">
+                              {" · "}
+                              {formatReceived(item.receivedAt, tz, locale)}
+                            </span>
+                          </p>
+                          {item.actionCue ? (
+                            <p className="action-mail-list__reason">{item.actionCue}</p>
+                          ) : null}
+                          {item.bodyPreview ? (
+                            <p className="action-mail-list__body">
+                              {item.bodyPreview}
+                            </p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </SectionShell>
               );
             })()

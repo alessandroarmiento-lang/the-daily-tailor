@@ -30,19 +30,19 @@ import {
  * dotted border — the ghost rules under Notizie in the PDF.
  */
 
-const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
+const DESKTOP_GRID_COLUMNS = "1.35fr 0.85fr 1.15fr";
 /**
  * Locked bands, same box on iPhone and Mac:
  * meteo | agenda | news;
- * email | promemoria | news;
- * email | salute | news.
- * Counts do not resize the rows.
+ * email | salute | news;
+ * email | promemoria | news.
+ * Email owns the left column. Health sits above reminders.
+ * News runs the full height. Counts do not resize the rows.
  */
-const DESKTOP_GRID_AREAS = `"weather calendar news" "emails reminders health"`;
-/**
- * Two bands. The lower band is three columns: email, reminders, health.
- */
-const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) minmax(0, 1fr)";
+const DESKTOP_GRID_AREAS =
+  `"weather calendar news" "emails health news" "emails reminders news"`;
+/** Top band, then health, then the shorter reminders band. */
+const DESKTOP_GRID_ROWS = "minmax(0, 0.92fr) minmax(0, 1.05fr) minmax(0, 0.42fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -141,6 +141,7 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     [".area-weather", "weather"],
     [".area-calendar", "calendar"],
     [".area-news", "news"],
+    [".area-health", "health"],
     [".area-reminders", "reminders"],
     [".area-emails", "emails"],
   ];

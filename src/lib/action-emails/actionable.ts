@@ -51,6 +51,10 @@ export type MailRawMessage = {
   preview?: string;
   /** Mail.app / IMAP account label when known (iCloud, Google, …). */
   account?: string;
+  /** IMAP mailbox path. Absent when the source only read the inbox. */
+  mailbox?: string;
+  /** True when the account address is on To. */
+  toUser?: boolean;
   /** message:// deep link when available. */
   messageUrl?: string;
 };
@@ -417,4 +421,131 @@ export function toActionEmailItemsWithOverflow(
 /** Pool of actionable candidates to keep before A4 cap (for +N altre email). */
 export function actionEmailFetchPool(maxVisible: number): number {
   return Math.max(24, maxVisible * 8);
+}
+
+function isInboxPath(mailbox: string | undefined): boolean {
+  if (!mailbox) return true;
+  const name = mailbox.split(/[/.]/).pop() ?? mailbox;
+  return /^inbox$/i.test(name);
+}
+
+function notableCue(msg: MailRawMessage, ctx: ActionClassifyContext): string {
+  const { address } = parseSender(msg.sender);
+  if (isContact(address, ctx.contactEmails)) return "Persona in rubrica.";
+  if (msg.mailbox && !isInboxPath(msg.mailbox)) return "Tenuta in un'altra cartella.";
+  if (msg.toUser) return "Scritta direttamente a te.";
+  if (/^(re|rif|fwd|i)\s*:/i.test(msg.subject || "")) {
+    return "È una risposta, non una lista.";
+  }
+  return "Tra la posta ricevuta, non è una lista.";
+}
+
+function isNotableMail(
+  msg: MailRawMessage,
+  ctx: ActionClassifyContext,
+  actionIds: Set<string>,
+): boolean {
+  if (!msg.id || actionIds.has(msg.id)) return false;
+  if (isDeniedNoiseMail(msg)) return false;
+  const { address } = parseSender(msg.sender || "");
+  const bulk = looksBulkSender(msg.sender || "", address);
+  if (bulk && !isAllowDomain(address, msg.sender || "")) return false;
+  if (isContact(address, ctx.contactEmails)) return true;
+  const human = Boolean(address) && !bulk;
+  const filed = Boolean(msg.mailbox) && !isInboxPath(msg.mailbox);
+  const reply = /^(re|rif|fwd|i)\s*:/i.test(msg.subject || "");
+  if (human && filed) return true;
+  if (human && msg.toUser && (reply || msg.unread)) return true;
+  if (human && reply && msg.unread) return true;
+  return false;
+}
+
+function notableRank(msg: MailRawMessage, ctx: ActionClassifyContext): number {
+  const { address } = parseSender(msg.sender || "");
+  let score = 0;
+  if (isContact(address, ctx.contactEmails)) score += 8;
+  if (msg.mailbox && !isInboxPath(msg.mailbox)) score += 4;
+  if (msg.toUser) score += 3;
+  if (msg.unread) score += 2;
+  if (msg.flagged) score += 2;
+  return score;
+}
+
+export function notableAnalysis(
+  picked: MailRawMessage[],
+  ctx: ActionClassifyContext = {},
+): string {
+  if (picked.length === 0) {
+    return "Nelle altre cartelle non c'è posta diretta oltre a quella che chiede un gesto.";
+  }
+  const filed = picked.some((msg) => msg.mailbox && !isInboxPath(msg.mailbox));
+  const people = picked.some((msg) =>
+    isContact(parseSender(msg.sender || "").address, ctx.contactEmails),
+  );
+  if (filed && people) {
+    return "Oltre alle richieste, contano persone in rubrica e posta tenuta fuori dalla posta in arrivo.";
+  }
+  if (filed) {
+    return "Oltre alle richieste, contano messaggi tenuti fuori dalla posta in arrivo.";
+  }
+  if (people) {
+    return "Oltre alle richieste, le più rilevanti sono messaggi di persone in rubrica, non le liste.";
+  }
+  return "Oltre alle richieste, le più rilevanti sono messaggi diretti, non le liste.";
+}
+
+export function pictureFromMessages(
+  messages: MailRawMessage[],
+  maxItems: number,
+  ctx: ActionClassifyContext = {},
+  notableMax = 3,
+): {
+  items: ActionEmailItem[];
+  notable: ActionEmailItem[];
+  analysis: string;
+  hiddenCount: number;
+} {
+  const { items, hiddenCount } = toActionEmailItemsWithOverflow(
+    messages,
+    maxItems,
+    ctx,
+  );
+  const actionIds = new Set(
+    rankActionableMail(messages, ctx).map((msg) => msg.id),
+  );
+  const picked = messages
+    .filter((msg) => isNotableMail(msg, ctx, actionIds))
+    .sort((a, b) => {
+      const byRank = notableRank(b, ctx) - notableRank(a, ctx);
+      if (byRank !== 0) return byRank;
+      return (Date.parse(b.receivedAt) || 0) - (Date.parse(a.receivedAt) || 0);
+    })
+    .slice(0, notableMax);
+  const notable = picked.map((msg, index) => {
+    const item = toActionEmailItem(msg, index);
+    return {
+      ...item,
+      lane: "notable" as const,
+      mailbox: msg.mailbox,
+      actionCue: notableCue(msg, ctx),
+    };
+  });
+  const notableIds = new Set(picked.map((msg) => msg.id));
+  const sawOtherFolders = messages.some(
+    (msg) => msg.mailbox && !isInboxPath(msg.mailbox),
+  );
+  const analysis =
+    picked.length > 0
+      ? notableAnalysis(picked, ctx)
+      : sawOtherFolders
+        ? "Nelle altre cartelle non c'è posta diretta oltre a quella che chiede un gesto."
+        : "Le altre cartelle non sono in questa lettura: in elenco restano le richieste.";
+  return {
+    items: items
+      .filter((item) => !notableIds.has(item.id))
+      .map((item) => ({ ...item, lane: "action" as const })),
+    notable,
+    analysis,
+    hiddenCount,
+  };
 }

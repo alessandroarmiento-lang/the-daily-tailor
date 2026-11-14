@@ -45,8 +45,8 @@ export const config = {
     /** Il Post — sezione Mondo (trailing slash required). */
     feedUrl:
       process.env.NEWS_FEED_URL ?? "https://www.ilpost.it/mondo/feed/",
-    /** Locked with the A4 sheet. */
-    maxItems: 5,
+    /** Locked with the A4 sheet. The news column runs the full height. */
+    maxItems: 7,
   },
   reminders: {
     /**
@@ -72,8 +72,10 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
-    /** Locked with the A4 sheet. */
+    /** Locked with the A4 sheet: action mail. */
     maxItems: 6,
+    /** Important mail that is not already an action item. */
+    notableMax: 3,
     /** How far back IMAP/Mail scan for actionable mail (rolling last-N). */
     lookbackDays: Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "45"),
   },

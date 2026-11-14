@@ -34,7 +34,8 @@ export async function ActionEmailsSection() {
   }
 
   const briefing = result.data!;
-  if (briefing.items.length === 0) {
+  const notable = (briefing.notable ?? []).slice(0, config.actionEmails.notableMax);
+  if (briefing.items.length === 0 && notable.length === 0) {
     return (
       <SectionEmpty
         title="Email"
@@ -51,13 +52,16 @@ export async function ActionEmailsSection() {
   return (
     <SectionShell
       title="Email"
-      kicker="Ultime · richieste d’azione"
+      kicker="Richieste e posta che conta"
       overflowLabel={overflow || undefined}
       tone={result.status === "error" ? "error" : "ok"}
       footerNote={
         result.status === "error" ? result.message : undefined
       }
     >
+      {briefing.analysis ? (
+        <p className="action-mail-list__analysis">{briefing.analysis}</p>
+      ) : null}
       <ul className="action-mail-list">
         {items.map((item) => (
           <li key={item.id} className="action-mail-list__item">
@@ -87,6 +91,34 @@ export async function ActionEmailsSection() {
           </li>
         ))}
       </ul>
+      {notable.length > 0 ? (
+        <ul className="action-mail-list">
+          {notable.map((item) => (
+            <li key={item.id} className="action-mail-list__item">
+              <p className="action-mail-list__subject">
+                <NativeOpenLink
+                  href={item.messageUrl}
+                  className="action-mail-list__link"
+                  payload={mailOpenPayload(item)}
+                >
+                  {item.subject}
+                </NativeOpenLink>
+              </p>
+              <p className="action-mail-list__from">
+                {item.senderName}
+                {item.account ? ` · ${item.account}` : ""}
+                <span className="action-mail-list__when">
+                  {" · "}
+                  {formatReceived(item.receivedAt)}
+                </span>
+              </p>
+              {item.actionCue ? (
+                <p className="action-mail-list__reason">{item.actionCue}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </SectionShell>
   );
 }

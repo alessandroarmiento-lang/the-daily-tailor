@@ -11,11 +11,10 @@ import {
   ImapActionEmailAdapter,
 } from "./imap";
 import { MockActionEmailAdapter } from "./mock";
-import { toActionEmailItemsWithOverflow } from "./actionable";
 import type {
   ActionEmailAdapter,
   ActionEmailBriefing,
-  ActionEmailItem,
+  MailScan,
   SectionResult,
 } from "./types";
 
@@ -46,7 +45,7 @@ function resolveAdapter(): ActionEmailAdapter {
   }
 }
 
-const WINDOW_LABEL = "Ultime · richieste d’azione";
+const WINDOW_LABEL = "Richieste e posta che conta";
 
 function emptyBriefing(
   adapter: ActionEmailAdapter,
@@ -54,6 +53,8 @@ function emptyBriefing(
 ): ActionEmailBriefing {
   return {
     items: [],
+    notable: [],
+    analysis: "",
     hiddenCount: 0,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
@@ -66,17 +67,20 @@ function emptyBriefing(
  * Adapters may return a ranked pool larger than the A4 slot.
  * Cap here and expose hiddenCount for «+N».
  */
-function briefingFromPool(
-  pool: ActionEmailItem[],
+function briefingFromScan(
+  scan: MailScan,
   adapter: ActionEmailAdapter,
   isMock: boolean,
 ): ActionEmailBriefing {
-  // Pool is already actionable + newest-first; re-cap by list order.
   const max = config.actionEmails.maxItems;
-  const items = pool.slice(0, max);
-  const hiddenCount = Math.max(0, pool.length - items.length);
+  const notableMax = config.actionEmails.notableMax;
+  const items = scan.items.slice(0, max);
+  const notable = (scan.notable ?? []).slice(0, notableMax);
+  const hiddenCount = Math.max(0, scan.items.length - items.length);
   return {
     items,
+    notable,
+    analysis: scan.analysis,
     hiddenCount,
     fetchedAt: new Date().toISOString(),
     sourceLabel: adapter.label,
@@ -92,10 +96,10 @@ export async function getActionEmails(
   const useMock = adapter.id === "mock";
 
   try {
-    const pool = await adapter.getRecentActionEmails(editionDateKey);
+    const scan = await adapter.getRecentActionEmails(editionDateKey);
     return {
       status: "ok",
-      data: briefingFromPool(pool, adapter, useMock),
+      data: briefingFromScan(scan, adapter, useMock),
     };
   } catch (err) {
     const raw = err instanceof Error ? err.message : "Email non disponibili";
@@ -114,7 +118,5 @@ export type {
   ActionEmailAdapter,
   ActionEmailItem,
   ActionEmailBriefing,
+  MailScan,
 } from "./types";
-
-// Re-export for adapters that build overflow-aware pools.
-export { toActionEmailItemsWithOverflow };

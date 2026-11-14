@@ -15,10 +15,16 @@ import { getEditionDateKey } from "@/lib/edition";
 import {
   actionEmailFetchPool,
   messageUrlFromId,
-  toActionEmailItemsWithOverflow,
+  pictureFromMessages,
   type MailRawMessage,
 } from "./actionable";
-import type { ActionEmailAdapter, ActionEmailItem } from "./types";
+import type { ActionEmailAdapter, ActionEmailItem, MailScan } from "./types";
+
+function asMailScan(data: MailScan | ActionEmailItem[] | undefined): MailScan | null {
+  if (!data || Array.isArray(data)) return null;
+  if (Array.isArray(data.items) && typeof data.analysis === "string") return data;
+  return null;
+}
 
 type ScriptResult = {
   ok: boolean;
@@ -32,18 +38,15 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
   readonly id = "applemail";
   label = "Apple Mail (iCloud + Gmail)";
 
-  async getRecentActionEmails(
-    editionDateKey?: string,
-  ): Promise<ActionEmailItem[]> {
+  async getRecentActionEmails(editionDateKey?: string): Promise<MailScan> {
     const poolSize = actionEmailFetchPool(config.actionEmails.maxItems);
     const cacheKey = editionDateKey ?? getEditionDateKey();
-    const cached = await readEditionCacheEnvelope<ActionEmailItem[]>(
+    const cached = await readEditionCacheEnvelope<MailScan | ActionEmailItem[]>(
       "action-emails",
       cacheKey,
     );
-    if (cached?.data) {
-      return cached.data.slice(0, poolSize);
-    }
+    const cachedScan = asMailScan(cached?.data);
+    if (cachedScan) return cachedScan;
 
     const lookback = Math.max(1, config.actionEmails.lookbackDays);
     const result = await runOsascriptJson<ScriptResult>(
@@ -66,11 +69,13 @@ export class AppleMailActionEmailAdapter implements ActionEmailAdapter {
       messageUrl: m.messageUrl || messageUrlFromId(m.id, m.account),
     }));
 
-    // Keep full ranked actionable pool (not just A4 visible slot).
-    const { items } = toActionEmailItemsWithOverflow(raw, poolSize, {
-      contactEmails: contacts,
-    });
-    await writeEditionCache("action-emails", items, cacheKey);
-    return items;
+    const picture = pictureFromMessages(
+      raw,
+      poolSize,
+      { contactEmails: contacts },
+      config.actionEmails.notableMax,
+    );
+    await writeEditionCache("action-emails", picture, cacheKey);
+    return picture;
   }
 }

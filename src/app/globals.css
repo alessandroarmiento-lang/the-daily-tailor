@@ -2143,7 +2143,7 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .area-emails {
-  max-height: 168px !important;
+  max-height: 118px !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather > .sheet-section,
@@ -2160,8 +2160,17 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .area-emails {
   flex: 0 1 auto !important;
-  max-height: 168px !important;
+  max-height: 118px !important;
   overflow: hidden !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list__item {
+  padding: 0.08rem 0 !important;
+}
+
+.sheet-page.is-pdf-capture .aphorism {
+  margin: 0 !important;
+  padding: 0.15rem 0 0.2rem !important;
 }
 
 .sheet-page.is-pdf-capture .area-news {
@@ -2184,4 +2193,56 @@ a.cal-event__link:hover {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow: hidden !important;
+}
+
+/* Compact the top so mail and news still fit on the same A4. */
+.sheet-page.is-pdf-capture {
+  padding: 26px 28px 18px !important;
+}
+
+.sheet-page.is-pdf-capture .masthead__brand {
+  font-size: 1.85rem !important;
+  line-height: 0.95 !important;
+}
+
+.sheet-page.is-pdf-capture .masthead__tagline,
+.sheet-page.is-pdf-capture .aphorism__text {
+  font-size: 0.86rem !important;
+  line-height: 1.2 !important;
+}
+
+.sheet-page.is-pdf-capture .sheet-section__title {
+  font-size: 1rem !important;
+}
+
+.sheet-page.is-pdf-capture .sheet-section__head {
+  margin-bottom: 0.12rem !important;
+}
+
+.sheet-page.is-pdf-capture .weather__deg {
+  font-size: 2rem !important;
+}
+
+.sheet-page.is-pdf-capture .weather__facts {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.05rem 0.65rem !important;
+}
+
+.sheet-page.is-pdf-capture .weather__precip-rows {
+  display: none !important;
+}
+
+.sheet-page.is-pdf-capture .weather__precip-bar-wrap {
+  height: 0.28rem !important;
+}
+
+.sheet-page.is-pdf-capture .weather__precip-hour,
+.sheet-page.is-pdf-capture .weather__precip-pct {
+  font-size: 0.55rem !important;
+  line-height: 1.05 !important;
+}
+
+.sheet-page.is-pdf-capture .cal-day {
+  padding: 0.16rem 0.32rem 0.18rem !important;
 }

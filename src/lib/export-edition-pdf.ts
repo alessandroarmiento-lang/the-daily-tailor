@@ -42,8 +42,11 @@ const DESKTOP_GRID_COLUMNS = "1fr 0.095fr 1.095fr 1.43fr";
  */
 const DESKTOP_GRID_AREAS =
   `"weather calendar calendar news" "health health reminders news" "emails emails emails emails"`;
-/** Top band, health beside reminders, then the mail band. */
-const DESKTOP_GRID_ROWS = "minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.7fr)";
+/**
+ * Top and middle bands size to their text. The mail band takes the rest,
+ * including the gap that used to sit above it.
+ */
+const DESKTOP_GRID_ROWS = "minmax(0, auto) minmax(0, auto) minmax(0, 1fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -58,8 +61,8 @@ const LINE_CLAMP_LINES: Array<[string, number]> = [
   [".headline-list__summary", 2],
   [".reminder-list__title", 2],
   [".cal-event__title", 2],
-  [".action-mail-list__subject", 1],
-  [".action-mail-list__body", 1],
+  [".action-mail-list__subject", 2],
+  [".action-mail-list__body", 2],
 ];
 
 type StyleBackup = {

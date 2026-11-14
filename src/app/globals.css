@@ -558,6 +558,36 @@ a.cal-event__link:hover {
     font-size: 2.45rem;
   }
 
+  .cal-widget {
+    grid-template-columns: 1fr;
+    gap: 0.18rem;
+    align-content: start;
+  }
+
+  .cal-day {
+    height: auto;
+    min-height: 1.55rem;
+    padding: 0.2rem 0.3rem 0.22rem;
+  }
+
+  .cal-day__label {
+    margin: 0 0 0.12rem;
+    font-size: 0.58rem;
+  }
+
+  .cal-event {
+    padding: 0.06rem 0;
+  }
+
+  .cal-event__time {
+    font-size: 0.58rem;
+  }
+
+  .cal-event__title {
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+
   .area-emails .action-mail-list {
     grid-template-columns: 1fr 1fr 1fr;
     column-gap: 0.85rem;
@@ -629,7 +659,7 @@ a.cal-event__link:hover {
   display: grid !important;
   grid-template-columns: 1fr 0.095fr 1.095fr 1.43fr !important;
   /* Top band, then health beside reminders, then mail across the bottom. */
-  grid-template-rows: minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.7fr) !important;
+  grid-template-rows: minmax(0, auto) minmax(0, auto) minmax(0, 1fr) !important;
   grid-template-areas:
     "weather calendar calendar news"
     "health health reminders news"
@@ -813,7 +843,7 @@ a.cal-event__link:hover {
 .sheet-page.is-pdf-capture .action-mail-list {
   display: grid !important;
   grid-template-columns: 1fr 1fr 1fr !important;
-  gap: 0.04rem 0.55rem !important;
+  gap: 0.08rem 0.55rem !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list > :nth-child(n + 7) {
@@ -821,12 +851,26 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item {
-  padding: 0.06rem 0 !important;
+  padding: 0.02rem 0 !important;
 }
 
-.sheet-page.is-pdf-capture .action-mail-list__subject,
+.sheet-page.is-pdf-capture .action-mail-list__subject {
+  font-size: 0.8rem !important;
+  line-height: 1.15 !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list__from {
+  margin-top: 0.04rem !important;
+  font-size: 0.62rem !important;
+}
+
 .sheet-page.is-pdf-capture .action-mail-list__body {
-  -webkit-line-clamp: 1 !important;
+  margin-top: 0.08rem !important;
+  padding-top: 0.06rem !important;
+  font-size: 0.62rem !important;
+  line-height: 1.2 !important;
+  -webkit-line-clamp: 2 !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item:nth-last-child(2):nth-child(odd) {
@@ -1093,15 +1137,9 @@ a.cal-event__link:hover {
 
 .cal-widget {
   display: grid;
-  /* Phone: single column so VEN/DOM never leave the viewport. */
+  /* One column, same stack as the PDF. */
   grid-template-columns: 1fr;
-  gap: 0.35rem 0.55rem;
-}
-
-@media (min-width: 480px) {
-  .cal-widget {
-    grid-template-columns: 1fr 1fr;
-  }
+  gap: 0.18rem;
 }
 
 .cal-day {
@@ -1885,8 +1923,8 @@ a.cal-event__link:hover {
   }
 
   .cal-widget {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem 0.4rem;
+    grid-template-columns: 1fr;
+    gap: 0.18rem;
   }
 
   .cal-day {

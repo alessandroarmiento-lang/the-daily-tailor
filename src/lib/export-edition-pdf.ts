@@ -30,15 +30,20 @@ import {
  * dotted border — the ghost rules under Notizie in the PDF.
  */
 
-/** Top to bottom: meteo, agenda, promemoria, salute, email, notizie. */
-const STACK_ORDER = [
-  ".area-weather",
-  ".area-calendar",
-  ".area-reminders",
-  ".area-health",
-  ".area-emails",
-  ".area-news",
-] as const;
+const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
+/**
+ * Locked bands, same box on iPhone and Mac:
+ * meteo | agenda | news;
+ * email | promemoria | news;
+ * email | salute | news.
+ * Counts do not resize the rows.
+ */
+const DESKTOP_GRID_AREAS = `"weather calendar news" "emails reminders news" "emails health news"`;
+/**
+ * Fixed row sizes. Agenda takes the tall middle cell. Promemoria sit under it.
+ * The health strip is the short bottom cell of that column.
+ */
+const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(4.4rem, 0.52fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -133,7 +138,14 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   const grid = root.querySelector(".sheet-grid");
   if (grid instanceof HTMLElement) touched.push(grid);
 
-  for (const selector of STACK_ORDER) {
+  const orderedAreas: Array<[string, string]> = [
+    [".area-weather", "weather"],
+    [".area-calendar", "calendar"],
+    [".area-news", "news"],
+    [".area-reminders", "reminders"],
+    [".area-emails", "emails"],
+  ];
+  for (const [selector] of orderedAreas) {
     const el = root.querySelector(selector);
     if (el instanceof HTMLElement) touched.push(el);
   }
@@ -175,49 +187,56 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
   root.style.borderRadius = "0";
 
   if (grid instanceof HTMLElement) {
-    grid.style.display = "flex";
-    grid.style.flexDirection = "column";
+    grid.style.display = "grid";
     grid.style.flex = "1 1 auto";
     grid.style.minHeight = "0";
-    grid.style.gap = "0.38rem";
-    grid.style.marginTop = "0.45rem";
+    grid.style.gridTemplateColumns = DESKTOP_GRID_COLUMNS;
+    // Fixed bands. Item count must not change row size.
+    grid.style.gridTemplateRows = DESKTOP_GRID_ROWS;
+    grid.style.gridTemplateAreas = DESKTOP_GRID_AREAS;
+    grid.style.gap = "0.85rem 1rem";
+    grid.style.marginTop = "0.85rem";
+    grid.style.alignContent = "stretch";
     grid.style.alignItems = "stretch";
-    grid.style.justifyContent = "flex-start";
     grid.style.overflow = "hidden";
   }
 
-  STACK_ORDER.forEach((selector, index) => {
+  for (const [selector, area] of orderedAreas) {
     const el = root.querySelector(selector);
-    if (!(el instanceof HTMLElement)) return;
-    const fills = selector === ".area-news";
-    el.style.order = String(index + 1);
+    if (!(el instanceof HTMLElement)) continue;
+    el.style.gridArea = area;
     el.style.position = "relative";
-    el.style.gridArea = "auto";
     el.style.alignSelf = "stretch";
     el.style.minHeight = "0";
-    el.style.height = fills ? "auto" : "auto";
-    el.style.maxHeight = selector === ".area-emails" ? "168px" : "none";
-    el.style.flex = fills ? "1 1 auto" : "0 0 auto";
+    el.style.height = "100%";
+    el.style.maxHeight = "100%";
     el.style.overflow = "hidden";
     const section = el.querySelector(":scope > .sheet-section");
     if (section instanceof HTMLElement) {
       section.style.display = "flex";
       section.style.flexDirection = "column";
-      section.style.position = "relative";
-      section.style.inset = "auto";
       section.style.width = "100%";
       section.style.minHeight = "0";
-      section.style.height = fills ? "100%" : "auto";
-      section.style.maxHeight = fills ? "100%" : "none";
+      section.style.height = "100%";
+      section.style.maxHeight = "100%";
       section.style.overflow = "hidden";
+      if (selector === ".area-news") {
+        section.style.position = "absolute";
+        section.style.inset = "0";
+      } else {
+        section.style.position = "relative";
+      }
     }
     const body = el.querySelector(":scope > .sheet-section > .sheet-section__body");
     if (body instanceof HTMLElement) {
-      body.style.flex = fills ? "1 1 auto" : "0 0 auto";
+      body.style.flex = "1 1 auto";
       body.style.minHeight = "0";
-      body.style.overflow = fills || selector === ".area-emails" ? "hidden" : "visible";
+      body.style.overflow =
+        selector === ".area-emails" || selector === ".area-weather"
+          ? "visible"
+          : "hidden";
     }
-  });
+  }
 
   if (calWidget instanceof HTMLElement) {
     calWidget.style.display = "grid";

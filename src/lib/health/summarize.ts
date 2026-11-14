@@ -224,9 +224,7 @@ function buildHealthLines(input: {
   sleepRows: string[][];
   breathingRows: string[][];
   spo2Rows: string[][];
-  restingRows: string[][];
-  hrvRows: string[][];
-  respiratoryRows: string[][];
+  heartRows: string[][];
   bpSysRows: string[][];
   bpDiaRows: string[][];
 }): HealthLine[] {
@@ -236,9 +234,7 @@ function buildHealthLines(input: {
     sleepRows,
     breathingRows,
     spo2Rows,
-    restingRows,
-    hrvRows,
-    respiratoryRows,
+    heartRows,
     bpSysRows,
     bpDiaRows,
   } = input;
@@ -487,247 +483,146 @@ function buildHealthLines(input: {
       breathText = "Non c'è una lettura del respiro per la notte disponibile.";
     }
     lines.push({ label: "Respiro", text: breathText });
-
-    const restingToday: Reading[] = [];
-    const restingByDay = new Map<string, Reading[]>();
-    for (const row of restingRows) {
-      const sample = toSample(row);
-      if (!sample) continue;
-      const kind = sourceKind(sample.source);
-      if (kind !== "watch" && kind !== "ring") continue;
-      const n = numberOrNull(sample.value);
-      if (n == null || n < 35 || n > 130) continue;
-      if (sample.startKey === prev || sample.startKey === dateKey) {
-        restingToday.push({ kind, value: n });
-      } else if (sample.startKey >= addDays(dateKey, -28) && sample.startKey < prev) {
-        const list = restingByDay.get(sample.startKey) ?? [];
-        list.push({ kind, value: n });
-        restingByDay.set(sample.startKey, list);
-      }
-    }
-    const resting = mergeReadings(
-      restingToday,
-      (value, mid) => Math.abs(value - mid) <= 5,
-      ["watch", "ring"],
-    );
-    const restingBase = [...restingByDay.values()]
-      .map((readings) =>
-        mergeReadings(readings, (value, mid) => Math.abs(value - mid) <= 5, ["watch", "ring"]),
-      )
-      .filter((n): n is number => n != null);
-    const restingZ = resting == null ? null : zScore(resting, restingBase);
-
-    const hrvNow = nightMetric(
-      hrvRows,
-      latest,
-      (n) => n > 5 && n < 250,
-      (value, mid) => Math.abs(value - mid) <= Math.max(8, Math.abs(mid) * 0.2),
-      ["watch", "withings", "ring"],
-    );
-    const hrvBase = baselineNightMetric(
-      hrvRows,
-      dateKey,
-      latest,
-      firstMorning,
-      (n) => n > 5 && n < 250,
-      (value, mid) => Math.abs(value - mid) <= Math.max(8, Math.abs(mid) * 0.2),
-      ["watch", "withings", "ring"],
-    );
-    const hrvZ = hrvNow == null ? null : zScore(hrvNow, hrvBase);
-
-    const breathRateNow = nightMetric(
-      respiratoryRows,
-      latest,
-      (n) => n >= 8 && n <= 28,
-      (value, mid) => Math.abs(value - mid) <= 2,
-      ["withings", "ring", "watch"],
-    );
-    const breathRateBase = baselineNightMetric(
-      respiratoryRows,
-      dateKey,
-      latest,
-      firstMorning,
-      (n) => n >= 8 && n <= 28,
-      (value, mid) => Math.abs(value - mid) <= 2,
-      ["withings", "ring", "watch"],
-    );
-    const breathRateZ = breathRateNow == null ? null : zScore(breathRateNow, breathRateBase);
-
-    const bp = bloodPressure(bpSysRows, bpDiaRows, prev, dateKey);
-
-    const notes: string[] = [];
-    const names: string[] = [];
-    const thin: string[] = [];
-    if (resting != null) {
-      names.push("la frequenza a riposo");
-      if (restingZ != null && restingZ >= 1.5) notes.push("la frequenza a riposo è più alta del tuo solito");
-      else if (restingZ != null && restingZ <= -1.5) notes.push("la frequenza a riposo è più bassa del tuo solito");
-      else if (restingZ == null) thin.push("la frequenza a riposo");
-    }
-    if (hrvNow != null) {
-      names.push("la variabilità cardiaca");
-      if (hrvZ != null && hrvZ <= -1.5) notes.push("la variabilità cardiaca è più bassa del tuo solito");
-      else if (hrvZ == null) thin.push("la variabilità cardiaca");
-    }
-    if (breathRateNow != null) {
-      names.push("il ritmo del respiro");
-      if (breathRateZ != null && breathRateZ >= 1.5) notes.push("il ritmo del respiro è più alto del tuo solito");
-      else if (breathRateZ != null && breathRateZ <= -1.5) notes.push("il ritmo del respiro è più basso del tuo solito");
-      else if (breathRateZ == null) thin.push("il ritmo del respiro");
-    }
-    if (bp) {
-      names.push("la pressione");
-      if (bp.high) notes.push("la pressione è più alta del tuo solito");
-      else if (bp.low) notes.push("la pressione è più bassa del tuo solito");
-      else if (!bp.compared) thin.push("la pressione");
-    }
-
-    let vitalText: string;
-    if (names.length === 0) {
-      vitalText = "Non c'è un parametro vitale da leggere per ieri o per la notte disponibile.";
-    } else if (notes.length === 0 && thin.length === names.length) {
-      vitalText = `${capitalize(joinClauses(thin))} ${thin.length > 1 ? "ci sono" : "c'è"}, senza abbastanza storia per un confronto.`;
-    } else if (notes.length === 0) {
-      vitalText = `${capitalize(joinClauses(names))} ${names.length > 1 ? "sono" : "è"} nel tuo solito.`;
-    } else if (notes.length === names.length) {
-      vitalText = `${capitalize(joinClauses(notes))}.`;
-    } else {
-      vitalText = `${capitalize(joinClauses(notes))}. Il resto letto è nel tuo solito.`;
-    }
-    lines.push({ label: "Parametri", text: vitalText });
   }
+
+  lines.unshift({
+    label: "Cuore",
+    text: cardiovascularText({
+      dateKey,
+      prev,
+      latest: latest ?? null,
+      firstMorning,
+      heartRows,
+      bpSysRows,
+      bpDiaRows,
+    }),
+  });
 
   return lines
     .map((line) => ({ ...line, text: line.text.replace(/\s+/g, " ").trim() }))
     .filter((line) => line.text.length > 0);
 }
 
-function capitalize(text: string): string {
-  if (!text) return text;
-  return text.charAt(0).toUpperCase() + text.slice(1);
+type Drift = "high" | "low" | "line" | "thin" | "none";
+
+function driftAgainst(value: number | null, baseline: number[], absTol: number, rel: number): Drift {
+  if (value == null) return "none";
+  const mid = median(baseline);
+  if (mid == null || baseline.length < 2) return "thin";
+  const band = Math.max(absTol, Math.abs(mid) * rel);
+  if (value > mid + band) return "high";
+  if (value < mid - band) return "low";
+  return "line";
 }
 
-function joinClauses(parts: string[]): string {
-  if (parts.length <= 1) return parts[0] ?? "";
-  if (parts.length === 2) return `${parts[0]} e ${parts[1]}`;
-  return `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
-}
-
-function nightMetric(
+function ringDayMedians(
   rows: string[][],
-  morning: string,
   keep: (n: number) => boolean,
-  close: (value: number, mid: number) => boolean,
-  prefer: string[],
-): number | null {
-  const span = windowFor(morning);
-  const byKind = new Map<string, number[]>();
+): Map<string, number> {
+  const byDay = new Map<string, number[]>();
   for (const row of rows) {
     const sample = toSample(row);
-    if (!sample || sourceKind(sample.source) === "skip") continue;
-    if (!inWindow(sample, span.start, span.end)) continue;
+    if (!sample || sourceKind(sample.source) !== "ring") continue;
     const n = numberOrNull(sample.value);
     if (n == null || !keep(n)) continue;
-    const kind = sourceKind(sample.source);
-    if (kind === "skip") continue;
-    const list = byKind.get(kind) ?? [];
+    const list = byDay.get(sample.startKey) ?? [];
     list.push(n);
-    byKind.set(kind, list);
+    byDay.set(sample.startKey, list);
   }
-  return mergeReadings(
-    [...byKind.entries()].map(([kind, values]) => ({ kind, value: median(values) ?? Number.NaN })),
-    close,
-    prefer,
-  );
-}
-
-function baselineNightMetric(
-  rows: string[][],
-  dateKey: string,
-  latest: string,
-  firstMorning: string,
-  keep: (n: number) => boolean,
-  close: (value: number, mid: number) => boolean,
-  prefer: string[],
-): number[] {
-  const byMorning = new Map<string, Map<string, number[]>>();
-  for (const row of rows) {
-    const sample = toSample(row);
-    if (!sample || sourceKind(sample.source) === "skip") continue;
-    const morning =
-      morningOf(sample.startKey, sample.startMin) ?? morningOf(sample.endKey, sample.endMin);
-    if (!morning || morning === latest || morning < firstMorning || morning > dateKey) continue;
-    const span = windowFor(morning);
-    if (!inWindow(sample, span.start, span.end)) continue;
-    const n = numberOrNull(sample.value);
-    if (n == null || !keep(n)) continue;
-    const kind = sourceKind(sample.source);
-    if (kind === "skip") continue;
-    const byKind = byMorning.get(morning) ?? new Map<string, number[]>();
-    const list = byKind.get(kind) ?? [];
-    list.push(n);
-    byKind.set(kind, list);
-    byMorning.set(morning, byKind);
-  }
-  const out: number[] = [];
-  for (const byKind of byMorning.values()) {
-    const merged = mergeReadings(
-      [...byKind.entries()].map(([kind, values]) => ({
-        kind,
-        value: median(values) ?? Number.NaN,
-      })),
-      close,
-      prefer,
-    );
-    if (merged != null) out.push(merged);
+  const out = new Map<string, number>();
+  for (const [day, values] of byDay) {
+    const mid = median(values);
+    if (mid != null) out.set(day, mid);
   }
   return out;
 }
 
-function bloodPressure(
-  systolicRows: string[][],
-  diastolicRows: string[][],
-  prev: string,
-  dateKey: string,
-): { high: boolean; low: boolean; compared: boolean } | null {
-  const read = (rows: string[][], day: string): number | null => {
-    const values: number[] = [];
-    for (const row of rows) {
-      const sample = toSample(row);
-      if (!sample || sample.startKey !== day) continue;
-      if (sourceKind(sample.source) === "skip") continue;
-      const n = numberOrNull(sample.value);
-      if (n == null || n < 40 || n > 250) continue;
-      values.push(n);
-    }
-    return median(values);
-  };
-  const history = (rows: string[][]): number[] => {
-    const byDay = new Map<string, number[]>();
-    for (const row of rows) {
-      const sample = toSample(row);
-      if (!sample || sample.startKey >= prev || sample.startKey < addDays(dateKey, -28)) continue;
-      if (sourceKind(sample.source) === "skip") continue;
-      const n = numberOrNull(sample.value);
-      if (n == null || n < 40 || n > 250) continue;
-      const list = byDay.get(sample.startKey) ?? [];
-      list.push(n);
-      byDay.set(sample.startKey, list);
-    }
-    return [...byDay.values()]
-      .map((values) => median(values))
-      .filter((n): n is number => n != null);
-  };
-  const sys = read(systolicRows, prev);
-  const dia = read(diastolicRows, prev);
-  if (sys == null && dia == null) return null;
-  const sysZ = sys == null ? null : zScore(sys, history(systolicRows));
-  const diaZ = dia == null ? null : zScore(dia, history(diastolicRows));
-  const compared = sysZ != null || diaZ != null;
-  const high = (sysZ != null && sysZ >= 1.5) || (diaZ != null && diaZ >= 1.5);
-  const low = !high && ((sysZ != null && sysZ <= -1.5) || (diaZ != null && diaZ <= -1.5));
-  return { high, low, compared };
+/**
+ * Cardiovascular line. Pressure and pulse come only from the ring.
+ * Other cuffs stay out of this sentence.
+ */
+function cardiovascularText(input: {
+  dateKey: string;
+  prev: string;
+  latest: string | null;
+  firstMorning: string;
+  heartRows: string[][];
+  bpSysRows: string[][];
+  bpDiaRows: string[][];
+}): string {
+  const { dateKey, prev, latest, firstMorning, heartRows, bpSysRows, bpDiaRows } = input;
+  const recentDays = new Set([prev, dateKey]);
+  if (latest) recentDays.add(latest);
+
+  const sys = ringDayMedians(bpSysRows, (n) => n >= 70 && n <= 220);
+  const dia = ringDayMedians(bpDiaRows, (n) => n >= 40 && n <= 140);
+  const pressureDays = [...sys.keys()].filter((day) => dia.has(day) || sys.has(day));
+  const recentPressure = pressureDays.filter((day) => recentDays.has(day) || day >= addDays(dateKey, -2));
+  let pressure: Drift = "none";
+  if (recentPressure.length > 0) {
+    const day = [...recentPressure].sort().at(-1)!;
+    const sysNow = sys.get(day) ?? null;
+    const diaNow = dia.get(day) ?? null;
+    const sysBase = [...sys.entries()].filter(([key]) => key !== day).map(([, value]) => value);
+    const diaBase = [...dia.entries()].filter(([key]) => key !== day).map(([, value]) => value);
+    const sysDrift = driftAgainst(sysNow, sysBase, 8, 0.08);
+    const diaDrift = driftAgainst(diaNow, diaBase, 6, 0.08);
+    if (sysDrift === "high" || diaDrift === "high") pressure = "high";
+    else if (sysDrift === "low" || diaDrift === "low") pressure = "low";
+    else if (sysDrift === "thin" && diaDrift === "thin") pressure = "thin";
+    else if (sysDrift === "none" && diaDrift === "none") pressure = "thin";
+    else pressure = "line";
+  }
+
+  const pulseByMorning = new Map<string, number[]>();
+  for (const row of heartRows) {
+    const sample = toSample(row);
+    if (!sample || sourceKind(sample.source) !== "ring") continue;
+    const n = numberOrNull(sample.value);
+    if (n == null || n < 35 || n > 180) continue;
+    const morning = morningOf(sample.startKey, sample.startMin);
+    if (!morning || morning < firstMorning || morning > dateKey) continue;
+    const span = windowFor(morning);
+    if (!inWindow(sample, span.start, span.end)) continue;
+    const list = pulseByMorning.get(morning) ?? [];
+    list.push(n);
+    pulseByMorning.set(morning, list);
+  }
+  const pulseMorning = latest && pulseByMorning.has(latest)
+    ? latest
+    : [...pulseByMorning.keys()].sort().at(-1) ?? null;
+  const pulseNow = pulseMorning ? median(pulseByMorning.get(pulseMorning) ?? []) : null;
+  const pulseBase = [...pulseByMorning.entries()]
+    .filter(([morning]) => morning !== pulseMorning)
+    .map(([, values]) => median(values))
+    .filter((n): n is number => n != null);
+  const pulse = driftAgainst(pulseNow, pulseBase, 8, 0.12);
+
+  const pressureBit =
+    pressure === "none"
+      ? "Non c'è una pressione recente"
+      : pressure === "thin"
+        ? "C'è una pressione, senza abbastanza letture per un confronto"
+        : pressure === "high"
+          ? "La pressione è più alta del tuo solito"
+          : pressure === "low"
+            ? "La pressione è più bassa del tuo solito"
+            : "La pressione è nel tuo solito";
+  const pulseBit =
+    pulse === "none"
+      ? null
+      : pulse === "thin"
+        ? "Il polso c'è da pochi giorni, non basta per dire se è fuori dal tuo solito"
+        : pulse === "high"
+          ? "il polso è più alto del tuo solito"
+          : pulse === "low"
+            ? "il polso è più basso del tuo solito"
+            : "il polso è nel tuo solito";
+  if (!pulseBit) return `${pressureBit}.`;
+  const pulseSentence = pulseBit.charAt(0).toUpperCase() + pulseBit.slice(1);
+  return `${pressureBit}. ${pulseSentence}.`;
 }
+
 
 /**
  * Previous civil day and the latest trusted night.
@@ -738,24 +633,17 @@ export async function summarizeHealthDir(
   dateKey: string,
 ): Promise<HealthBriefing | null> {
   const prev = addDays(dateKey, -1);
-  const [sleepRows, breathingRows, spo2Rows, restingRows, hrvRows, respiratoryRows, bpSysRows, bpDiaRows] =
+  const [sleepRows, breathingRows, spo2Rows, heartRows, bpSysRows, bpDiaRows] =
     await Promise.all([
       readCsv(path.join(appleDir, "sleep.csv")),
       readCsv(path.join(appleDir, "breathing_disturbances.csv")),
       readCsv(path.join(appleDir, "spo2.csv")),
-      readCsv(path.join(appleDir, "resting_hr.csv")),
-      readCsv(path.join(appleDir, "hrv_sdnn.csv")),
-      readCsv(path.join(appleDir, "respiratory_rate.csv")),
+      readCsv(path.join(appleDir, "heart_rate.csv")),
       readCsv(path.join(appleDir, "bp_systolic.csv")),
       readCsv(path.join(appleDir, "bp_diastolic.csv")),
     ]);
 
-  if (
-    sleepRows.length === 0 &&
-    breathingRows.length === 0 &&
-    spo2Rows.length === 0 &&
-    restingRows.length === 0
-  ) {
+  if (sleepRows.length === 0 && heartRows.length === 0 && bpSysRows.length === 0) {
     return null;
   }
 
@@ -765,9 +653,7 @@ export async function summarizeHealthDir(
     sleepRows,
     breathingRows,
     spo2Rows,
-    restingRows,
-    hrvRows,
-    respiratoryRows,
+    heartRows,
     bpSysRows,
     bpDiaRows,
   });

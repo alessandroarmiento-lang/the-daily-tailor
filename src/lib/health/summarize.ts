@@ -224,7 +224,6 @@ function buildHealthLines(input: {
   sleepRows: string[][];
   breathingRows: string[][];
   spo2Rows: string[][];
-  heartRows: string[][];
   bpSysRows: string[][];
   bpDiaRows: string[][];
 }): HealthLine[] {
@@ -234,7 +233,6 @@ function buildHealthLines(input: {
     sleepRows,
     breathingRows,
     spo2Rows,
-    heartRows,
     bpSysRows,
     bpDiaRows,
   } = input;
@@ -486,16 +484,8 @@ function buildHealthLines(input: {
   }
 
   lines.unshift({
-    label: "Cuore",
-    text: cardiovascularText({
-      dateKey,
-      prev,
-      latest: latest ?? null,
-      firstMorning,
-      heartRows,
-      bpSysRows,
-      bpDiaRows,
-    }),
+    label: "Pressione",
+    text: arterialPressureText({ dateKey, prev, bpSysRows, bpDiaRows }),
   });
 
   return lines
@@ -505,124 +495,99 @@ function buildHealthLines(input: {
 
 type Drift = "high" | "low" | "line" | "thin" | "none";
 
-function driftAgainst(value: number | null, baseline: number[], absTol: number, rel: number): Drift {
+function pressureDrift(value: number | null, baseline: number[]): Drift {
   if (value == null) return "none";
-  const mid = median(baseline);
-  if (mid == null || baseline.length < 2) return "thin";
-  const band = Math.max(absTol, Math.abs(mid) * rel);
-  if (value > mid + band) return "high";
-  if (value < mid - band) return "low";
+  const score = zScore(value, baseline);
+  if (score == null) {
+    const mid = median(baseline);
+    if (mid == null || baseline.length < 2) return "thin";
+    const band = Math.max(8, Math.abs(mid) * 0.08);
+    if (value > mid + band) return "high";
+    if (value < mid - band) return "low";
+    return "line";
+  }
+  if (score >= 1.5) return "high";
+  if (score <= -1.5) return "low";
   return "line";
 }
 
-function ringDayMedians(
+/**
+ * One number per day. The ring wins when it has readings.
+ * Readings that agree are averaged; a cuff is used when the ring has none.
+ */
+function dailyPressure(
   rows: string[][],
   keep: (n: number) => boolean,
+  fromDay: string,
 ): Map<string, number> {
-  const byDay = new Map<string, number[]>();
+  const byDay = new Map<string, Reading[]>();
   for (const row of rows) {
     const sample = toSample(row);
-    if (!sample || sourceKind(sample.source) !== "ring") continue;
+    if (!sample || sample.startKey < fromDay) continue;
+    const kind = sourceKind(sample.source);
+    if (kind === "skip") continue;
     const n = numberOrNull(sample.value);
     if (n == null || !keep(n)) continue;
     const list = byDay.get(sample.startKey) ?? [];
-    list.push(n);
+    list.push({ kind, value: n });
     byDay.set(sample.startKey, list);
   }
+  const ringDays = [...byDay.values()].some((readings) =>
+    readings.some((reading) => reading.kind === "ring"),
+  );
   const out = new Map<string, number>();
-  for (const [day, values] of byDay) {
-    const mid = median(values);
-    if (mid != null) out.set(day, mid);
+  for (const [day, readings] of byDay) {
+    const pool = ringDays ? readings.filter((reading) => reading.kind === "ring") : readings;
+    const value = mergeReadings(
+      pool.length > 0 ? pool : readings,
+      (item, mid) => Math.abs(item - mid) <= 8,
+      ["ring", "other", "watch"],
+    );
+    if (value != null) out.set(day, value);
   }
   return out;
 }
 
-/**
- * Cardiovascular line. Pressure and pulse come only from the ring.
- * Other cuffs stay out of this sentence.
- */
-function cardiovascularText(input: {
+/** Arterial pressure only. No pulse, no device name, no figures. */
+function arterialPressureText(input: {
   dateKey: string;
   prev: string;
-  latest: string | null;
-  firstMorning: string;
-  heartRows: string[][];
   bpSysRows: string[][];
   bpDiaRows: string[][];
 }): string {
-  const { dateKey, prev, latest, firstMorning, heartRows, bpSysRows, bpDiaRows } = input;
-  const recentDays = new Set([prev, dateKey]);
-  if (latest) recentDays.add(latest);
-
-  const sys = ringDayMedians(bpSysRows, (n) => n >= 70 && n <= 220);
-  const dia = ringDayMedians(bpDiaRows, (n) => n >= 40 && n <= 140);
-  const pressureDays = [...sys.keys()].filter((day) => dia.has(day) || sys.has(day));
-  const recentPressure = pressureDays.filter((day) => recentDays.has(day) || day >= addDays(dateKey, -2));
-  let pressure: Drift = "none";
-  if (recentPressure.length > 0) {
-    const day = [...recentPressure].sort().at(-1)!;
-    const sysNow = sys.get(day) ?? null;
-    const diaNow = dia.get(day) ?? null;
-    const sysBase = [...sys.entries()].filter(([key]) => key !== day).map(([, value]) => value);
-    const diaBase = [...dia.entries()].filter(([key]) => key !== day).map(([, value]) => value);
-    const sysDrift = driftAgainst(sysNow, sysBase, 8, 0.08);
-    const diaDrift = driftAgainst(diaNow, diaBase, 6, 0.08);
-    if (sysDrift === "high" || diaDrift === "high") pressure = "high";
-    else if (sysDrift === "low" || diaDrift === "low") pressure = "low";
-    else if (sysDrift === "thin" && diaDrift === "thin") pressure = "thin";
-    else if (sysDrift === "none" && diaDrift === "none") pressure = "thin";
-    else pressure = "line";
+  const { dateKey, prev, bpSysRows, bpDiaRows } = input;
+  const fromDay = addDays(dateKey, -28);
+  const sys = dailyPressure(bpSysRows, (n) => n >= 70 && n <= 220, fromDay);
+  const dia = dailyPressure(bpDiaRows, (n) => n >= 40 && n <= 140, fromDay);
+  const days = [...new Set([...sys.keys(), ...dia.keys()])].sort();
+  const latest = days[days.length - 1];
+  if (!latest || latest < addDays(dateKey, -7)) {
+    return "Non c'è una pressione arteriosa recente.";
   }
-
-  const pulseByMorning = new Map<string, number[]>();
-  for (const row of heartRows) {
-    const sample = toSample(row);
-    if (!sample || sourceKind(sample.source) !== "ring") continue;
-    const n = numberOrNull(sample.value);
-    if (n == null || n < 35 || n > 180) continue;
-    const morning = morningOf(sample.startKey, sample.startMin);
-    if (!morning || morning < firstMorning || morning > dateKey) continue;
-    const span = windowFor(morning);
-    if (!inWindow(sample, span.start, span.end)) continue;
-    const list = pulseByMorning.get(morning) ?? [];
-    list.push(n);
-    pulseByMorning.set(morning, list);
+  const sysDrift = pressureDrift(
+    sys.get(latest) ?? null,
+    [...sys.entries()].filter(([day]) => day !== latest).map(([, value]) => value),
+  );
+  const diaDrift = pressureDrift(
+    dia.get(latest) ?? null,
+    [...dia.entries()].filter(([day]) => day !== latest).map(([, value]) => value),
+  );
+  let body: string;
+  if (sysDrift === "high" || diaDrift === "high") {
+    body = "La pressione arteriosa è più alta del tuo solito.";
+  } else if (sysDrift === "low" || diaDrift === "low") {
+    body = "La pressione arteriosa è più bassa del tuo solito.";
+  } else if (
+    (sysDrift === "thin" || sysDrift === "none") &&
+    (diaDrift === "thin" || diaDrift === "none")
+  ) {
+    body = "C'è una pressione arteriosa, senza abbastanza letture per un confronto.";
+  } else {
+    body = "La pressione arteriosa è nel tuo solito.";
   }
-  const pulseMorning = latest && pulseByMorning.has(latest)
-    ? latest
-    : [...pulseByMorning.keys()].sort().at(-1) ?? null;
-  const pulseNow = pulseMorning ? median(pulseByMorning.get(pulseMorning) ?? []) : null;
-  const pulseBase = [...pulseByMorning.entries()]
-    .filter(([morning]) => morning !== pulseMorning)
-    .map(([, values]) => median(values))
-    .filter((n): n is number => n != null);
-  const pulse = driftAgainst(pulseNow, pulseBase, 8, 0.12);
-
-  const pressureBit =
-    pressure === "none"
-      ? "Non c'è una pressione recente"
-      : pressure === "thin"
-        ? "C'è una pressione, senza abbastanza letture per un confronto"
-        : pressure === "high"
-          ? "La pressione è più alta del tuo solito"
-          : pressure === "low"
-            ? "La pressione è più bassa del tuo solito"
-            : "La pressione è nel tuo solito";
-  const pulseBit =
-    pulse === "none"
-      ? null
-      : pulse === "thin"
-        ? "Il polso c'è da pochi giorni, non basta per dire se è fuori dal tuo solito"
-        : pulse === "high"
-          ? "il polso è più alto del tuo solito"
-          : pulse === "low"
-            ? "il polso è più basso del tuo solito"
-            : "il polso è nel tuo solito";
-  if (!pulseBit) return `${pressureBit}.`;
-  const pulseSentence = pulseBit.charAt(0).toUpperCase() + pulseBit.slice(1);
-  return `${pressureBit}. ${pulseSentence}.`;
+  if (latest < prev) return `Non è di ieri. ${body}`;
+  return body;
 }
-
 
 /**
  * Previous civil day and the latest trusted night.
@@ -633,17 +598,16 @@ export async function summarizeHealthDir(
   dateKey: string,
 ): Promise<HealthBriefing | null> {
   const prev = addDays(dateKey, -1);
-  const [sleepRows, breathingRows, spo2Rows, heartRows, bpSysRows, bpDiaRows] =
+  const [sleepRows, breathingRows, spo2Rows, bpSysRows, bpDiaRows] =
     await Promise.all([
       readCsv(path.join(appleDir, "sleep.csv")),
       readCsv(path.join(appleDir, "breathing_disturbances.csv")),
       readCsv(path.join(appleDir, "spo2.csv")),
-      readCsv(path.join(appleDir, "heart_rate.csv")),
       readCsv(path.join(appleDir, "bp_systolic.csv")),
       readCsv(path.join(appleDir, "bp_diastolic.csv")),
     ]);
 
-  if (sleepRows.length === 0 && heartRows.length === 0 && bpSysRows.length === 0) {
+  if (sleepRows.length === 0 && bpSysRows.length === 0) {
     return null;
   }
 
@@ -653,7 +617,6 @@ export async function summarizeHealthDir(
     sleepRows,
     breathingRows,
     spo2Rows,
-    heartRows,
     bpSysRows,
     bpDiaRows,
   });

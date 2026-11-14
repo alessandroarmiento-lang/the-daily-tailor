@@ -35,13 +35,13 @@ const DESKTOP_GRID_COLUMNS = "1fr 0.095fr 1.095fr 1.43fr";
  * Locked bands, same box on iPhone and Mac:
  * meteo | agenda agenda | news;
  * salute salute | promemoria | news;
- * email email email | news.
+ * email across the full width.
  * Weather is the narrow track so agenda and news are wider.
  * Health and reminders share the band above the mail.
  * News runs the full height. Counts do not resize the rows.
  */
 const DESKTOP_GRID_AREAS =
-  `"weather calendar calendar news" "health health reminders news" "emails emails emails news"`;
+  `"weather calendar calendar news" "health health reminders news" "emails emails emails emails"`;
 /** Top band, health beside reminders, then the mail band. */
 const DESKTOP_GRID_ROWS = "minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.7fr)";
 

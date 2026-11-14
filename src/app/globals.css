@@ -429,7 +429,7 @@ a.cal-event__link:hover {
     grid-template-areas:
       "weather calendar calendar news"
       "health health reminders news"
-      "emails emails emails news";
+      "emails emails emails emails";
     gap: 0.85rem 1rem;
     align-items: stretch;
     align-content: start;
@@ -628,7 +628,7 @@ a.cal-event__link:hover {
   grid-template-areas:
     "weather calendar calendar news"
     "health health reminders news"
-    "emails emails emails news" !important;
+    "emails emails emails emails" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
   align-content: stretch !important;
@@ -1660,7 +1660,7 @@ a.cal-event__link:hover {
     grid-template-areas:
       "weather calendar calendar news"
       "health health reminders news"
-      "emails emails emails news" !important;
+      "emails emails emails emails" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
     overflow: hidden !important;

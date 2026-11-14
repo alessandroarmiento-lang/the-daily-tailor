@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v31: lower band is email, reminders, health; agenda stays four days.
  * v30: three-column sheet again; health text is descriptive.
  * v29: A4 agenda in two columns; news titles fill the last band.
  * v28: A4 stack stays on one page; mail and news keep a band.
@@ -33,7 +34,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v30";
+const SHELL_CACHE = "daily-tailor-shell-v31";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

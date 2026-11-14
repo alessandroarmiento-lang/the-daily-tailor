@@ -38,12 +38,11 @@ const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
  * email | salute | news.
  * Counts do not resize the rows.
  */
-const DESKTOP_GRID_AREAS = `"weather calendar news" "emails reminders news" "emails health news"`;
+const DESKTOP_GRID_AREAS = `"weather calendar news" "emails reminders health"`;
 /**
- * Fixed row sizes. Agenda takes the tall middle cell. Promemoria sit under it.
- * The health strip is the short bottom cell of that column.
+ * Two bands. The lower band is three columns: email, reminders, health.
  */
-const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(4.4rem, 0.52fr)";
+const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) minmax(0, 1fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794

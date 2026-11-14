@@ -45,7 +45,8 @@ export const config = {
     /** Il Post — sezione Mondo (trailing slash required). */
     feedUrl:
       process.env.NEWS_FEED_URL ?? "https://www.ilpost.it/mondo/feed/",
-    maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "5"),
+    /** Locked with the A4 sheet. */
+    maxItems: 5,
   },
   reminders: {
     /**
@@ -58,7 +59,8 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "push" | "auto",
-    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
+    /** Locked with the A4 sheet: three flagged lines. */
+    maxItems: 3,
   },
   actionEmails: {
     /**
@@ -70,7 +72,8 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
-    maxItems: Number(process.env.ACTION_EMAIL_MAX_ITEMS ?? "6"),
+    /** Locked with the A4 sheet. */
+    maxItems: 6,
     /** How far back IMAP/Mail scan for actionable mail (rolling last-N). */
     lookbackDays: Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "45"),
   },
@@ -84,6 +87,8 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "auto",
+    /** Locked. The agenda grid is always this many day cards. */
+    dayCount: 4,
     horizonDays: Math.min(
       6,
       Math.max(1, Number(process.env.CALENDAR_HORIZON_DAYS ?? "6") || 6),

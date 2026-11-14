@@ -220,21 +220,23 @@ function inWindow(sample: Sample, from: number, to: number): boolean {
  */
 function buildHealthLines(input: {
   dateKey: string;
-  prev: string;
   sleepRows: string[][];
   breathingRows: string[][];
   spo2Rows: string[][];
   bpSysRows: string[][];
   bpDiaRows: string[][];
+  stepRows: string[][];
+  restingRows: string[][];
 }): HealthLine[] {
   const {
     dateKey,
-    prev,
     sleepRows,
     breathingRows,
     spo2Rows,
     bpSysRows,
     bpDiaRows,
+    stepRows,
+    restingRows,
   } = input;
   const firstMorning = addDays(dateKey, -13);
   const nights = new Map<string, Map<Kind, KindNight>>();
@@ -362,10 +364,15 @@ function buildHealthLines(input: {
     if (lightDeep) {
       sleepText += " Il sonno profondo è stato poco rispetto al tuo solito.";
     }
-    if (latest !== dateKey) {
-      sleepText = `Non è la notte appena passata. ${sleepText}`;
+    const sleepRecent = mornings.slice(-3).map((key) => sleepMinutes(key) ?? 0).filter((n) => n >= 30);
+    const sleepEarlier = mornings.slice(0, -3).map((key) => sleepMinutes(key) ?? 0).filter((n) => n >= 30);
+    if (gettingWorse(sleepRecent, sleepEarlier, false)) {
+      sleepText += " Sta peggiorando rispetto al tuo solito.";
     }
-    lines.push({ label: "Sonno", text: sleepText });
+    const sleepAdvice = short || broken
+      ? "Stasera anticipa un po' l'ora di dormire e tieni la sveglia uguale."
+      : "Tieni lo stesso orario di sonno.";
+    lines.push({ label: "Sonno", text: `${sleepText} ${sleepAdvice}` });
 
     const span = windowFor(latest);
     const breathingByKind = new Map<Kind, number[]>();
@@ -459,33 +466,30 @@ function buildHealthLines(input: {
     const breathingRecent =
       latestBreathingMorning != null && latestBreathingMorning >= addDays(dateKey, -10);
     const breathingZ = breathingNow == null ? null : zScore(breathingNow, breathingBase);
-    let breathText: string;
-    if (breathingNow != null && breathingRecent && latestBreathingMorning === latest) {
-      if (breathingZ != null && breathingZ >= 1.5) {
-        breathText =
-          "I disturbi del respiro sono più alti del tuo solito. Non è una diagnosi.";
-      } else if (breathingZ == null) {
-        breathText =
-          "C'è una lettura dei disturbi del respiro, ma non abbastanza notti per confrontarla col tuo solito.";
-      } else {
-        breathText = "I disturbi del respiro sono nel tuo solito.";
-      }
-      if (oxygenDipped) {
-        breathText += " L'ossigeno notturno è sceso sotto il tuo solito.";
-      }
-    } else if (spo2Values.length >= 4) {
-      breathText = oxygenDipped
-        ? "Non c'è una misura recente dei disturbi del respiro. L'ossigeno notturno è sceso sotto il tuo solito."
-        : "Non c'è una misura recente dei disturbi del respiro. L'ossigeno notturno è nel tuo solito.";
-    } else {
-      breathText = "Non c'è una lettura del respiro per la notte disponibile.";
+    const general: string[] = [];
+    if (breathingNow != null && breathingRecent && latestBreathingMorning === latest && breathingZ != null && breathingZ >= 1.5) {
+      general.push("I disturbi del respiro sono più alti del tuo solito. Non è una diagnosi.");
     }
-    lines.push({ label: "Respiro", text: breathText });
+    if (oxygenDipped) {
+      general.push("L'ossigeno notturno è sceso sotto il tuo solito.");
+    }
+    const restingNote = restingNoteText(restingRows, dateKey);
+    if (restingNote) general.push(restingNote);
+    if (general.length > 0) {
+      lines.push({
+        label: "In generale",
+        text: `${general.join(" ")} Giornata più leggera, senza sforzo intenso.`,
+      });
+    }
   }
 
-  lines.unshift({
+  lines.splice(1, 0, {
     label: "Pressione",
-    text: arterialPressureText({ dateKey, prev, bpSysRows, bpDiaRows }),
+    text: arterialPressureText({ dateKey, bpSysRows, bpDiaRows }),
+  });
+  lines.splice(2, 0, {
+    label: "Attività",
+    text: activityText(stepRows, dateKey),
   });
 
   return lines
@@ -494,6 +498,81 @@ function buildHealthLines(input: {
 }
 
 type Drift = "high" | "low" | "line" | "thin" | "none";
+
+/** Recent values against the earlier ones. higherIsWorse selects the bad direction. */
+function gettingWorse(recent: number[], earlier: number[], higherIsWorse: boolean): boolean {
+  if (recent.length < 2 || earlier.length < 4) return false;
+  const mid = median(recent);
+  if (mid == null) return false;
+  const score = zScore(mid, earlier);
+  if (score == null) return false;
+  return higherIsWorse ? score >= 1.2 : score <= -1.2;
+}
+
+function restingNoteText(rows: string[][], dateKey: string): string | null {
+  const fromDay = addDays(dateKey, -21);
+  const byDay = new Map<string, Reading[]>();
+  for (const row of rows) {
+    const sample = toSample(row);
+    if (!sample || sample.startKey < fromDay || sample.startKey > dateKey) continue;
+    const kind = sourceKind(sample.source);
+    if (kind !== "watch" && kind !== "ring") continue;
+    const n = numberOrNull(sample.value);
+    if (n == null || n < 35 || n > 130) continue;
+    const list = byDay.get(sample.startKey) ?? [];
+    list.push({ kind, value: n });
+    byDay.set(sample.startKey, list);
+  }
+  const series = [...byDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, readings]) =>
+      mergeReadings(readings, (value, mid) => Math.abs(value - mid) <= 5, ["watch", "ring"]),
+    )
+    .filter((n): n is number => n != null);
+  if (series.length < 5) return null;
+  const latest = series[series.length - 1]!;
+  const drift = pressureDrift(latest, series.slice(0, -1));
+  const rising = gettingWorse(series.slice(-3), series.slice(0, -3), true);
+  if (drift !== "high" && !rising) return null;
+  return rising
+    ? "La frequenza a riposo è più alta del solito e sta salendo."
+    : "La frequenza a riposo è più alta del tuo solito.";
+}
+
+function activityText(rows: string[][], dateKey: string): string {
+  const fromDay = addDays(dateKey, -21);
+  const byDay = new Map<string, { watch: number; iphone: number }>();
+  for (const row of rows) {
+    const sample = toSample(row);
+    if (!sample || sample.startKey < fromDay || sample.startKey >= dateKey) continue;
+    const kind = sourceKind(sample.source);
+    if (kind !== "watch" && kind !== "iphone") continue;
+    const n = numberOrNull(sample.value);
+    if (n == null || n <= 0) continue;
+    const day = byDay.get(sample.startKey) ?? { watch: 0, iphone: 0 };
+    day[kind] += n;
+    byDay.set(sample.startKey, day);
+  }
+  const series = [...byDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, counts]) => counts.watch || counts.iphone)
+    .filter((n) => n > 0);
+  if (series.length < 3) {
+    return "Non c'è abbastanza attività recente per un giudizio.";
+  }
+  const latest = series[series.length - 1]!;
+  const earlier = series.slice(0, -1);
+  const score = zScore(latest, earlier);
+  const falling = gettingWorse(series.slice(-4), series.slice(0, -4), false);
+  if ((score != null && score <= -1.2) || falling) {
+    const trend = falling ? " Sta calando rispetto al tuo solito." : "";
+    return `L'attività è sotto il tuo solito.${trend} Una camminata, senza alzare l'intensità.`;
+  }
+  if (score != null && score >= 1.5) {
+    return "L'attività è sopra il tuo solito. Non aggiungere un altro sforzo oggi.";
+  }
+  return "L'attività è in linea col tuo solito. Se il pomeriggio resta fermo, basta una camminata.";
+}
 
 function pressureDrift(value: number | null, baseline: number[]): Drift {
   if (value == null) return "none";
@@ -551,11 +630,10 @@ function dailyPressure(
 /** Arterial pressure only. No pulse, no device name, no figures. */
 function arterialPressureText(input: {
   dateKey: string;
-  prev: string;
   bpSysRows: string[][];
   bpDiaRows: string[][];
 }): string {
-  const { dateKey, prev, bpSysRows, bpDiaRows } = input;
+  const { dateKey, bpSysRows, bpDiaRows } = input;
   const fromDay = addDays(dateKey, -28);
   const sys = dailyPressure(bpSysRows, (n) => n >= 70 && n <= 220, fromDay);
   const dia = dailyPressure(bpDiaRows, (n) => n >= 40 && n <= 140, fromDay);
@@ -585,8 +663,29 @@ function arterialPressureText(input: {
   } else {
     body = "La pressione arteriosa è nel tuo solito.";
   }
-  if (latest < prev) return `Non è di ieri. ${body}`;
-  return body;
+  const sysDays = [...sys.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value);
+  const rising = gettingWorse(sysDays.slice(-3), sysDays.slice(0, -3), true);
+  const falling = gettingWorse(sysDays.slice(-3), sysDays.slice(0, -3), false);
+  if (body.startsWith("C'è una")) return body;
+  const high = sysDrift === "high" || diaDrift === "high";
+  const low = sysDrift === "low" || diaDrift === "low";
+  if (high || rising) {
+    const judgment = high && rising
+      ? "La pressione arteriosa è più alta del tuo solito e sta salendo."
+      : high
+        ? "La pressione arteriosa è più alta del tuo solito."
+        : "La pressione arteriosa sta salendo rispetto al tuo solito.";
+    return `${judgment} Giornata più leggera, senza sforzo intenso.`;
+  }
+  if (low || falling) {
+    const judgment = low && falling
+      ? "La pressione arteriosa è più bassa del tuo solito e sta scendendo."
+      : low
+        ? "La pressione arteriosa è più bassa del tuo solito."
+        : "La pressione arteriosa sta scendendo rispetto al tuo solito.";
+    return `${judgment} Se ti senti fiacco, non aggiungere sforzo.`;
+  }
+  return `${body} Niente da cambiare.`;
 }
 
 /**
@@ -597,14 +696,15 @@ export async function summarizeHealthDir(
   appleDir: string,
   dateKey: string,
 ): Promise<HealthBriefing | null> {
-  const prev = addDays(dateKey, -1);
-  const [sleepRows, breathingRows, spo2Rows, bpSysRows, bpDiaRows] =
+  const [sleepRows, breathingRows, spo2Rows, bpSysRows, bpDiaRows, stepRows, restingRows] =
     await Promise.all([
       readCsv(path.join(appleDir, "sleep.csv")),
       readCsv(path.join(appleDir, "breathing_disturbances.csv")),
       readCsv(path.join(appleDir, "spo2.csv")),
       readCsv(path.join(appleDir, "bp_systolic.csv")),
       readCsv(path.join(appleDir, "bp_diastolic.csv")),
+      readCsv(path.join(appleDir, "steps.csv")),
+      readCsv(path.join(appleDir, "resting_hr.csv")),
     ]);
 
   if (sleepRows.length === 0 && bpSysRows.length === 0) {
@@ -613,12 +713,13 @@ export async function summarizeHealthDir(
 
   const lines = buildHealthLines({
     dateKey,
-    prev,
     sleepRows,
     breathingRows,
     spo2Rows,
     bpSysRows,
     bpDiaRows,
+    stepRows,
+    restingRows,
   });
   if (lines.length === 0) return null;
 

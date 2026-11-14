@@ -1,0 +1,24 @@
+---
+description: The A4 sheet layout and section counts are locked.
+alwaysApply: true
+---
+
+# Sheet layout lock
+
+The morning sheet stays on one A4. Do not change the layout, the grid, or these counts unless Alessandro explicitly asks to change the layout.
+
+## Grid
+
+Top band: weather, agenda, news.
+Lower band, three columns: email, reminders, health.
+Health is its own column. Do not stretch it into another column.
+
+## Counts
+
+- Agenda: 4 day cards.
+- News: 5.
+- Reminders: 3.
+- Email: 6.
+- Health column: sleep, arterial pressure, and activity, each with a judgment and one piece of advice. A general line only when something else is off or getting worse. No figures, no device names, no "not from yesterday" preface.
+
+Screen, PDF capture, and print use the same map.

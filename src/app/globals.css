@@ -420,7 +420,7 @@ a.cal-event__link:hover {
   .sheet-grid {
     grid-template-columns: 0.95fr 1.05fr 1.2fr;
     /* max-content: rows never shrink below section content (stops overlaps). */
-    grid-template-rows: max-content max-content max-content;
+    grid-template-rows: max-content max-content;
     /*
      * Calendar spans weather+reminders so Promemoria stay under Meteo only.
      * Spanning reminders under Agenda (`reminders reminders`) put the 2-col
@@ -428,8 +428,7 @@ a.cal-event__link:hover {
      */
     grid-template-areas:
       "weather calendar news"
-      "emails reminders news"
-      "emails health news";
+      "emails reminders health";
     gap: 0.85rem 1rem;
     align-items: stretch;
     align-content: start;
@@ -543,10 +542,13 @@ a.cal-event__link:hover {
   .area-health {
     grid-area: health;
     min-width: 0;
-    min-height: 0;
+    min-height: max-content;
+    position: relative;
     overflow: hidden;
+    align-self: start;
     display: flex;
     flex-direction: column;
+    z-index: 3;
   }
   .area-emails {
     grid-area: emails;
@@ -613,11 +615,10 @@ a.cal-event__link:hover {
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
   /* Fixed bands. Agenda spans mid; six reminders under meteo (1 col); six emails. */
-  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(4.4rem, 0.52fr) !important;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr) !important;
   grid-template-areas:
     "weather calendar news"
-    "emails reminders news"
-    "emails health news" !important;
+    "emails reminders health" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
   align-content: stretch !important;
@@ -1619,11 +1620,10 @@ a.cal-event__link:hover {
     min-height: 0 !important;
     display: grid !important;
     grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
-    grid-template-rows: max-content max-content max-content !important;
+    grid-template-rows: max-content max-content !important;
     grid-template-areas:
       "weather calendar news"
-      "emails reminders news"
-      "emails health news" !important;
+      "emails reminders health" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
     overflow: hidden !important;

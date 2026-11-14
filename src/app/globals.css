@@ -1260,7 +1260,7 @@ a.cal-event__link:hover {
   line-height: 1.28;
   color: var(--ink-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1987,7 +1987,7 @@ a.cal-event__link:hover {
   .headline-list__summary {
     font-size: 6.75pt;
     line-height: 1.25;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     margin-top: 0.15rem;
   }
 

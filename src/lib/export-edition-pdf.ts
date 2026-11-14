@@ -58,7 +58,7 @@ const A4_PAD_BOTTOM_PX = Math.round((10 / 25.4) * 96); // 38
 /** Card height. Items that do not fit whole are omitted, not sliced further. */
 const LINE_CLAMP_LINES: Array<[string, number]> = [
   [".headline-list__title", 2],
-  [".headline-list__summary", 2],
+  [".headline-list__summary", 3],
   [".reminder-list__title", 2],
   [".cal-event__title", 2],
   [".action-mail-list__subject", 2],

@@ -562,6 +562,11 @@ a.cal-event__link:hover {
     grid-template-columns: 1fr 1fr 1fr;
     column-gap: 0.85rem;
   }
+
+  /* Locked: 2 rows × 3 columns. A seventh card must not open a third row. */
+  .area-emails .action-mail-list > :nth-child(n + 7) {
+    display: none;
+  }
 }
 
 /* Belt-and-suspenders for PDF capture clones (also set inline in onclone).
@@ -809,6 +814,10 @@ a.cal-event__link:hover {
   display: grid !important;
   grid-template-columns: 1fr 1fr 1fr !important;
   gap: 0.04rem 0.55rem !important;
+}
+
+.sheet-page.is-pdf-capture .action-mail-list > :nth-child(n + 7) {
+  display: none !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item {
@@ -1984,6 +1993,10 @@ a.cal-event__link:hover {
   .action-mail-list {
     grid-template-columns: 1fr 1fr 1fr !important;
     gap: 0.12rem 0.4rem;
+  }
+
+  .action-mail-list > :nth-child(n + 7) {
+    display: none !important;
   }
 
   .action-mail-list__item {

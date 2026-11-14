@@ -72,9 +72,13 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "applemail" | "imap" | "auto",
-    /** Locked with the A4 sheet: action mail. */
+    /** Locked. Wide sheet is this many columns. */
+    columns: 3,
+    /** Locked. Wide sheet is this many mail rows. Do not add a third. */
+    rows: 2,
+    /** Locked: columns × rows. Notable cards only fill cells left empty. */
     maxItems: 6,
-    /** Important mail that is not already an action item. */
+    /** Ranked for the analysis line. Cards appear only inside the six cells. */
     notableMax: 3,
     /** How far back IMAP/Mail scan for actionable mail (rolling last-N). */
     lookbackDays: Number(process.env.ACTION_EMAIL_LOOKBACK_DAYS ?? "45"),

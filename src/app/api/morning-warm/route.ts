@@ -12,7 +12,7 @@ import { withBudget } from "@/lib/with-budget";
 export const dynamic = "force-dynamic";
 
 /** Cap so a hung IMAP/CalDAV adapter cannot hold Fly / AGGIORNA forever. */
-const BUILD_BUDGET_MS = 60_000;
+const BUILD_BUDGET_MS = 90_000;
 
 /**
  * Generate / refresh the morning edition snapshot and warm section caches.

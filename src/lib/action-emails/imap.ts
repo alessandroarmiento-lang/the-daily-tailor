@@ -330,7 +330,7 @@ export class ImapActionEmailAdapter implements ActionEmailAdapter {
                   messages: [],
                   error: `${account.label}: IMAP timed out`,
                 }),
-              25_000,
+              55_000,
             );
           },
         ),

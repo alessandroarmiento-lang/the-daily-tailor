@@ -85,7 +85,7 @@ const QUOTES: Aphorism[] = [
   {
     text: "Mi contraddico? Benissimo, allora mi contraddico (sono grande, contengo moltitudini).",
     textEn: "Do I contradict myself? Very well then I contradict myself (I am large, I contain multitudes).",
-    attribution: "Whitman, Song of Myself, 51",
+    attribution: "Whitman, Canto di me stesso, 51",
     attributionEn: "Whitman, Song of Myself, 51",
   },
   {
@@ -139,17 +139,17 @@ const QUOTES: Aphorism[] = [
   {
     text: "Neanch’io sono un poco domato, neanch’io sono traducibile.",
     textEn: "I too am not a bit tamed, I too am untranslatable.",
-    attribution: "Whitman, Song of Myself",
+    attribution: "Whitman, Canto di me stesso",
     attributionEn: "Whitman, Song of Myself",
   },
   {
     text: "Lancio il mio grido barbarico sopra i tetti del mondo.",
     textEn: "I sound my barbaric yawp over the roofs of the world.",
-    attribution: "Whitman, Song of Myself",
+    attribution: "Whitman, Canto di me stesso",
     attributionEn: "Whitman, Song of Myself",
   },
   {
-    text: "Sunt lacrimae rerum et mentem mortalia tangunt.",
+    text: "Ci sono lacrime per le cose, e le cose mortali toccano la mente.",
     textEn: "There are tears for things, and mortal things touch the mind.",
     attribution: "Virgilio, Eneide",
     attributionEn: "Virgil, Aeneid",
@@ -175,7 +175,7 @@ const QUOTES: Aphorism[] = [
   {
     text: "Sono il poeta del Corpo e sono il poeta dell’Anima.",
     textEn: "I am the poet of the Body and I am the poet of the Soul.",
-    attribution: "Whitman, Song of Myself",
+    attribution: "Whitman, Canto di me stesso",
     attributionEn: "Whitman, Song of Myself",
   },
   {
@@ -229,7 +229,7 @@ const QUOTES: Aphorism[] = [
   {
     text: "Esisto così come sono, e questo basta.",
     textEn: "I exist as I am, that is enough.",
-    attribution: "Whitman, Song of Myself",
+    attribution: "Whitman, Canto di me stesso",
     attributionEn: "Whitman, Song of Myself",
   },
   {

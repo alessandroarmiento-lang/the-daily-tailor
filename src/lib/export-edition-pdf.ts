@@ -153,8 +153,10 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
 
   const reminderList = root.querySelector(".reminder-list");
   if (reminderList instanceof HTMLElement) touched.push(reminderList);
-  const actionMailList = root.querySelector(".action-mail-list");
-  if (actionMailList instanceof HTMLElement) touched.push(actionMailList);
+  const actionMailLists = root.querySelectorAll(".action-mail-list");
+  actionMailLists.forEach((node) => {
+    if (node instanceof HTMLElement) touched.push(node);
+  });
   const calWidget = root.querySelector(".cal-widget");
   if (calWidget instanceof HTMLElement) touched.push(calWidget);
   root.querySelectorAll(".cal-day").forEach((node) => {
@@ -265,11 +267,12 @@ function prepareSheetForCapture(root: HTMLElement): () => void {
     reminderList.style.gap = "0";
     reminderList.style.columnGap = "0";
   }
-  if (actionMailList instanceof HTMLElement) {
-    actionMailList.style.display = "grid";
-    actionMailList.style.gridTemplateColumns = "1fr 1fr";
-    actionMailList.style.gap = "0.15rem 0.75rem";
-  }
+  actionMailLists.forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.style.display = "grid";
+    node.style.gridTemplateColumns = "1fr 1fr 1fr";
+    node.style.gap = "0.15rem 0.55rem";
+  });
 
   return () => restoreStyles(backups);
 }

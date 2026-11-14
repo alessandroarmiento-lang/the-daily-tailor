@@ -559,8 +559,8 @@ a.cal-event__link:hover {
   }
 
   .area-emails .action-mail-list {
-    grid-template-columns: 1fr 1fr;
-    column-gap: 1rem;
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 0.85rem;
   }
 }
 
@@ -807,8 +807,8 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .action-mail-list {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 0.04rem 0.7rem !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 0.04rem 0.55rem !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item {
@@ -1982,8 +1982,8 @@ a.cal-event__link:hover {
   }
 
   .action-mail-list {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.12rem 0.45rem;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 0.12rem 0.4rem;
   }
 
   .action-mail-list__item {

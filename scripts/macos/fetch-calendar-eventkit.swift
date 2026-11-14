@@ -95,6 +95,8 @@ df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
 
 var items: [[String: Any]] = []
 for e in events {
+  // The Calendar widget drops timed items that have already ended.
+  if !e.isAllDay && e.endDate < Date() { continue }
   let loc = e.location
   items.append([
     "id": e.eventIdentifier ?? e.calendarItemIdentifier,
@@ -123,8 +125,10 @@ if #available(macOS 14.0, *) {
   }
 }
 if remSem.wait(timeout: .now() + 20) == .success && !remDenied {
+  // nil start includes overdue series. A daily reminder keeps its old due date
+  // and still appears today and tomorrow in Calendar.
   let rpred = store.predicateForIncompleteReminders(
-    withDueDateStarting: start, ending: end, calendars: nil)
+    withDueDateStarting: nil, ending: nil, calendars: nil)
   var reminders: [EKReminder] = []
   let fetchSem = DispatchSemaphore(value: 0)
   store.fetchReminders(matching: rpred) { list in
@@ -132,10 +136,19 @@ if remSem.wait(timeout: .now() + 20) == .success && !remDenied {
     fetchSem.signal()
   }
   _ = fetchSem.wait(timeout: .now() + 25)
-  for r in reminders {
-    guard let comps = r.dueDateComponents, let due = cal.date(from: comps) else { continue }
+
+  func occurrence(on day: Date, comps: DateComponents) -> Date? {
+    var parts = cal.dateComponents([.year, .month, .day], from: day)
+    parts.hour = comps.hour
+    parts.minute = comps.minute
+    parts.second = 0
+    return cal.date(from: parts)
+  }
+
+  func appendReminder(_ r: EKReminder, at due: Date, comps: DateComponents) {
+    if due < Date() { return }
     items.append([
-      "id": "reminder-\(r.calendarItemIdentifier)",
+      "id": "reminder-\(r.calendarItemIdentifier)-\(df.string(from: due))",
       "title": r.title ?? "(promemoria)",
       "location": NSNull(),
       "startsAt": df.string(from: due),
@@ -143,6 +156,72 @@ if remSem.wait(timeout: .now() + 20) == .success && !remDenied {
       "isAllDay": reminderAllDay(comps),
       "calendarName": r.calendar?.title ?? "Promemoria",
     ])
+  }
+
+  // Same window as the phone widget: the rest of today and all of tomorrow.
+  let widgetEnd = cal.date(byAdding: .day, value: 2, to: start) ?? end
+  let now = Date()
+
+  for r in reminders {
+    guard let comps = r.dueDateComponents, let anchor = cal.date(from: comps) else { continue }
+    let rules = r.recurrenceRules ?? []
+    if rules.isEmpty {
+      if anchor >= now && anchor < end {
+        appendReminder(r, at: anchor, comps: comps)
+      }
+      continue
+    }
+    var day = start
+    while day < widgetEnd {
+      for rule in rules {
+        if let stop = rule.recurrenceEnd?.endDate, stop < day { continue }
+        let interval = max(rule.interval, 1)
+        let occ = occurrence(on: day, comps: comps)
+        guard let occ, occ >= anchor, occ >= now, occ < widgetEnd else { continue }
+        switch rule.frequency {
+        case .daily:
+          let delta = cal.dateComponents([.day], from: cal.startOfDay(for: anchor), to: day).day ?? 0
+          if delta >= 0 && delta % interval == 0 {
+            appendReminder(r, at: occ, comps: comps)
+          }
+        case .weekly:
+          let weekday = cal.component(.weekday, from: day)
+          let allowed = rule.daysOfTheWeek?.map { $0.dayOfTheWeek.rawValue }
+          let matches = allowed?.contains(weekday) ?? (weekday == cal.component(.weekday, from: anchor))
+          let weeks = cal.dateComponents([.weekOfYear], from: cal.startOfDay(for: anchor), to: day).weekOfYear ?? 0
+          if matches && weeks >= 0 && weeks % interval == 0 {
+            appendReminder(r, at: occ, comps: comps)
+          }
+        case .monthly:
+          if cal.component(.day, from: day) == cal.component(.day, from: anchor) {
+            let months = cal.dateComponents([.month], from: anchor, to: day).month ?? 0
+            if months >= 0 && months % interval == 0 {
+              appendReminder(r, at: occ, comps: comps)
+            }
+          }
+        case .yearly:
+          if cal.component(.month, from: day) == cal.component(.month, from: anchor)
+            && cal.component(.day, from: day) == cal.component(.day, from: anchor) {
+            let years = cal.component(.year, from: day) - cal.component(.year, from: anchor)
+            if years >= 0 && years % interval == 0 {
+              appendReminder(r, at: occ, comps: comps)
+            }
+          }
+        @unknown default:
+          break
+        }
+      }
+      guard let next = cal.date(byAdding: .day, value: 1, to: day) else { break }
+      day = next
+    }
+  }
+
+  var seenKeys = Set<String>()
+  items = items.filter { item in
+    let key = "\(item["title"] as? String ?? "")|\(item["startsAt"] as? String ?? "")"
+    if seenKeys.contains(key) { return false }
+    seenKeys.insert(key)
+    return true
   }
   items.sort {
     let a = $0["startsAt"] as? String ?? ""

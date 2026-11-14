@@ -125,34 +125,29 @@ const OBSERVANCE_LOOKAHEAD_DAYS = 45;
 
 function groupByDay(
   events: CalendarEventItem[],
-  horizonDays: number,
+  _horizonDays: number,
   editionDateKey: string,
 ): CalendarDayGroup[] {
   const { timezone, locale } = config;
   const todayKey = editionDateKey;
-  const keys: string[] = [];
-
-  for (let i = 0; i < horizonDays; i += 1) {
-    keys.push(addCivilDays(editionDateKey, i));
-  }
-  const lastKey = keys[keys.length - 1] ?? editionDateKey;
+  const tomorrowKey = addCivilDays(editionDateKey, 1);
   const lookaheadEnd = addCivilDays(editionDateKey, OBSERVANCE_LOOKAHEAD_DAYS);
   const visible = dedupeObservances(events, timezone);
 
+  // Today and tomorrow, like the Calendar widget. Empty days are omitted.
+  // Birthdays and holidays continue through the next holiday.
   const byKey = new Map<string, CalendarEventItem[]>();
-  for (const key of keys) byKey.set(key, []);
-
   const later: CalendarEventItem[] = [];
   for (const event of visible) {
     const key = eventDateKey(event, timezone);
-    const bucket = byKey.get(key);
-    if (bucket) {
+    if (key < editionDateKey) continue;
+    if (key === editionDateKey || key === tomorrowKey) {
+      const bucket = byKey.get(key) ?? [];
       bucket.push(event);
+      byKey.set(key, bucket);
       continue;
     }
-    if (key > lastKey && key <= lookaheadEnd && isObservance(event)) {
-      later.push(event);
-    }
+    if (key <= lookaheadEnd && isObservance(event)) later.push(event);
   }
 
   const nextHoliday = later
@@ -168,11 +163,7 @@ function groupByDay(
     byKey.set(key, bucket);
   }
 
-  const extraKeys = [...byKey.keys()]
-    .filter((key) => !keys.includes(key))
-    .sort();
-
-  return [...keys, ...extraKeys].map((key) => ({
+  return [...byKey.keys()].sort().map((key) => ({
     dateKey: key,
     label: dayLabel(key, timezone, locale),
     isToday: key === todayKey,

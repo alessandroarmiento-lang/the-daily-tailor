@@ -3,6 +3,7 @@ import { access } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import path from "node:path";
 import os from "node:os";
+import { briefingFromSecondBrainReport } from "./from-report";
 import type { HealthBriefing, HealthLine } from "./types";
 
 type Sample = {
@@ -696,6 +697,9 @@ export async function summarizeHealthDir(
   appleDir: string,
   dateKey: string,
 ): Promise<HealthBriefing | null> {
+  const fromReport = await briefingFromSecondBrainReport(dateKey);
+  if (fromReport) return fromReport;
+
   const [sleepRows, breathingRows, spo2Rows, bpSysRows, bpDiaRows, stepRows, restingRows] =
     await Promise.all([
       readCsv(path.join(appleDir, "sleep.csv")),

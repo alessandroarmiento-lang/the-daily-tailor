@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v27: one-column A4, importance order, no stretched holes.
  * v26: iOS PWA opens reminders/agenda via same-origin /apri bridge.
  * v25: open agenda/reminders links on iPhone; adapter cache uses edition day.
  * v24: AGGIORNA uses civil day (asOf=civil); 06:00 rollover warms again.
@@ -29,7 +30,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v26";
+const SHELL_CACHE = "daily-tailor-shell-v27";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 

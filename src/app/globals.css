@@ -2117,19 +2117,45 @@ a.cal-event__link:hover {
 }
 
 .sheet-page.is-pdf-capture .sheet-grid {
+  display: flex !important;
+  flex-direction: column !important;
   flex: 1 1 auto !important;
+  grid-template: none !important;
   min-height: 0 !important;
   overflow: hidden !important;
   gap: 0.36rem !important;
   margin-top: 0.4rem !important;
+  align-content: start !important;
+  align-items: stretch !important;
 }
 
 .sheet-page.is-pdf-capture .area-weather,
 .sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-reminders,
-.sheet-page.is-pdf-capture .area-health {
+.sheet-page.is-pdf-capture .area-health,
+.sheet-page.is-pdf-capture .area-emails {
   flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+  position: relative !important;
+  inset: auto !important;
   overflow: hidden !important;
+}
+
+.sheet-page.is-pdf-capture .area-emails {
+  max-height: 168px !important;
+}
+
+.sheet-page.is-pdf-capture .area-weather > .sheet-section,
+.sheet-page.is-pdf-capture .area-calendar > .sheet-section,
+.sheet-page.is-pdf-capture .area-reminders > .sheet-section,
+.sheet-page.is-pdf-capture .area-health > .sheet-section,
+.sheet-page.is-pdf-capture .area-emails > .sheet-section,
+.sheet-page.is-pdf-capture .area-news > .sheet-section {
+  position: relative !important;
+  inset: auto !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 .sheet-page.is-pdf-capture .area-emails {
@@ -2140,7 +2166,11 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .area-news {
   flex: 1 1 auto !important;
+  height: auto !important;
+  max-height: none !important;
   min-height: 0 !important;
+  position: relative !important;
+  inset: auto !important;
   overflow: hidden !important;
 }
 

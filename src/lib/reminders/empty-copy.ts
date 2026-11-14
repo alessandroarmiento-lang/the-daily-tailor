@@ -11,5 +11,5 @@ export function remindersEmptyMessage(sourceLabel?: string | null): string {
   if (label.includes("CloudKit") || label.includes("nessun push")) {
     return CLOUDKIT_GAP;
   }
-  return "Nessun reminder aperto.";
+  return "Nessun promemoria contrassegnato.";
 }

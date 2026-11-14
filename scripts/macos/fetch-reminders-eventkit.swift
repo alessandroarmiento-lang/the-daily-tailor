@@ -83,7 +83,19 @@ func sortKey(_ r: EKReminder) -> (Int, TimeInterval, String) {
   return (3, due.timeIntervalSince1970, title)
 }
 
+func isFlagged(_ r: EKReminder) -> Bool {
+  let key = "flagged"
+  if r.responds(to: NSSelectorFromString("isFlagged")) || r.responds(to: NSSelectorFromString(key)) {
+    if let n = r.value(forKey: key) as? NSNumber { return n.boolValue }
+    if let b = r.value(forKey: key) as? Bool { return b }
+  }
+  return false
+}
+
 let sorted = incomplete.sorted {
+  let af = isFlagged($0)
+  let bf = isFlagged($1)
+  if af != bf { return af && !bf }
   let a = sortKey($0)
   let b = sortKey($1)
   if a.0 != b.0 { return a.0 < b.0 }
@@ -120,6 +132,7 @@ for r in sorted {
     "listName": r.calendar?.title ?? "Promemoria",
     "dueAt": due,
     "priority": prio,
+    "flagged": isFlagged(r),
   ])
   if items.count >= maxItems { break }
 }

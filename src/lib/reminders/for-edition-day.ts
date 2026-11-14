@@ -36,7 +36,7 @@ export function reminderDueDateKey(
 }
 
 /**
- * Open reminders eligible for the six-slot Promemoria band.
+ * Promemoria band: open items Alessandro has flagged.
  * Ranking (not this filter) decides today → upcoming → overdue → undated.
  */
 export function isReminderForEditionDay(
@@ -44,7 +44,7 @@ export function isReminderForEditionDay(
   _dateKey: string,
   _timeZone: string,
 ): boolean {
-  return !item.isCompleted;
+  return !item.isCompleted && item.flagged === true;
 }
 
 export function filterRemindersForEditionDay(

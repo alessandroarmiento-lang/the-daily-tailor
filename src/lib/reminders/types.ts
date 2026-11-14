@@ -16,6 +16,8 @@ export type ReminderItem = {
   dueAt: string | null;
   isCompleted: boolean;
   priority: ReminderPriority;
+  /** Apple Reminders flag (contrassegnato). Absent on old snapshots. */
+  flagged?: boolean;
 };
 
 export type RemindersBriefing = {

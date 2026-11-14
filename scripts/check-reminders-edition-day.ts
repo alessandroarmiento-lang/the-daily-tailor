@@ -22,6 +22,7 @@ function item(
     dueAt: null,
     isCompleted: false,
     priority: "none",
+    flagged: true,
     ...partial,
   };
 }
@@ -40,6 +41,12 @@ const samples: ReminderItem[] = [
   item({ id: "7", title: "Far future", dueAt: "2026-10-05T12:00:00" }),
   item({ id: "8", title: "Also tomorrow", dueAt: "2026-10-01T14:00:00" }),
   item({ id: "9", title: "Done", dueAt: "2026-09-30T12:00:00", isCompleted: true }),
+  item({
+    id: "10",
+    title: "Open but not flagged",
+    dueAt: "2026-09-30T11:00:00",
+    flagged: false,
+  }),
 ];
 
 let failed = 0;
@@ -57,11 +64,16 @@ assert(isReminderForEditionDay(samples[0]!, day, tz), "include open dated");
 assert(isReminderForEditionDay(samples[2]!, day, tz), "include undated");
 assert(isReminderForEditionDay(samples[1]!, day, tz), "include overdue");
 assert(!isReminderForEditionDay(samples[8]!, day, tz), "exclude completed");
+assert(!isReminderForEditionDay(samples[9]!, day, tz), "exclude unflagged");
 
 const filtered = filterRemindersForEditionDay(samples, day, tz);
 assert(
   !filtered.some((r) => r.id === "9"),
   "filtered drops completed",
+);
+assert(
+  !filtered.some((r) => r.id === "10"),
+  "filtered drops unflagged",
 );
 
 const ranked = rankReminders(samples, { dateKey: day, timeZone: tz });

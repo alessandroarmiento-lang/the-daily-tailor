@@ -149,12 +149,15 @@ async function fetchAccountRecent(
             `imap-${account.id}-${uid}`;
 
           let unread = false;
+          let flagged = false;
           try {
             const meta = await client.fetchOne(uid, { flags: true });
             const flags = meta && "flags" in meta ? meta.flags : undefined;
             unread = flags ? !flags.has("\\Seen") : false;
+            flagged = flags ? flags.has("\\Flagged") : false;
           } catch {
             unread = false;
+            flagged = false;
           }
 
           messages.push({
@@ -163,7 +166,7 @@ async function fetchAccountRecent(
             sender: from,
             receivedAt: received.toISOString(),
             unread,
-            flagged: false,
+            flagged,
             preview,
             account: account.label,
           });

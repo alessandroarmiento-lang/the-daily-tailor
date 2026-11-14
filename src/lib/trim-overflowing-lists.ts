@@ -161,9 +161,12 @@ function fitAgenda(root: HTMLElement): void {
   }
 }
 
-/** News and agenda fill whatever is left. Reminders (6) and emails (6) stay whole. */
+/** News fills the right column. Agenda, reminders, mail, and health drop whole rows that do not fit. */
 export function fitWholeItemsToLockedBoxes(root: HTMLElement): void {
   fitItemList(root.querySelector(".area-news .headline-list"), ".headline-list__item");
+  fitItemList(root.querySelector(".area-reminders .reminder-list"), ".reminder-list__item");
+  fitItemList(root.querySelector(".area-emails .action-mail-list"), ".action-mail-list__item");
+  fitItemList(root.querySelector(".area-health .health-lines"), ".health-lines__item");
   fitAgenda(root);
 }
 

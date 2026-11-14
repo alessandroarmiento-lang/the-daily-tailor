@@ -25,6 +25,7 @@ type ScriptResult = {
     listName: string;
     dueAt: string | null;
     priority: "none" | "low" | "medium" | "high";
+    flagged?: boolean;
   }>;
 };
 
@@ -39,6 +40,7 @@ function mapItems(
     dueAt: r.dueAt,
     isCompleted: false,
     priority: r.priority ?? "none",
+    flagged: r.flagged === true,
   }));
 }
 
@@ -64,27 +66,37 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
 
     let result: ScriptResult;
     try {
-      result = await runEventKitBinJson<ScriptResult>(
-        "fetch-reminders-eventkit",
-        [String(fetchLimit)],
-        45_000,
+      result = await runOsascriptJson<ScriptResult>(
+        "fetch-flagged-reminders.applescript",
+        [],
+        40_000,
       );
-      this.label = "Apple Reminders (EventKit)";
-    } catch (binErr) {
-      // Fall back to AppleScript (often hangs — short timeout).
+      this.label = "Apple Reminders (contrassegnati)";
+    } catch (scriptErr) {
       try {
-        result = await runOsascriptJson<ScriptResult>(
-          "fetch-reminders.applescript",
-          [String(Math.min(8, fetchLimit))],
-          25_000,
+        result = await runEventKitBinJson<ScriptResult>(
+          "fetch-reminders-eventkit",
+          [String(fetchLimit)],
+          45_000,
         );
-        this.label = "Apple Reminders (AppleScript)";
-      } catch {
-        const binMsg =
-          binErr instanceof Error ? binErr.message : String(binErr);
-        throw new Error(
-          `Promemoria non disponibili. Compila EventKit tool (scripts/macos/build-eventkit-tools.sh) e autorizza Privacy → Promemoria. Dettaglio: ${binMsg.slice(0, 180)}`,
-        );
+        this.label = "Apple Reminders (EventKit)";
+      } catch (binErr) {
+        try {
+          result = await runOsascriptJson<ScriptResult>(
+            "fetch-reminders.applescript",
+            [String(Math.min(8, fetchLimit))],
+            25_000,
+          );
+          this.label = "Apple Reminders (AppleScript)";
+        } catch {
+          const binMsg =
+            binErr instanceof Error ? binErr.message : String(binErr);
+          const scriptMsg =
+            scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
+          throw new Error(
+            `Promemoria non disponibili. ${scriptMsg.slice(0, 120)} ${binMsg.slice(0, 120)}`,
+          );
+        }
       }
     }
 

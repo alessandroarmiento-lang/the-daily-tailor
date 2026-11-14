@@ -14,7 +14,7 @@ import {
   reminderDeepLink,
   reminderOpenPayload,
 } from "@/lib/apple/deep-links";
-import { aphorismText, getAphorismForDateKey } from "@/lib/aphorism";
+import { aphorismAttribution, aphorismText, getAphorismForDateKey } from "@/lib/aphorism";
 import { config } from "@/lib/config";
 import type { NewspaperEdition } from "@/lib/edition-types";
 import type { Lang, MessageKey } from "@/lib/i18n/messages";
@@ -256,6 +256,7 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
   const remindersResult = edition.reminders;
   const calendarResult = edition.calendar;
   const emailsResult = edition.actionEmails;
+  const healthResult = edition.health;
   const dateLine = formatEditionDateLine(edition.dateKey, locale, tz);
   const dayAphorism = getAphorismForDateKey(edition.dateKey);
 
@@ -275,6 +276,11 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
           <p className="aphorism__text">
             «{aphorismText(dayAphorism, lang)}»
           </p>
+          {aphorismAttribution(dayAphorism, lang) ? (
+            <p className="aphorism__attr">
+              {aphorismAttribution(dayAphorism, lang)}
+            </p>
+          ) : null}
         </blockquote>
       </aside>
 
@@ -571,6 +577,37 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                 )}
               />
             )}
+        </div>
+
+        <div className="area-health">
+          {healthResult?.status === "ok" &&
+          healthResult.data &&
+          healthResult.data.lines.length > 0 ? (
+            <SectionShell
+              title={t("health")}
+              kicker={t("healthKicker")}
+              tone="ok"
+            >
+              <ul className="health-lines">
+                {healthResult.data.lines.map((line) => (
+                  <li key={line.label} className="health-lines__item">
+                    <p className="health-lines__label">{line.label}</p>
+                    <p className="health-lines__text">{line.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </SectionShell>
+          ) : (
+            <SectionEmpty
+              title={t("health")}
+              kicker={t("healthKicker")}
+              message={
+                healthResult?.status === "error"
+                  ? healthResult.message
+                  : t("healthMissing")
+              }
+            />
+          )}
         </div>
 
         <div className="area-emails">

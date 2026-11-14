@@ -7,6 +7,9 @@ export function AphorismSection() {
     <aside className="aphorism" aria-label="Aforisma del giorno">
       <blockquote className="aphorism__quote">
         <p className="aphorism__text">«{aphorism.text}»</p>
+        {aphorism.attribution ? (
+          <p className="aphorism__attr">{aphorism.attribution}</p>
+        ) : null}
       </blockquote>
     </aside>
   );

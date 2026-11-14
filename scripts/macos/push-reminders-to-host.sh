@@ -44,7 +44,10 @@ PAYLOAD="$(mktemp)"
 EVENTKIT_OUT="$(mktemp)"
 trap 'rm -f "$PAYLOAD" "$EVENTKIT_OUT"' EXIT
 
-"$BIN" "$POOL" > "$EVENTKIT_OUT"
+if ! perl -e 'alarm 30; exec @ARGV' osascript \
+  "$ROOT/scripts/macos/fetch-flagged-reminders.applescript" > "$EVENTKIT_OUT"; then
+  "$BIN" "$POOL" > "$EVENTKIT_OUT"
+fi
 
 python3 - "$EVENTKIT_OUT" "$PAYLOAD" <<'PY'
 import json
@@ -56,6 +59,13 @@ if not raw.get("ok"):
     print(raw.get("error", "EventKit fetch fallito"), file=sys.stderr)
     sys.exit(1)
 
+def as_bool(value) -> bool:
+    if value is True or value == 1:
+        return True
+    if isinstance(value, str) and value.strip().lower() in {"true", "1", "yes", "sì", "si"}:
+        return True
+    return False
+
 items = [
     {
         "id": r.get("id") or "",
@@ -64,6 +74,7 @@ items = [
         "dueAt": r.get("dueAt"),
         "notes": r.get("notes") or "",
         "priority": r.get("priority") or "none",
+        "flagged": as_bool(r.get("flagged")),
     }
     for r in raw.get("items", [])
     if (r.get("title") or "").strip()

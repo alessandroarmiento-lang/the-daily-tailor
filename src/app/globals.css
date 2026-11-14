@@ -343,20 +343,30 @@ a.cal-event__link:hover {
   text-align: center;
 }
 
-.aphorism__kicker,
-.aphorism__attr {
+.aphorism__kicker {
   display: none !important;
+}
+
+.aphorism__attr {
+  display: block;
+  margin: 0.28rem 0 0;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--ink-muted);
 }
 
 .aphorism__quote {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   margin: 0;
   padding: 0;
   border: 0;
   width: 100%;
-  max-width: 42rem;
+  max-width: 40rem;
 }
 
 .aphorism__text {
@@ -381,6 +391,13 @@ a.cal-event__link:hover {
   min-width: 0;
   max-width: 100%;
 }
+
+.area-weather { order: 1; }
+.area-calendar { order: 2; }
+.area-reminders { order: 3; }
+.area-health { order: 4; }
+.area-news { order: 5; }
+.area-emails { order: 6; }
 
 .sheet-grid > *,
 .sheet-section,
@@ -411,8 +428,8 @@ a.cal-event__link:hover {
      */
     grid-template-areas:
       "weather calendar news"
-      "reminders calendar news"
-      "emails emails emails";
+      "emails reminders news"
+      "emails health news";
     gap: 0.85rem 1rem;
     align-items: stretch;
     align-content: start;
@@ -523,6 +540,14 @@ a.cal-event__link:hover {
   .area-reminders {
     grid-area: reminders;
   }
+  .area-health {
+    grid-area: health;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
   .area-emails {
     grid-area: emails;
   }
@@ -588,11 +613,11 @@ a.cal-event__link:hover {
   display: grid !important;
   grid-template-columns: 0.95fr 1.05fr 1.2fr !important;
   /* Fixed bands. Agenda spans mid; six reminders under meteo (1 col); six emails. */
-  grid-template-rows: minmax(0, 1.05fr) 17.5rem 20.5rem !important;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(4.4rem, 0.52fr) !important;
   grid-template-areas:
     "weather calendar news"
-    "reminders calendar news"
-    "emails emails emails" !important;
+    "emails reminders news"
+    "emails health news" !important;
   gap: 0.85rem 1rem !important;
   margin-top: 0.85rem !important;
   align-content: stretch !important;
@@ -603,6 +628,7 @@ a.cal-event__link:hover {
 .sheet-page.is-pdf-capture .area-weather,
 .sheet-page.is-pdf-capture .area-calendar,
 .sheet-page.is-pdf-capture .area-reminders,
+.sheet-page.is-pdf-capture .area-health,
 .sheet-page.is-pdf-capture .area-emails,
 .sheet-page.is-pdf-capture .area-news {
   position: relative !important;
@@ -738,6 +764,9 @@ a.cal-event__link:hover {
 .sheet-page.is-pdf-capture .area-reminders {
   grid-area: reminders !important;
 }
+.sheet-page.is-pdf-capture .area-health {
+  grid-area: health !important;
+}
 .sheet-page.is-pdf-capture .area-emails {
   grid-area: emails !important;
 }
@@ -767,8 +796,8 @@ a.cal-event__link:hover {
 
 .sheet-page.is-pdf-capture .action-mail-list {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 0.15rem 0.75rem !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.12rem 0 !important;
 }
 
 .sheet-page.is-pdf-capture .action-mail-list__item:nth-last-child(2):nth-child(odd) {
@@ -1149,7 +1178,7 @@ a.cal-event__link:hover {
   line-height: 1.18;
   text-decoration: none;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
@@ -1320,6 +1349,41 @@ a.cal-event__link:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.area-emails .action-mail-list {
+  grid-template-columns: 1fr !important;
+}
+
+.area-emails .action-mail-list__cue,
+.area-emails .action-mail-list__body,
+.sheet-page.is-pdf-capture .action-mail-list__cue,
+.sheet-page.is-pdf-capture .action-mail-list__body {
+  display: none !important;
+}
+
+.health-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.health-lines__item {
+  padding: 0.1rem 0 0.16rem;
+}
+
+.health-lines__label {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.health-lines__text {
+  margin: 0.04rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.25;
 }
 
 .sheet-footer {
@@ -1516,9 +1580,16 @@ a.cal-event__link:hover {
     text-align: center;
   }
 
-  .aphorism__kicker,
-  .aphorism__attr {
+  .aphorism__kicker {
     display: none !important;
+  }
+
+  .aphorism__attr {
+    display: block !important;
+    margin: 0.15rem 0 0 !important;
+    font-size: 7.5pt;
+    font-style: normal;
+    letter-spacing: 0.03em;
   }
 
   .aphorism__quote {
@@ -1551,8 +1622,8 @@ a.cal-event__link:hover {
     grid-template-rows: max-content max-content max-content !important;
     grid-template-areas:
       "weather calendar news"
-      "reminders calendar news"
-      "emails emails emails" !important;
+      "emails reminders news"
+      "emails health news" !important;
     gap: 0.55rem 0.75rem !important;
     margin-top: 0.55rem !important;
     overflow: hidden !important;
@@ -1632,6 +1703,9 @@ a.cal-event__link:hover {
   }
   .area-reminders {
     grid-area: reminders;
+  }
+  .area-health {
+    grid-area: health;
   }
   .area-emails {
     grid-area: emails;
@@ -1827,7 +1901,7 @@ a.cal-event__link:hover {
   .headline-list__title {
     font-size: 8.25pt;
     line-height: 1.18;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
   }
 
   .headline-list__summary {
@@ -1868,8 +1942,8 @@ a.cal-event__link:hover {
   }
 
   .action-mail-list {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.15rem 0.75rem;
+    grid-template-columns: 1fr !important;
+    gap: 0.12rem 0;
   }
 
   .action-mail-list__item {
@@ -1892,10 +1966,9 @@ a.cal-event__link:hover {
     text-transform: uppercase;
   }
 
-  .action-mail-list__body {
-    font-size: 5.75pt;
-    -webkit-line-clamp: 3;
-    border-top-color: #000000 !important;
+  .action-mail-list__body,
+  .action-mail-list__cue {
+    display: none !important;
   }
 
   .action-mail-list__item:nth-last-child(2):nth-child(odd) {

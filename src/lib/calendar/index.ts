@@ -4,6 +4,7 @@ import { getEditionDateKey } from "@/lib/edition";
 import { CalDavCalendarAdapter } from "./caldav";
 import { EventKitCalendarAdapter } from "./eventkit";
 import { MockCalendarAdapter } from "./mock";
+import { isPushedCalendarFresh, loadPushedCalendar } from "./pushed";
 import type {
   CalendarAdapter,
   CalendarBriefing,
@@ -102,6 +103,24 @@ export async function getCalendar(
   const adapter = resolveAdapter();
   const horizon = config.calendar.horizonDays;
   const useMock = adapter.id === "mock";
+
+  // Fly has no EventKit. A fresh Mac push is the Apple Calendar, including
+  // scheduled reminders. On the Mac, EventKit itself is the source.
+  if (process.platform !== "darwin") {
+    const pushed = await loadPushedCalendar();
+    if (pushed && isPushedCalendarFresh(pushed) && pushed.events.length > 0) {
+      return {
+        status: "ok",
+        data: {
+          days: groupByDay(pushed.events, horizon, dateKey),
+          fetchedAt: pushed.receivedAt,
+          sourceLabel: `${pushed.deviceLabel} (Calendario)`,
+          horizonLabel: `Prossimi ${horizon} giorni`,
+          isMock: false,
+        },
+      };
+    }
+  }
 
   try {
     const events = await adapter.getUpcomingEvents(horizon, dateKey);

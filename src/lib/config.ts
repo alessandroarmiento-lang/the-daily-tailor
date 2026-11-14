@@ -45,7 +45,7 @@ export const config = {
     /** Il Post — sezione Mondo (trailing slash required). */
     feedUrl:
       process.env.NEWS_FEED_URL ?? "https://www.ilpost.it/mondo/feed/",
-    maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "12"),
+    maxItems: Number(process.env.NEWS_MAX_ITEMS ?? "5"),
   },
   reminders: {
     /**
@@ -58,7 +58,7 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "push" | "auto",
-    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "6"),
+    maxItems: Number(process.env.REMINDERS_MAX_ITEMS ?? "4"),
   },
   actionEmails: {
     /**

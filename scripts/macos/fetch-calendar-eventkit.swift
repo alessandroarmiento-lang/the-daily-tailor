@@ -52,6 +52,10 @@ guard let end = cal.date(byAdding: .day, value: horizonDays, to: start) else {
 let pred = store.predicateForEvents(withStart: start, end: end, calendars: nil)
 let events = store.events(matching: pred).sorted { $0.startDate < $1.startDate }
 
+func reminderAllDay(_ comps: DateComponents) -> Bool {
+  return comps.hour == nil
+}
+
 let df = DateFormatter()
 df.locale = Locale(identifier: "en_US_POSIX")
 df.timeZone = TimeZone.current
@@ -69,6 +73,50 @@ for e in events {
     "isAllDay": e.isAllDay,
     "calendarName": e.calendar?.title ?? "Calendar",
   ])
+}
+
+// Scheduled reminders (due in the horizon) show in Apple Calendar.
+// EventKit events() does not return them.
+let remSem = DispatchSemaphore(value: 0)
+var remDenied = false
+if #available(macOS 14.0, *) {
+  store.requestFullAccessToReminders { ok, _ in
+    if !ok { remDenied = true }
+    remSem.signal()
+  }
+} else {
+  store.requestAccess(to: .reminder) { ok, _ in
+    if !ok { remDenied = true }
+    remSem.signal()
+  }
+}
+if remSem.wait(timeout: .now() + 20) == .success && !remDenied {
+  let rpred = store.predicateForIncompleteReminders(
+    withDueDateStarting: start, ending: end, calendars: nil)
+  var reminders: [EKReminder] = []
+  let fetchSem = DispatchSemaphore(value: 0)
+  store.fetchReminders(matching: rpred) { list in
+    reminders = list ?? []
+    fetchSem.signal()
+  }
+  _ = fetchSem.wait(timeout: .now() + 25)
+  for r in reminders {
+    guard let comps = r.dueDateComponents, let due = cal.date(from: comps) else { continue }
+    items.append([
+      "id": "reminder-\(r.calendarItemIdentifier)",
+      "title": r.title ?? "(promemoria)",
+      "location": NSNull(),
+      "startsAt": df.string(from: due),
+      "endsAt": df.string(from: due),
+      "isAllDay": reminderAllDay(comps),
+      "calendarName": r.calendar?.title ?? "Promemoria",
+    ])
+  }
+  items.sort {
+    let a = $0["startsAt"] as? String ?? ""
+    let b = $1["startsAt"] as? String ?? ""
+    return a < b
+  }
 }
 
 let payload: [String: Any] = ["ok": true, "items": items]

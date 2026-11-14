@@ -32,17 +32,18 @@ import {
 
 const DESKTOP_GRID_COLUMNS = "0.95fr 1.05fr 1.2fr";
 /**
- * Locked bands, same box on iPhone and Mac (red-box A4):
- * meteo | agenda | news on top; promemoria under meteo only;
- * agenda and news continue through the middle band; email at the bottom.
+ * Locked bands, same box on iPhone and Mac:
+ * meteo | agenda | news;
+ * email | promemoria | news;
+ * email | salute | news.
  * Counts do not resize the rows.
  */
-const DESKTOP_GRID_AREAS = `"weather calendar news" "reminders calendar news" "emails emails emails"`;
+const DESKTOP_GRID_AREAS = `"weather calendar news" "emails reminders news" "emails health news"`;
 /**
- * Fixed row sizes. Middle band fits six reminders under meteo (1 col).
- * Bottom band fits six emails (2×3). Agenda/news fill the tall mid column.
+ * Fixed row sizes. Agenda takes the tall middle cell. Promemoria sit under it.
+ * The health strip is the short bottom cell of that column.
  */
-const DESKTOP_GRID_ROWS = "minmax(0, 1.05fr) 17.5rem 20.5rem";
+const DESKTOP_GRID_ROWS = "minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(4.4rem, 0.52fr)";
 
 /** A4 portrait at 96 CSS px/in — identical capture box on iPhone and desktop. */
 const A4_WIDTH_PX = Math.round((210 / 25.4) * 96); // 794
@@ -53,7 +54,7 @@ const A4_PAD_BOTTOM_PX = Math.round((10 / 25.4) * 96); // 38
 
 /** Card height. Items that do not fit whole are omitted, not sliced further. */
 const LINE_CLAMP_LINES: Array<[string, number]> = [
-  [".headline-list__title", 3],
+  [".headline-list__title", 2],
   [".headline-list__summary", 2],
   [".reminder-list__title", 2],
   [".cal-event__title", 2],

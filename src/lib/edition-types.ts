@@ -1,6 +1,7 @@
 import type { Aphorism } from "@/lib/aphorism";
 import type { ActionEmailBriefing } from "@/lib/action-emails/types";
 import type { CalendarBriefing } from "@/lib/calendar/types";
+import type { HealthBriefing } from "@/lib/health/types";
 import type { NewsBriefing } from "@/lib/news/types";
 import type { RemindersBriefing } from "@/lib/reminders/types";
 import type { SectionResult } from "@/lib/weather/types";
@@ -27,6 +28,8 @@ export type NewspaperEdition = {
   reminders: SectionResult<RemindersBriefing>;
   calendar: SectionResult<CalendarBriefing>;
   actionEmails: SectionResult<ActionEmailBriefing>;
+  /** Absent on editions built before the health strip. */
+  health?: SectionResult<HealthBriefing>;
 };
 
 export type EditionListItem = {

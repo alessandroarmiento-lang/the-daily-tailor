@@ -341,7 +341,19 @@ function reminderFromRecord(record: Record<string, unknown>): ReminderItem | nul
     dueAt: parseDueAt(get(["dueat", "due", "duedate", "scadenza", "data"])),
     isCompleted: false,
     priority: parsePriority(get(["priority", "priorita", "priorità"])),
+    flagged: parseFlagged(
+      get(["flagged", "isflagged", "contrassegnato", "contrassegno"]),
+    ),
   };
+}
+
+function parseFlagged(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    return s === "true" || s === "1" || s === "yes" || s === "sì" || s === "si";
+  }
+  return false;
 }
 
 function emptyNormalized(valid: boolean): NormalizedPush {

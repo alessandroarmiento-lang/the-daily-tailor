@@ -28,5 +28,11 @@ cd "$ROOT"
   curl -fsS --max-time 240 "$URL"
   echo
   curl -fsS -o /dev/null --max-time 120 "${BASE_URL}/" || true
+  if [[ -x "$ROOT/scripts/macos/push-reminders-to-host.sh" ]]; then
+    "$ROOT/scripts/macos/push-reminders-to-host.sh" || echo "reminders push failed"
+  fi
+  if [[ -x "$ROOT/scripts/macos/push-personal-to-host.sh" ]]; then
+    "$ROOT/scripts/macos/push-personal-to-host.sh" --warm || echo "calendar/health push failed"
+  fi
   echo "---- done ----"
 } 2>&1 | tee -a "$LOG"

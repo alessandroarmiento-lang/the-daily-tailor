@@ -13,7 +13,7 @@ export type RankRemindersOptions = {
 };
 
 /**
- * Fill up to six slots: edition day, then upcoming (chrono), then overdue
+ * Flagged open reminders only: edition day, then upcoming, then overdue
  * (most recent first), then undated.
  */
 export function rankReminders(

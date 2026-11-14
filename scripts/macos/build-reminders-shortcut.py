@@ -444,6 +444,7 @@ def build_workflow(host: str, token: str) -> dict:
     due_text_uuid = uid()
     notes_uuid = uid()
     priority_uuid = uid()
+    flagged_uuid = uid()
     id_text_uuid = uid()
     dict_uuid = uid()
     end_uuid = uid()
@@ -464,6 +465,7 @@ def build_workflow(host: str, token: str) -> dict:
     due_name = "Reminder DueAt"
     notes_name = "Reminder Notes"
     priority_name = "Reminder Priority"
+    flagged_name = "Reminder Flagged"
     id_name = "Reminder Id"
     post_name = "Ingest Response"
     dict_name = "Ingest Dictionary"
@@ -482,6 +484,7 @@ def build_workflow(host: str, token: str) -> dict:
         due_date_as_text(action_output(due_raw_uuid, due_raw_name), due_text_uuid),
         reminder_detail("Notes", notes_uuid, notes_name),
         reminder_detail("Priority", priority_uuid, priority_name),
+        reminder_detail("Flagged", flagged_uuid, flagged_name),
         # No Identifier property in Shortcuts Reminder details — Italian UI was
         # binding Dictionary.id to Elenco (List). Stable key instead.
         stable_id_text(
@@ -497,6 +500,9 @@ def build_workflow(host: str, token: str) -> dict:
                 text_field("notes", [action_output(notes_uuid, notes_name)]),
                 text_field(
                     "priority", [action_output(priority_uuid, priority_name)]
+                ),
+                text_field(
+                    "flagged", [action_output(flagged_uuid, flagged_name)]
                 ),
                 text_field("id", [action_output(id_text_uuid, id_name)]),
             ],
@@ -670,7 +676,7 @@ def validate_workflow(workflow: dict) -> None:
             )
         if isinstance(prop, str):
             reminder_props.add(prop)
-    for required in ("Title", "List", "Due Date", "Notes", "Priority"):
+    for required in ("Title", "List", "Due Date", "Notes", "Priority", "Flagged"):
         if required not in reminder_props:
             raise SystemExit(f"shortcut v4: missing Reminder detail {required!r}")
 

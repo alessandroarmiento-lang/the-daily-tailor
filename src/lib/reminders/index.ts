@@ -41,7 +41,7 @@ function resolveAdapter(): RemindersAdapter {
 }
 
 /**
- * Up to six open reminders: edition day, then upcoming, then overdue,
+ * Flagged reminders only: edition day, then upcoming, then overdue,
  * then undated — enough to fill the A4 slot. Uses the edition day, not
  * wall-clock "today", when they differ (e.g. before 06:00).
  */

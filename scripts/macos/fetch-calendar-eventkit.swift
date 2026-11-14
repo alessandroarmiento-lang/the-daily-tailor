@@ -48,9 +48,41 @@ guard let end = cal.date(byAdding: .day, value: horizonDays, to: start) else {
   print("{\"ok\":false,\"error\":\"date bounds\"}")
   exit(1)
 }
+// Birthdays and holiday subscriptions stay visible past the short agenda
+// horizon, the same calendars Calendar.app shows on the month.
+let observanceDays = max(horizonDays, 45)
+guard let observanceEnd = cal.date(byAdding: .day, value: observanceDays, to: start) else {
+  print("{\"ok\":false,\"error\":\"date bounds\"}")
+  exit(1)
+}
 
-let pred = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-let events = store.events(matching: pred).sorted { $0.startDate < $1.startDate }
+store.refreshSourcesIfNecessary()
+
+func isBirthdayCalendar(_ c: EKCalendar) -> Bool {
+  if c.type == .birthday { return true }
+  let title = c.title.lowercased()
+  return title.contains("birthday") || title.contains("compleann")
+}
+
+func isHolidayCalendar(_ c: EKCalendar) -> Bool {
+  let title = c.title.lowercased()
+  return title.contains("festiv") || title.contains("holiday")
+}
+
+let eventCalendars = store.calendars(for: .event)
+var events: [EKEvent] = []
+var seenEvents = Set<String>()
+for c in eventCalendars {
+  let windowEnd = (isBirthdayCalendar(c) || isHolidayCalendar(c)) ? observanceEnd : end
+  let pred = store.predicateForEvents(withStart: start, end: windowEnd, calendars: [c])
+  for e in store.events(matching: pred) {
+    let id = e.eventIdentifier ?? e.calendarItemIdentifier
+    if seenEvents.contains(id) { continue }
+    seenEvents.insert(id)
+    events.append(e)
+  }
+}
+events.sort { $0.startDate < $1.startDate }
 
 func reminderAllDay(_ comps: DateComponents) -> Bool {
   return comps.hour == nil

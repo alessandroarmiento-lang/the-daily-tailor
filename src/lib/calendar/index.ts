@@ -48,6 +48,61 @@ function dateKeyInTz(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
+/** All-day events keep the civil day written by Calendar.app. */
+function eventDateKey(event: CalendarEventItem, timeZone: string): string {
+  if (event.isAllDay) {
+    const leading = /^(\d{4}-\d{2}-\d{2})/.exec(event.startsAt.trim());
+    if (leading) return leading[1];
+  }
+  return dateKeyInTz(event.startsAt, timeZone);
+}
+
+function isBirthdayCalendar(name: string): boolean {
+  return /compleann|birthday/i.test(name);
+}
+
+function isHolidayCalendar(name: string): boolean {
+  return /festiv|holiday/i.test(name);
+}
+
+function isObservance(event: CalendarEventItem): boolean {
+  return isBirthdayCalendar(event.calendarName) || isHolidayCalendar(event.calendarName);
+}
+
+function foldObservanceTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bdi gesu\b/g, "")
+    .replace(/\bconcezione\b/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** Apple shows both the Italian subscription and Google holidays. Same day, one line. */
+function dedupeObservances(
+  events: CalendarEventItem[],
+  timeZone: string,
+): CalendarEventItem[] {
+  const rest: CalendarEventItem[] = [];
+  const best = new Map<string, CalendarEventItem>();
+  for (const event of events) {
+    if (!isObservance(event)) {
+      rest.push(event);
+      continue;
+    }
+    const key = `${eventDateKey(event, timeZone)}|${foldObservanceTitle(event.title)}`;
+    const prev = best.get(key);
+    const preferIncoming =
+      !prev ||
+      (isHolidayCalendar(event.calendarName) &&
+        event.calendarName.toLowerCase().includes("italiane") &&
+        !prev.calendarName.toLowerCase().includes("italiane"));
+    if (preferIncoming) best.set(key, event);
+  }
+  return [...rest, ...best.values()];
+}
+
 function dayLabel(dateKey: string, timeZone: string, locale: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d, 12));
@@ -65,6 +120,9 @@ function addCivilDays(dateKey: string, days: number): string {
   return utc.toISOString().slice(0, 10);
 }
 
+/** How far past the short horizon birthdays and holidays still appear. */
+const OBSERVANCE_LOOKAHEAD_DAYS = 45;
+
 function groupByDay(
   events: CalendarEventItem[],
   horizonDays: number,
@@ -77,17 +135,44 @@ function groupByDay(
   for (let i = 0; i < horizonDays; i += 1) {
     keys.push(addCivilDays(editionDateKey, i));
   }
+  const lastKey = keys[keys.length - 1] ?? editionDateKey;
+  const lookaheadEnd = addCivilDays(editionDateKey, OBSERVANCE_LOOKAHEAD_DAYS);
+  const visible = dedupeObservances(events, timezone);
 
   const byKey = new Map<string, CalendarEventItem[]>();
   for (const key of keys) byKey.set(key, []);
 
-  for (const event of events) {
-    const key = dateKeyInTz(event.startsAt, timezone);
+  const later: CalendarEventItem[] = [];
+  for (const event of visible) {
+    const key = eventDateKey(event, timezone);
     const bucket = byKey.get(key);
-    if (bucket) bucket.push(event);
+    if (bucket) {
+      bucket.push(event);
+      continue;
+    }
+    if (key > lastKey && key <= lookaheadEnd && isObservance(event)) {
+      later.push(event);
+    }
   }
 
-  return keys.map((key) => ({
+  const nextHoliday = later
+    .filter((event) => isHolidayCalendar(event.calendarName))
+    .map((event) => eventDateKey(event, timezone))
+    .sort()[0];
+  const cutoff = nextHoliday ?? lookaheadEnd;
+  for (const event of later) {
+    const key = eventDateKey(event, timezone);
+    if (key > cutoff) continue;
+    const bucket = byKey.get(key) ?? [];
+    bucket.push(event);
+    byKey.set(key, bucket);
+  }
+
+  const extraKeys = [...byKey.keys()]
+    .filter((key) => !keys.includes(key))
+    .sort();
+
+  return [...keys, ...extraKeys].map((key) => ({
     dateKey: key,
     label: dayLabel(key, timezone, locale),
     isToday: key === todayKey,

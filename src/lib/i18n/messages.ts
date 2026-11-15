@@ -46,7 +46,7 @@ export const messages = {
     historyTitle: "Storico edizioni",
     historyEmpty: "Nessuna giornata in elenco.",
     historyHint:
-      "Dopo le 06:00 con rete, il telefono tiene in memoria locale l’edizione per tutto il giorno.",
+      "Le giornate restano sul server. Aprirne una la tiene anche sul telefono.",
     daysCount: "{n} giornate · apri una copia locale se offline",
     holiday: "Festività",
     precipTitle: "Precipitazioni",
@@ -121,7 +121,7 @@ export const messages = {
     historyTitle: "Edition history",
     historyEmpty: "No days listed.",
     historyHint:
-      "After 06:00 with network, the phone keeps the edition in local memory for the whole day.",
+      "Days stay on the server. Opening one keeps it on the phone too.",
     daysCount: "{n} days · open a local copy if offline",
     holiday: "Holiday",
     precipTitle: "Precipitation",

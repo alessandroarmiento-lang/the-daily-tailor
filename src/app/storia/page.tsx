@@ -34,11 +34,12 @@ function StoriaPageInner() {
         const res = await fetch("/api/editions", { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as {
+          editions?: EditionListItem[];
           items?: EditionListItem[];
           todayKey?: string;
         };
         if (cancelled) return;
-        setServerItems(data.items ?? []);
+        setServerItems(data.editions ?? data.items ?? []);
         setTodayKey(data.todayKey ?? null);
       } catch (err) {
         if (!cancelled) {

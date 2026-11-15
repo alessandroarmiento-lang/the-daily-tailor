@@ -15,6 +15,10 @@ import { isValidRfcMessageId } from "@/lib/action-emails/actionable";
 const REMINDER_UUID_RE =
   /^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/;
 
+/** Agenda rows copied from a scheduled reminder: `reminder-{uuid}-{due}`. */
+const AGENDA_REMINDER_ID_RE =
+  /^reminder-([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})-/;
+
 const OPEN_HELPER = "http://127.0.0.1:3855/open";
 
 /** Apple reference date for `calshow:` (2001-01-01 UTC), in unix seconds. */
@@ -113,6 +117,34 @@ export function eventOpenPayload(event: {
     title: event.title,
     startsAt: event.startsAt,
     calendarName: event.calendarName,
+  };
+}
+
+/** Scheduled reminders on the agenda open in Reminders, not as a calendar slot. */
+export function agendaItemOpen(event: {
+  id: string;
+  title: string;
+  startsAt: string;
+  calendarName?: string | null;
+}): { href: string | undefined; payload: NativeOpenPayload } {
+  const reminderId = event.id.match(AGENDA_REMINDER_ID_RE)?.[1];
+  if (reminderId) {
+    return {
+      href: reminderDeepLink(reminderId),
+      payload: reminderOpenPayload({
+        id: reminderId,
+        title: event.title,
+        listName: event.calendarName || "",
+      }),
+    };
+  }
+  return {
+    href: calendarEventDeepLink(event.id, {
+      title: event.title,
+      calendarName: event.calendarName,
+      startsAt: event.startsAt,
+    }),
+    payload: eventOpenPayload(event),
   };
 }
 

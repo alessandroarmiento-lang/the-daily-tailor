@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import {
   apriBridgeHref,
+  agendaItemOpen,
   calendarEventDeepLink,
   calshowDeepLink,
   isAllowedNativeScheme,
@@ -75,5 +76,33 @@ assert.ok(
   isAllowedNativeScheme(`x-apple-reminderkit://REMCDReminder/${uuid}`),
 );
 assert.equal(isAllowedNativeScheme("javascript:alert(1)"), false);
+
+const agendaReminder = agendaItemOpen({
+  id: `reminder-${uuid}-2026-11-16T09:00:00+01:00`,
+  title: "Promemoria",
+  startsAt: "2026-11-16T08:00:00.000Z",
+  calendarName: "Famiglia",
+});
+assert.equal(agendaReminder.payload.kind, "reminder");
+assert.equal(agendaReminder.payload.id, uuid);
+assert.equal(
+  agendaReminder.href,
+  `x-apple-reminderkit://REMCDReminder/${uuid}`,
+);
+assert.equal(
+  nativeSchemeFromApriParams(
+    new URL(apriBridgeHref(agendaReminder.payload, agendaReminder.href), "https://example.test").searchParams,
+  ),
+  `x-apple-reminderkit://REMCDReminder/${uuid}`,
+);
+
+const agendaEvent = agendaItemOpen({
+  id: "evt-2",
+  title: "Dentista",
+  startsAt,
+  calendarName: "iCloud",
+});
+assert.equal(agendaEvent.payload.kind, "event");
+assert.equal(agendaEvent.href, show);
 
 console.log("check-deep-links: ok");

@@ -8,8 +8,7 @@ import {
   SectionShell,
 } from "@/components/section-shell";
 import {
-  calendarEventDeepLink,
-  eventOpenPayload,
+  agendaItemOpen,
   mailOpenPayload,
   reminderDeepLink,
   reminderOpenPayload,
@@ -400,16 +399,12 @@ export function EditionSheet({ edition, weatherLocationNote }: Props) {
                         ) : (
                           <ul className="cal-day__events">
                             {day.events.map((event) => {
-                              const href = calendarEventDeepLink(event.id, {
-                                title: event.title,
-                                calendarName: event.calendarName,
-                                startsAt: event.startsAt,
-                              });
+                              const open = agendaItemOpen(event);
                               const title = (
                                 <NativeOpenLink
                                   className="cal-event__link"
-                                  href={href}
-                                  payload={eventOpenPayload(event)}
+                                  href={open.href}
+                                  payload={open.payload}
                                 >
                                   {event.title}
                                 </NativeOpenLink>

@@ -33,7 +33,9 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
   if (!sleep || !bp || !activity) return null;
 
   let sleepText: string;
-  if (sleep === "thin") {
+  if (sleep === "missing") {
+    sleepText = "Non c'è la notte appena passata, quindi niente giudizio sul sonno.";
+  } else if (sleep === "thin") {
     sleepText = "Non c'è abbastanza sonno recente per un giudizio.";
   } else if (sleep === "split") {
     sleepText = "I rilievi del sonno non vanno d'accordo tra loro. Tieni lo stesso orario di sonno.";
@@ -54,6 +56,10 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
   let pressure: string;
   if (bp === "thin") {
     pressure = "Non c'è una pressione arteriosa recente.";
+  } else if (bp === "low") {
+    pressure = "L'ultima pressione è più bassa del tuo solito.";
+  } else if (bp === "high") {
+    pressure = "L'ultima pressione è più alta del tuo solito. Giornata più leggera, senza sforzo intenso.";
   } else if (bp === "rising") {
     pressure = "La pressione arteriosa è più alta del tuo solito e sta salendo. Giornata più leggera, senza sforzo intenso.";
   } else if (bp === "falling") {
@@ -63,7 +69,9 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
   }
 
   let movement: string;
-  if (activity === "thin") {
+  if (activity === "missing") {
+    movement = "Non c'è l'attività di ieri, quindi niente giudizio.";
+  } else if (activity === "thin") {
     movement = "Non c'è abbastanza attività recente per un giudizio.";
   } else if (activity === "low") {
     movement = "L'attività è sotto il tuo solito. Una camminata, senza alzare l'intensità.";

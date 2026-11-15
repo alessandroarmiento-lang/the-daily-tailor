@@ -11,38 +11,39 @@ export type Aphorism = {
 
 /**
  * Short passages from poems, essays, and classics (public domain).
- * One line, with the work named. Deterministic by edition day.
+ * One sentence, with the work named. Deterministic by edition day.
+ * A poem in an archaic language is given in prose, not in the original verse.
  * Index 11 is 2026-11-14: Whitman, Song of Myself 51.
  * Passages that think, not mottos.
  */
 const QUOTES: Aphorism[] = [
   {
-    text: "Nel mezzo del cammin di nostra vita mi ritrovai per una selva oscura.",
-    textEn: "Midway upon the journey of our life I found myself within a forest dark.",
+    text: "A metà del cammino della nostra vita mi ritrovai in una selva oscura.",
+    textEn: "Halfway through the journey of our life, I found myself in a dark wood.",
     attribution: "Dante, Inferno",
     attributionEn: "Dante, Inferno",
   },
   {
-    text: "Lasciate ogne speranza, voi ch’intrate.",
-    textEn: "All hope abandon, ye who enter here.",
+    text: "Voi che entrate, abbandonate ogni speranza.",
+    textEn: "You who enter here, abandon all hope.",
     attribution: "Dante, Inferno",
     attributionEn: "Dante, Inferno",
   },
   {
-    text: "L’amor che move il sole e l’altre stelle.",
-    textEn: "The Love that moves the sun and the other stars.",
+    text: "È l’amore che muove il sole e le altre stelle.",
+    textEn: "It is the love that moves the sun and the other stars.",
     attribution: "Dante, Paradiso",
     attributionEn: "Dante, Paradiso",
   },
   {
-    text: "Solo et pensoso i più deserti campi vo mesurando a passi tardi et lenti.",
-    textEn: "Alone and thoughtful, the most desert fields I measure with steps tardy and slow.",
+    text: "Vado solo e pensoso, e misuro a passi lenti i campi più deserti.",
+    textEn: "I go alone and thoughtful, and with slow steps I measure the most deserted fields.",
     attribution: "Petrarca, Canzoniere",
     attributionEn: "Petrarch, Canzoniere",
   },
   {
-    text: "Pace non trovo, et non ò da far guerra.",
-    textEn: "Peace I do not find, and I have no means to make war.",
+    text: "Non trovo pace, e non ho il modo di fare guerra.",
+    textEn: "I find no peace, and I have no way to make war.",
     attribution: "Petrarca, Canzoniere",
     attributionEn: "Petrarch, Canzoniere",
   },
@@ -65,20 +66,20 @@ const QUOTES: Aphorism[] = [
     attributionEn: "Leopardi, Night Song",
   },
   {
-    text: "A egregie cose il forte animo accendono l’urne de’ forti.",
-    textEn: "The urns of the strong kindle a strong soul to noble deeds.",
+    text: "Le tombe dei forti accendono un animo forte verso cose egregie.",
+    textEn: "The tombs of the strong kindle a strong spirit toward noble things.",
     attribution: "Foscolo, Dei sepolcri",
     attributionEn: "Foscolo, On Sepulchres",
   },
   {
-    text: "Un dì, s’io non andrò sempre fuggendo di gente in gente, me vedrai seduto su la tua pietra.",
-    textEn: "One day, if I do not go always fleeing from people to people, you will see me seated on your stone.",
+    text: "Un giorno, se non continuerò a fuggire di gente in gente, mi vedrai seduto sulla tua pietra.",
+    textEn: "One day, if I do not keep fleeing from people to people, you will see me seated on your stone.",
     attribution: "Foscolo, In morte del fratello Giovanni",
     attributionEn: "Foscolo, On the Death of His Brother Giovanni",
   },
   {
-    text: "Ei fu. Siccome immobile, dato il mortal sospiro, stette la spoglia immemore.",
-    textEn: "He was. As motionless, once the mortal breath was given, the unremembering body stood.",
+    text: "Non c’è più. Appena ebbe esalato l’ultimo respiro, il corpo restò immobile e senza memoria.",
+    textEn: "He is gone. As soon as he had breathed his last, the body stood still and remembered nothing.",
     attribution: "Manzoni, Il cinque maggio",
     attributionEn: "Manzoni, The Fifth of May",
   },
@@ -89,14 +90,14 @@ const QUOTES: Aphorism[] = [
     attributionEn: "Whitman, Song of Myself, 51",
   },
   {
-    text: "Canto l’arme pietose e ’l capitano che ’l gran sepolcro liberò di Cristo.",
-    textEn: "I sing the pious arms and the captain who freed the great sepulchre of Christ.",
+    text: "Canto le armi pietose e il capitano che liberò il grande sepolcro di Cristo.",
+    textEn: "I sing of the compassionate arms and of the captain who freed the great sepulchre of Christ.",
     attribution: "Tasso, Gerusalemme liberata",
     attributionEn: "Tasso, Jerusalem Delivered",
   },
   {
-    text: "Le donne, i cavallier, l’arme, gli amori, le cortesie, l’audaci imprese io canto.",
-    textEn: "Of ladies, knights, arms, loves, courtesies, and bold deeds I sing.",
+    text: "Canto le donne, i cavalieri, le armi, gli amori, le cortesie e le imprese audaci.",
+    textEn: "I sing of ladies, knights, arms, loves, courtesies, and bold deeds.",
     attribution: "Ariosto, Orlando furioso",
     attributionEn: "Ariosto, Orlando Furioso",
   },

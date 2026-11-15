@@ -47,7 +47,7 @@ export const messages = {
     historyEmpty: "Nessuna giornata in elenco.",
     historyHint:
       "Le giornate restano sul server. Aprirne una la tiene anche sul telefono.",
-    daysCount: "{n} giornate · apri una copia locale se offline",
+    daysCount: "{n} giornate",
     holiday: "Festività",
     precipTitle: "Precipitazioni",
     precipToday: "oggi previsti {mm} mm",
@@ -122,7 +122,7 @@ export const messages = {
     historyEmpty: "No days listed.",
     historyHint:
       "Days stay on the server. Opening one keeps it on the phone too.",
-    daysCount: "{n} days · open a local copy if offline",
+    daysCount: "{n} days",
     holiday: "Holiday",
     precipTitle: "Precipitation",
     precipToday: "today {mm} mm expected",

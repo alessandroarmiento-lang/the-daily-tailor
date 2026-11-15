@@ -63,19 +63,18 @@ export async function loadEdition(
 export async function listEditions(): Promise<EditionListItem[]> {
   try {
     const root = await ensureEditionsDir();
-    // Volume path is runtime (EDITIONS_DIR); ignore for standalone tracing.
+    // Names only. Reading every snapshot made /storia slow enough for the
+    // phone service worker to abort it and show Offline.
     const names = await readdir(/*turbopackIgnore: true*/ root);
     const items: EditionListItem[] = [];
     for (const name of names) {
       if (!name.endsWith(".json")) continue;
       const dateKey = name.slice(0, -".json".length);
       if (!isValidDateKey(dateKey)) continue;
-      const edition = await loadEdition(dateKey);
-      if (!edition) continue;
       items.push({
-        dateKey: edition.dateKey,
-        generatedAt: edition.generatedAt,
-        productName: edition.productName,
+        dateKey,
+        generatedAt: "",
+        productName: "The Daily Tailor",
       });
     }
     items.sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));

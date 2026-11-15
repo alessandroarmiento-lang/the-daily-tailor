@@ -3,6 +3,7 @@
  * background push. The phone updates cache when the app is opened.
  * Home Screen icon start_url is "/" → today's edition.
  *
+ * v40: history is in the document; do not abort /api/editions into Offline.
  * v39: news summaries use up to three lines in the space under the column.
  * v38: mail uses the gap above it; agenda is one column on screen, as in the PDF.
  * v37: no commentary line under the mail cards. The sheet layout stays locked.
@@ -42,7 +43,7 @@
  * documents whose /_next/*.css hashes 404 after deploy → precip chart
  * collapsed to “h07%0” lines). Bundles still never intercepted.
  */
-const SHELL_CACHE = "daily-tailor-shell-v39";
+const SHELL_CACHE = "daily-tailor-shell-v40";
 const DATA_CACHE = "daily-tailor-data-v2";
 const NETWORK_TIMEOUT_MS = 8000;
 
@@ -108,9 +109,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // The history page already has the archive in the HTML. Intercepting
+  // this list let an 8s abort answer "Offline" while the phone was online.
+  if (url.pathname === "/api/editions") {
+    return;
+  }
+
   const isEditionApi =
     url.pathname === "/api/edition/today" ||
-    url.pathname === "/api/editions" ||
     /^\/api\/edition\/\d{4}-\d{2}-\d{2}$/.test(url.pathname);
 
   if (isEditionApi) {

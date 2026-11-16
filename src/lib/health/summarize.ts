@@ -728,7 +728,7 @@ export async function summarizeHealthDir(
   if (lines.length === 0) return null;
 
   return {
-    lines: lines.slice(0, 4),
+    lines: lines.slice(0, 5),
     fetchedAt: new Date().toISOString(),
     sourceLabel: "Second brain",
   };

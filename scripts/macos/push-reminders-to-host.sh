@@ -44,15 +44,43 @@ PAYLOAD="$(mktemp)"
 EVENTKIT_OUT="$(mktemp)"
 trap 'rm -f "$PAYLOAD" "$EVENTKIT_OUT"' EXIT
 
-if ! perl -e 'alarm 30; exec @ARGV' osascript \
-  "$ROOT/scripts/macos/fetch-flagged-reminders.applescript" > "$EVENTKIT_OUT"; then
-  "$BIN" "$POOL" > "$EVENTKIT_OUT"
-fi
+# AppleScript "whose flagged" times out on iCloud lists. EventKit returns the
+# open items; the flag itself is read from the local Reminders store below.
+"$BIN" "$POOL" > "$EVENTKIT_OUT"
 
 python3 - "$EVENTKIT_OUT" "$PAYLOAD" <<'PY'
 import json
+import sqlite3
 import sys
 from pathlib import Path
+
+def flagged_ids():
+    root = Path.home() / "Library/Group Containers/group.com.apple.reminders/Container_v1/Stores"
+    if not root.is_dir():
+        return None
+    found = set()
+    for path in root.glob("Data-*.sqlite"):
+        try:
+            con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        except sqlite3.Error:
+            continue
+        try:
+            rows = con.execute(
+                """
+                SELECT ZDACALENDARITEMUNIQUEIDENTIFIER
+                FROM ZREMCDREMINDER
+                WHERE ZFLAGGED=1
+                  AND (ZCOMPLETED IS NULL OR ZCOMPLETED=0)
+                  AND (ZMARKEDFORDELETION IS NULL OR ZMARKEDFORDELETION=0)
+                  AND ZDACALENDARITEMUNIQUEIDENTIFIER IS NOT NULL
+                """
+            )
+            found.update(row[0] for row in rows if row[0])
+        except sqlite3.Error:
+            continue
+        finally:
+            con.close()
+    return found
 
 raw = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 if not raw.get("ok"):
@@ -80,10 +108,18 @@ items = [
     if (r.get("title") or "").strip()
 ]
 
+flags = flagged_ids()
+if flags is None:
+    print("Archivio Promemoria illeggibile: non sostituisco i contrassegnati.", file=sys.stderr)
+    sys.exit(1)
+for item in items:
+    item["flagged"] = item["id"] in flags
+flagged_count = sum(1 for item in items if item["flagged"])
+
 Path(sys.argv[2]).write_text(
     json.dumps({"device": "Mac", "reminders": items}), encoding="utf-8"
 )
-print(f"{len(items)} promemoria aperti da EventKit", file=sys.stderr)
+print(f"{len(items)} promemoria aperti, {flagged_count} contrassegnati", file=sys.stderr)
 PY
 
 # curl --config - keeps the token out of the process list.

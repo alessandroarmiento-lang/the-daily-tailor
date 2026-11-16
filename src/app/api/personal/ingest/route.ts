@@ -81,7 +81,7 @@ function asHealthLines(value: unknown): HealthLine[] | null {
     const text = typeof row.text === "string" ? row.text.trim() : "";
     if (!label || !text) continue;
     lines.push({ label: label.slice(0, 40), text: text.slice(0, 240) });
-    if (lines.length >= 4) break;
+    if (lines.length >= 5) break;
   }
   return lines;
 }

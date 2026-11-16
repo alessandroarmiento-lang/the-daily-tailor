@@ -120,48 +120,32 @@ function addCivilDays(dateKey: string, days: number): string {
   return utc.toISOString().slice(0, 10);
 }
 
-/** How far past the short horizon birthdays and holidays still appear. */
-const OBSERVANCE_LOOKAHEAD_DAYS = 45;
-
 function groupByDay(
   events: CalendarEventItem[],
   _horizonDays: number,
   editionDateKey: string,
 ): CalendarDayGroup[] {
   const { timezone, locale } = config;
-  const todayKey = editionDateKey;
-  const tomorrowKey = addCivilDays(editionDateKey, 1);
-  const lookaheadEnd = addCivilDays(editionDateKey, OBSERVANCE_LOOKAHEAD_DAYS);
+  const keys: string[] = [];
+  for (let i = 0; i < config.calendar.dayCount; i += 1) {
+    keys.push(addCivilDays(editionDateKey, i));
+  }
   const visible = dedupeObservances(events, timezone);
+  const byKey = new Map<string, CalendarEventItem[]>(keys.map((key) => [key, []]));
 
-  // Today and tomorrow when they have events. Then later birthdays and
-  // holidays, oldest first, until the locked day count. Empty days omitted.
-  const byKey = new Map<string, CalendarEventItem[]>();
-  const later: CalendarEventItem[] = [];
+  // Today and the following day only. Empty cards stay. Later birthdays
+  // and holidays do not take those two seats.
   for (const event of visible) {
     const key = eventDateKey(event, timezone);
-    if (key < editionDateKey) continue;
-    if (key === editionDateKey || key === tomorrowKey) {
-      const bucket = byKey.get(key) ?? [];
-      bucket.push(event);
-      byKey.set(key, bucket);
-      continue;
-    }
-    if (key <= lookaheadEnd && isObservance(event)) later.push(event);
-  }
-
-  for (const event of later) {
-    const key = eventDateKey(event, timezone);
-    const bucket = byKey.get(key) ?? [];
+    const bucket = byKey.get(key);
+    if (!bucket) continue;
     bucket.push(event);
-    byKey.set(key, bucket);
   }
 
-  const dayCount = config.calendar.dayCount;
-  return [...byKey.keys()].sort().slice(0, dayCount).map((key) => ({
+  return keys.map((key) => ({
     dateKey: key,
     label: dayLabel(key, timezone, locale),
-    isToday: key === todayKey,
+    isToday: key === editionDateKey,
     events: (byKey.get(key) ?? []).sort((a, b) =>
       a.startsAt.localeCompare(b.startsAt),
     ),

@@ -29,6 +29,7 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
   const regularity = cues.sleep_regularity ?? "thin";
   const bp = cues.bp;
   const activity = cues.activity;
+  const intake = cues.intake ?? "missing";
   const recovery = cues.recovery ?? "thin";
   if (!sleep || !bp || !activity) return null;
 
@@ -81,10 +82,24 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
     movement = "L'attività è in linea col tuo solito. Tieni questo passo, senza alzare l'intensità.";
   }
 
+  let intakeText: string;
+  if (intake === "thin") {
+    intakeText = "Non c'è abbastanza alimentazione recente per un giudizio.";
+  } else if (intake === "low") {
+    intakeText = "L'alimentazione di ieri è sotto il tuo solito. Avvicinala al tuo solito, senza inseguire un numero.";
+  } else if (intake === "high") {
+    intakeText = "L'alimentazione di ieri è sopra il tuo solito. Non aggiungere.";
+  } else if (intake === "line") {
+    intakeText = "L'alimentazione di ieri è in linea col tuo solito. Tieni questo.";
+  } else {
+    intakeText = "Non c'è l'alimentazione di ieri, quindi niente giudizio.";
+  }
+
   const lines: HealthLine[] = [
     { label: "Sonno", text: sleepText },
     { label: "Pressione", text: pressure },
     { label: "Attività", text: movement },
+    { label: "Alimentazione", text: intakeText },
   ];
   if (recovery === "off") {
     lines.push({

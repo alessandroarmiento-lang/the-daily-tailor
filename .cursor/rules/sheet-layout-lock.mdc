@@ -15,10 +15,10 @@ Bottom band: email spans the full page width, including the space under the news
 
 ## Counts
 
-- Agenda: 4 day cards.
+- Agenda: 2 day cards, today and the next day. Both stay even when a day has no events.
 - News: 7. Up to three lines under each title.
 - Reminders: 3.
 - Email: 2 rows × 3 columns, 6 cards. No third mail row. No sentence under the cards. Notable cards only fill empty cells inside those six.
-- Health column: sleep, arterial pressure, and activity, each with a judgment and one piece of advice. A general line only when something else is off or getting worse. No figures, no device names, no "not from yesterday" preface.
+- Health column: sleep, arterial pressure, activity, and nutrition, each with a judgment and one piece of advice. A general line only when something else is off or getting worse. No figures, no device names, no "not from yesterday" preface.
 
 Screen, PDF capture, and print use the same map.

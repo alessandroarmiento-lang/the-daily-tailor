@@ -93,8 +93,8 @@ export const config = {
       "auto",
       "auto",
     ) as "mock" | "eventkit" | "caldav" | "auto",
-    /** Locked. The agenda grid is always this many day cards. */
-    dayCount: 4,
+    /** Locked. Today, then the next day. Both cards stay even when empty. */
+    dayCount: 2,
     horizonDays: Math.min(
       6,
       Math.max(1, Number(process.env.CALENDAR_HORIZON_DAYS ?? "6") || 6),

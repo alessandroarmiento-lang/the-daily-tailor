@@ -30,6 +30,7 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
   const bp = cues.bp;
   const activity = cues.activity;
   const intake = cues.intake ?? "missing";
+  const intakePrior = cues.intake_prior ?? "thin";
   const recovery = cues.recovery ?? "thin";
   if (!sleep || !bp || !activity) return null;
 
@@ -84,15 +85,25 @@ export function healthLinesFromCues(cues: Record<string, string>): HealthLine[] 
 
   let intakeText: string;
   if (intake === "thin") {
-    intakeText = "Non c'è abbastanza alimentazione recente per un giudizio.";
+    intakeText = "Non c'è abbastanza alimentazione recente per un giudizio. Segna i pasti per qualche giorno.";
   } else if (intake === "low") {
     intakeText = "L'alimentazione di ieri è sotto il tuo solito. Avvicinala al tuo solito, senza inseguire un numero.";
   } else if (intake === "high") {
     intakeText = "L'alimentazione di ieri è sopra il tuo solito. Non aggiungere.";
   } else if (intake === "line") {
     intakeText = "L'alimentazione di ieri è in linea col tuo solito. Tieni questo.";
+  } else if (intake === "stale") {
+    if (intakePrior === "high") {
+      intakeText = "Il diario alimentare è fermo: nell'ultimo periodo segnato l'apporto era sopra il tuo solito. Riprendi a segnare i pasti, senza aggiungere.";
+    } else if (intakePrior === "low") {
+      intakeText = "Il diario alimentare è fermo: nell'ultimo periodo segnato l'apporto era sotto il tuo solito. Riprendi a segnare i pasti, senza tagliare ancora.";
+    } else if (intakePrior === "line") {
+      intakeText = "Il diario alimentare è fermo: nell'ultimo periodo segnato l'apporto era in linea col tuo solito. Riprendi a segnare i pasti e tieni questo.";
+    } else {
+      intakeText = "Il diario alimentare è fermo, quindi niente giudizio sull'apporto recente. Riprendi a segnare i pasti.";
+    }
   } else {
-    intakeText = "Non c'è l'alimentazione di ieri, quindi niente giudizio.";
+    intakeText = "Non c'è un diario alimentare. Segna i pasti per qualche giorno.";
   }
 
   const lines: HealthLine[] = [

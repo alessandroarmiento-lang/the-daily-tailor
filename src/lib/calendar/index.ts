@@ -170,7 +170,7 @@ export async function getCalendar(
           days: groupByDay(pushed.events, horizon, dateKey),
           fetchedAt: pushed.receivedAt,
           sourceLabel: `${pushed.deviceLabel} (Calendario)`,
-          horizonLabel: `Prossimi ${horizon} giorni`,
+          horizonLabel: "Oggi e domani",
           isMock: false,
         },
       };
@@ -185,7 +185,7 @@ export async function getCalendar(
         days: groupByDay(events, horizon, dateKey),
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
-        horizonLabel: `Prossimi ${horizon} giorni`,
+        horizonLabel: "Oggi e domani",
         isMock: useMock,
       },
     };
@@ -201,7 +201,7 @@ export async function getCalendar(
         days: groupByDay([], horizon, dateKey),
         fetchedAt: new Date().toISOString(),
         sourceLabel: adapter.label,
-        horizonLabel: `Prossimi ${horizon} giorni`,
+        horizonLabel: "Oggi e domani",
         isMock: useMock,
       },
     };

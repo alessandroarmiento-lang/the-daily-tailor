@@ -12,6 +12,7 @@ import {
   runOsascriptJson,
 } from "@/lib/apple/run-osascript";
 import { getEditionDateKey } from "@/lib/edition";
+import { applyLocalFlags } from "./flagged-ids";
 import { rankReminders, remindersFetchPool } from "./rank";
 import type { ReminderItem, RemindersAdapter } from "./types";
 
@@ -61,26 +62,26 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
       cacheKey,
     );
     if (cached?.data) {
-      return rankReminders(cached.data, rankOpts).slice(0, poolSize);
+      return rankReminders(applyLocalFlags(cached.data), rankOpts).slice(0, poolSize);
     }
 
     let result: ScriptResult;
     try {
-      result = await runOsascriptJson<ScriptResult>(
-        "fetch-flagged-reminders.applescript",
-        [],
-        40_000,
+      result = await runEventKitBinJson<ScriptResult>(
+        "fetch-reminders-eventkit",
+        [String(fetchLimit)],
+        45_000,
       );
       this.label = "Apple Reminders (contrassegnati)";
-    } catch (scriptErr) {
+    } catch (binErr) {
       try {
-        result = await runEventKitBinJson<ScriptResult>(
-          "fetch-reminders-eventkit",
-          [String(fetchLimit)],
-          45_000,
+        result = await runOsascriptJson<ScriptResult>(
+          "fetch-flagged-reminders.applescript",
+          [],
+          12_000,
         );
-        this.label = "Apple Reminders (EventKit)";
-      } catch (binErr) {
+        this.label = "Apple Reminders (contrassegnati)";
+      } catch (scriptErr) {
         try {
           result = await runOsascriptJson<ScriptResult>(
             "fetch-reminders.applescript",
@@ -105,7 +106,7 @@ export class EventKitRemindersAdapter implements RemindersAdapter {
     }
 
     // Cache the full incomplete pool; rank per edition day on read/build.
-    const mapped = mapItems(result.items ?? []);
+    const mapped = applyLocalFlags(mapItems(result.items ?? []));
     await writeEditionCache("reminders", mapped, cacheKey);
     return rankReminders(mapped, rankOpts).slice(0, poolSize);
   }

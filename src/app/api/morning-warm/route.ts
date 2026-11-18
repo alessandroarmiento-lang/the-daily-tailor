@@ -7,6 +7,7 @@ import {
   getNextEditionRollover,
   resolveEditionAsOf,
 } from "@/lib/edition";
+import { notifyEditionReady } from "@/lib/push/send";
 import { withBudget } from "@/lib/with-budget";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,9 @@ const BUILD_BUDGET_MS = 90_000;
  * `?asOf=civil` — AGGIORNA: build the wall-clock civil day even before the
  * 06:00 edition rollover; the 06:00 cron warms again without this flag.
  *
- * Does not push to the iPhone — Safari cannot receive silent background
- * downloads. The phone pulls when opened (or via Shortcuts notification).
+ * After a successful warm, sends a visible Web Push to subscribed Home Screen
+ * PWAs. The service worker then fetches today's JSON into Cache API + IndexedDB
+ * so the first open of the day works offline (phone needs network at push time).
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -47,12 +49,18 @@ export async function GET(request: Request) {
       "morning-warm",
     );
 
+    const push = await notifyEditionReady({
+      dateKey: edition.dateKey,
+      productName: edition.productName,
+    });
+
     return Response.json({
       ok: true,
       editionDateKey,
       created,
       path: savedPath ?? null,
       nextRolloverAt: nextRollover.toISOString(),
+      push,
       sections: {
         weather: edition.weather.status,
         news: edition.news.status,

@@ -89,6 +89,35 @@ a.cal-event__link:hover {
   text-align: right;
 }
 
+.offline-push-prompt {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: calc(0.5rem + var(--safe-top)) 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e5e5;
+  background: #ffffff;
+}
+
+.offline-push-prompt__text {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink-muted);
+}
+
+.offline-push-prompt__actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

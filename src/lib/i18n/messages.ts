@@ -12,7 +12,7 @@ export const messages = {
     loadingApp: "Caricamento The Daily Tailor…",
     noEdition: "Nessuna edizione disponibile.",
     noEditionHint:
-      "Apri l’app con rete e premi AGGIORNA per il giorno corrente, oppure aspetta il warm delle 06:00.",
+      "Se è la prima volta su questo telefono, apri una volta con rete e consenti le notifiche: dalle 06:00 l’edizione arriva da sola e resta offline. Altrimenti premi AGGIORNA con rete.",
     loadFail: "Caricamento edizione fallito",
     warmFail: "Server lento — ricaricata l’ultima edizione (HTTP {status})",
     warmTimeout: "Server lento — ricaricata l’ultima edizione",
@@ -76,6 +76,11 @@ export const messages = {
     condUnknown: "Condizioni non disponibili",
     noNews: "Nessun titolo disponibile questa mattina.",
     noEmails: "Nessuna email d’azione recente.",
+    pushPrompt:
+      "Attiva le notifiche: alle 06:00 l’edizione arriva sul telefono e si apre anche senza rete.",
+    pushEnable: "Attiva",
+    pushEnabling: "Attivo…",
+    pushLater: "Dopo",
   },
   en: {
     langAria: "Language",
@@ -88,7 +93,7 @@ export const messages = {
     loadingApp: "Loading The Daily Tailor…",
     noEdition: "No edition available.",
     noEditionHint:
-      "Open the app online and tap Refresh for the current day, or wait for the 06:00 warm.",
+      "First time on this phone: open once online and allow notifications — from 06:00 the edition arrives by itself and stays offline. Otherwise tap Refresh while online.",
     loadFail: "Failed to load edition",
     warmFail: "Slow server — last edition reloaded (HTTP {status})",
     warmTimeout: "Slow server — last edition reloaded",
@@ -150,6 +155,11 @@ export const messages = {
     condUnknown: "Conditions unavailable",
     noNews: "No headlines available this morning.",
     noEmails: "No recent action emails.",
+    pushPrompt:
+      "Allow notifications: at 06:00 the edition reaches the phone and opens with no network.",
+    pushEnable: "Enable",
+    pushEnabling: "Enabling…",
+    pushLater: "Later",
   },
 } as const;
 

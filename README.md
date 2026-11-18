@@ -126,24 +126,25 @@ Set the Mac timezone to **Europe/Rome** (or accept that launchd uses the Mac clo
 2. **Condividi → Aggiungi a Home** (Add to Home Screen).
 3. Conferma il nome **The Daily Tailor**. Compare l’icona (apple-touch-icon / manifest).
 4. L’icona apre in **standalone** (`display: standalone`) la `start_url` **`/`** = edizione di oggi.
-5. Alla prima apertura dopo le 06:00 (con rete): scarica `/api/edition/today`, salva in IndexedDB + Cache API.
-6. Poi, anche offline: un tap sull’icona mostra la copia locale del giorno. **Stampa** resta opzionale (pulsante in-app o Condividi → Stampa del browser) — nessun auto-print.
+5. Prima apertura dall’icona Home Screen: consenti le **notifiche** (una volta). Il service worker resta iscritto al push delle 06:00.
+6. Alle **06:00** il host fa warm + Web Push → il telefono (con rete in quel momento) scarica l’edizione in IndexedDB + Cache API **prima** che tu apra l’app.
+7. Poi, anche senza campo: un tap sull’icona apre la copia locale. **Stampa** resta opzionale — nessun auto-print.
 
 Manifest: `public/manifest.webmanifest` · icone: `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`.
 
 ### How the iPhone stays offline
 
-1. Safari → **Condividi → Aggiungi a Home** (vedi sopra). Manifest + service worker (`/sw.js`) cache the app shell.
-2. Open the app **after 06:00** (or whenever the Mac has warmed the edition). The client fetches `/api/edition/today`, stores it in **IndexedDB**, and also caches the JSON response in the SW.
-3. Later that day, with no network: the UI renders the same snapshot from IndexedDB. **Stampa** still works — it prints the on-screen edition DOM (1×A4, B&W). No auto-print.
-4. **Storia** lists server archive + local cache; opening a day uses local copy if present, otherwise fetches once and caches.
+1. Safari → **Condividi → Aggiungi a Home**. Manifest + service worker (`/sw.js`) cache the app shell and `/_next/static` assets.
+2. Open once from the Home Screen and **allow notifications**. That registers Web Push.
+3. At **06:00** the always-on host warms today’s JSON and sends a visible push. The service worker fetches `/api/edition/today` into **Cache API + IndexedDB** without you opening the app.
+4. Later with no network: the UI boots from the cached shell and renders the snapshot from IndexedDB.
+5. **Storia** lists server archive + local cache; opening a day uses local copy if present, otherwise fetches once and caches.
 
 ### Honest limits (iOS background download)
 
-- Safari / Home Screen web apps **cannot** receive a silent push that downloads the paper at 06:00 while the phone sleeps.
-- Background refresh for PWAs on iOS is unreliable; do not depend on it.
-- Practical pattern: Mac generates at 06:00 → optional **Shortcuts** morning notification (“Apri The Daily Tailor”) → open-on-wake pulls and caches → stay offline the rest of the day.
-- LAN access: phone must reach the Mac URL (same Wi‑Fi / tunnel) for the first download of the day.
+- iOS requires a **visible** notification for Web Push (no fully silent download). The worker still prefetches the edition when the push arrives.
+- The phone needs **network around 06:00** to receive the push and fetch the JSON. If it is offline at that minute, open once when network returns (or tap the notification).
+- First install on a new phone still needs one online open (shell assets + notification permission). After that, each morning’s edition arrives by push.
 
 ## Run locally
 

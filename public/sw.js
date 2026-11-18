@@ -1,51 +1,20 @@
-/* The Daily Tailor — offline shell + edition JSON cache.
- * iOS Safari / Add to Home Screen: SW runs, but there is NO silent
- * background push. The phone updates cache when the app is opened.
- * Home Screen icon start_url is "/" → today's edition.
+/* The Daily Tailor — offline shell + edition JSON cache + morning push.
+ * iOS Safari / Add to Home Screen: SW runs. Visible Web Push at ~06:00
+ * wakes this worker so today's edition is fetched into Cache API +
+ * IndexedDB before the first tap — then the paper opens with no network.
  *
+ * v41: cache /_next/static (hashed) + push→prefetch edition for true offline.
  * v40: history is in the document; do not abort /api/editions into Offline.
- * v39: news summaries use up to three lines in the space under the column.
- * v38: mail uses the gap above it; agenda is one column on screen, as in the PDF.
- * v37: no commentary line under the mail cards. The sheet layout stays locked.
- * v36: mail is locked at two rows of three.
- * v35: the mail band spans the full page width, three columns.
- * v34: the mail band is three columns.
- * v33: mail sits under health and reminders; weather column is the narrow one.
- * v32: email owns the left column with a body line; health sits above reminders; news runs the full right column.
- * v31: lower band is email, reminders, health; agenda stays four days.
- * v30: three-column sheet again; health text is descriptive.
- * v29: A4 agenda in two columns; news titles fill the last band.
- * v28: A4 stack stays on one page; mail and news keep a band.
- * v27: one-column A4, importance order, no stretched holes.
- * v26: iOS PWA opens reminders/agenda via same-origin /apri bridge.
- * v25: open agenda/reminders links on iPhone; adapter cache uses edition day.
- * v24: AGGIORNA uses civil day (asOf=civil); 06:00 rollover warms again.
- * v23: PDF keeps all agenda days; Open-Meteo past_days for precip coverage.
- * v22: AGGIORNA leaves Aggiorno… in 8s; warm finishes in background.
- * v21: promemoria 1-col under meteo (stop painting over agenda).
- * v20: fill six reminders (day→upcoming→overdue→undated) and six emails.
- * v19: agenda spans mid column; compact empty days; six rem/mail.
- * v18: fill leftover news height; six reminders/emails.
- * v17: six reminders (day+upcoming) and six emails; empty agenda days.
- * v16: reminders due on edition day only; agenda keeps empty day boxes.
- * v15: AGGIORNA warm retries ×3; status line at top of toolbar.
- * v14: AGGIORNA must leave Aggiorno… when morning-warm hangs on Fly.
- * v13: Agenda spans mid-band; Promemoria stay under Meteo (no overlap).
- * v12: PDF capture forces 2-col Promemoria + Email (iPhone viewport bypass).
- * v11: empty-state news/email copy follows UI lang.
- * v10: EN UI labels for weather/agenda/masthead/aphorism.
- * v9: toolbar lang/actions single-row alignment on iPhone.
- * v8: shell cache bump after layout/CSS deploys.
- * v7: calendar in-flow (no clipped day borders); news still fills remaining height.
- * v6: max-content rows + hide overflow news/days so sections never overlap.
- * v5: layout fix — in-flow rows must not crush (overlap) under A4 height.
  * v4: HTML navigations are network-first (cache-first served stale
- * documents whose /_next/*.css hashes 404 after deploy → precip chart
- * collapsed to “h07%0” lines). Bundles still never intercepted.
+ * documents whose /_next/*.css hashes 404 after deploy).
  */
-const SHELL_CACHE = "daily-tailor-shell-v40";
-const DATA_CACHE = "daily-tailor-data-v2";
+const SHELL_CACHE = "daily-tailor-shell-v41";
+const DATA_CACHE = "daily-tailor-data-v3";
+const STATIC_CACHE = "daily-tailor-static-v1";
 const NETWORK_TIMEOUT_MS = 8000;
+const IDB_NAME = "daily-tailor-editions";
+const IDB_VERSION = 1;
+const IDB_STORE = "editions";
 
 const SHELL_URLS = [
   "/",
@@ -73,12 +42,36 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== SHELL_CACHE && k !== DATA_CACHE)
+            .filter(
+              (k) =>
+                k !== SHELL_CACHE && k !== DATA_CACHE && k !== STATIC_CACHE,
+            )
             .map((k) => caches.delete(k)),
         ),
       )
       .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || typeof data !== "object") return;
+  if (data.type === "PRECACHE" && Array.isArray(data.urls)) {
+    event.waitUntil(precacheUrls(data.urls));
+  }
+  if (data.type === "PREFETCH_EDITION") {
+    event.waitUntil(prefetchTodayEdition());
+  }
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil(handlePush(event));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = event.notification?.data?.url || "/";
+  event.waitUntil(openOrFocus(target));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -88,8 +81,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never intercept Next.js runtime / HMR / chunk assets — stale cache
-  // of broken JS left Safari on “Caricamento…”.
+  // Hashed build assets: cache-first (immutable). Required for offline boot.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(cacheFirstStatic(req));
+    return;
+  }
+
+  // Never intercept Next.js runtime / HMR / RSC flight plumbing.
   if (
     url.pathname.startsWith("/_next/") ||
     url.pathname.startsWith("/__nextjs")
@@ -97,20 +95,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-bust query (?v=…) → network only for navigations/shell.
   if (url.searchParams.has("v")) {
     event.respondWith(networkOnly(req));
     return;
   }
 
-  // Native-scheme bridge must never be served from a stale shell cache.
   if (url.pathname === "/apri") {
     event.respondWith(networkOnly(req));
     return;
   }
 
-  // The history page already has the archive in the HTML. Intercepting
-  // this list let an 8s abort answer "Offline" while the phone was online.
   if (url.pathname === "/api/editions") {
     return;
   }
@@ -128,7 +122,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Documents: network-first so HTML always matches current CSS hashes.
   const isDocument =
     req.mode === "navigate" ||
     req.destination === "document" ||
@@ -178,6 +171,9 @@ async function networkFirstData(req) {
   } catch {
     const cached = await cache.match(req);
     if (cached) return cached;
+    // today URL may have been stored under a dated path — try today key.
+    const today = await cache.match("/api/edition/today");
+    if (today) return today;
     return new Response(
       JSON.stringify({ error: "Offline e nessuna copia in cache" }),
       { status: 503, headers: { "Content-Type": "application/json" } },
@@ -231,5 +227,151 @@ async function cacheFirstShell(req) {
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       })
     );
+  }
+}
+
+async function cacheFirstStatic(req) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+  try {
+    const fresh = await fetch(req);
+    if (fresh.ok) cache.put(req, fresh.clone());
+    return fresh;
+  } catch {
+    return new Response("Offline", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+}
+
+async function precacheUrls(urls) {
+  const shell = await caches.open(SHELL_CACHE);
+  const staticCache = await caches.open(STATIC_CACHE);
+  await Promise.all(
+    urls.map(async (raw) => {
+      try {
+        const url = new URL(raw, self.location.origin);
+        if (url.origin !== self.location.origin) return;
+        const req = new Request(url.href, { credentials: "same-origin" });
+        const res = await fetch(req);
+        if (!res.ok) return;
+        if (url.pathname.startsWith("/_next/static/")) {
+          await staticCache.put(req, res.clone());
+        } else {
+          await shell.put(req, res.clone());
+        }
+      } catch {
+        /* best-effort */
+      }
+    }),
+  );
+}
+
+async function handlePush(event) {
+  let payload = {
+    type: "edition-ready",
+    dateKey: "",
+    title: "The Daily Tailor",
+    body: "Edizione del mattino pronta offline",
+    url: "/",
+  };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      payload = { ...payload, ...parsed };
+    }
+  } catch {
+    /* use defaults */
+  }
+
+  await prefetchTodayEdition();
+
+  await self.registration.showNotification(payload.title || "The Daily Tailor", {
+    body: payload.body || "Edizione pronta",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    data: { url: payload.url || "/" },
+  });
+}
+
+async function prefetchTodayEdition() {
+  try {
+    const res = await fetch("/api/edition/today", {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    if (!res.ok) return;
+    const body = await res.json();
+    const edition = body?.edition;
+    if (!edition || edition.schemaVersion !== 1 || !edition.dateKey) return;
+
+    const cache = await caches.open(DATA_CACHE);
+    const json = JSON.stringify(body);
+    const headers = { "Content-Type": "application/json; charset=utf-8" };
+    await cache.put(
+      "/api/edition/today",
+      new Response(json, { status: 200, headers }),
+    );
+    await cache.put(
+      `/api/edition/${edition.dateKey}`,
+      new Response(json, { status: 200, headers }),
+    );
+    await putEditionIdb(edition);
+  } catch {
+    /* phone may be offline when push arrives — notification still shown */
+  }
+}
+
+function openIdb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onerror = () => reject(req.error || new Error("IDB open failed"));
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: "dateKey" });
+      }
+    };
+  });
+}
+
+async function putEditionIdb(edition) {
+  const db = await openIdb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IDB write failed"));
+      tx.objectStore(IDB_STORE).put(edition);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function openOrFocus(path) {
+  const url = new URL(path, self.location.origin).href;
+  const all = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of all) {
+    if ("focus" in client) {
+      await client.focus();
+      if ("navigate" in client) {
+        try {
+          await client.navigate(url);
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
+  }
+  if (self.clients.openWindow) {
+    await self.clients.openWindow(url);
   }
 }

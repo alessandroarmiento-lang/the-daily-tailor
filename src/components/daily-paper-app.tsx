@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditionSheet } from "@/components/edition-sheet";
 import { MorningReload } from "@/components/morning-reload";
+import { OfflinePushPrompt } from "@/components/offline-push-prompt";
 import { PrintToolbar } from "@/components/print-toolbar";
 import { LanguageProvider, useLang } from "@/lib/i18n/provider";
 import type { NewspaperEdition } from "@/lib/edition-types";
@@ -189,6 +190,7 @@ function DailyPaperAppInner({
 
   return (
     <>
+      <OfflinePushPrompt />
       <PrintToolbar
         onRefresh={() => {
           if (refreshing) return;

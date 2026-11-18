@@ -48,6 +48,9 @@ wanted = {
     "GOOGLE_CALDAV_USER",
     "GOOGLE_CALDAV_APP_PASSWORD",
     "REMINDERS_INGEST_TOKEN",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_SUBJECT",
 }
 found: dict[str, str] = {}
 for line in raw.splitlines():
@@ -75,6 +78,11 @@ if not icloud_ok and not gmail_ok:
 if "REMINDERS_INGEST_TOKEN" not in found:
     print(
         "WARN: REMINDERS_INGEST_TOKEN unset — iPhone Reminders push will not work",
+        file=sys.stderr,
+    )
+if "VAPID_PUBLIC_KEY" not in found or "VAPID_PRIVATE_KEY" not in found:
+    print(
+        "WARN: VAPID_* unset — 06:00 edition Web Push to iPhone will not work",
         file=sys.stderr,
     )
 

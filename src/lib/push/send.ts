@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import { sendNotification, setVapidDetails } from "web-push";
 import {
   listPushSubscriptions,
   removePushSubscription,
@@ -44,7 +44,7 @@ export async function notifyEditionReady(input: {
     return { configured: false, sent: 0, failed: 0, removed: 0 };
   }
 
-  webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
+  setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
   const subs = await listPushSubscriptions();
   if (subs.length === 0) {
@@ -66,7 +66,7 @@ export async function notifyEditionReady(input: {
   await Promise.all(
     subs.map(async (sub: PushSubscriptionJSON) => {
       try {
-        await webpush.sendNotification(sub, payload, {
+        await sendNotification(sub, payload, {
           TTL: 60 * 60 * 12,
           urgency: "high",
         });

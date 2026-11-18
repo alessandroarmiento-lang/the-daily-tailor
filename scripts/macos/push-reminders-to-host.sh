@@ -50,37 +50,67 @@ trap 'rm -f "$PAYLOAD" "$EVENTKIT_OUT"' EXIT
 
 python3 - "$EVENTKIT_OUT" "$PAYLOAD" <<'PY'
 import json
+import shutil
 import sqlite3
 import sys
+import tempfile
 from pathlib import Path
 
-def flagged_ids():
+def read_reminder_ids():
+    """Flagged + all incomplete ids from a temp copy of each store.
+
+    At 05:00 the live sqlite is often locked; empty satellite DBs still open
+    and used to return an empty flagged set, which wiped the phone sheet.
+    """
     root = Path.home() / "Library/Group Containers/group.com.apple.reminders/Container_v1/Stores"
     if not root.is_dir():
-        return None
-    found = set()
-    for path in root.glob("Data-*.sqlite"):
-        try:
-            con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-        except sqlite3.Error:
-            continue
-        try:
-            rows = con.execute(
-                """
-                SELECT ZDACALENDARITEMUNIQUEIDENTIFIER
-                FROM ZREMCDREMINDER
-                WHERE ZFLAGGED=1
-                  AND (ZCOMPLETED IS NULL OR ZCOMPLETED=0)
-                  AND (ZMARKEDFORDELETION IS NULL OR ZMARKEDFORDELETION=0)
-                  AND ZDACALENDARITEMUNIQUEIDENTIFIER IS NOT NULL
-                """
-            )
-            found.update(row[0] for row in rows if row[0])
-        except sqlite3.Error:
-            continue
-        finally:
-            con.close()
-    return found
+        return None, None
+    flagged: set[str] = set()
+    known: set[str] = set()
+    stores_ok = 0
+    with tempfile.TemporaryDirectory(prefix="tdt-reminders-") as tmp:
+        tmp_root = Path(tmp)
+        for path in root.glob("Data-*.sqlite"):
+            dest = tmp_root / path.name
+            try:
+                shutil.copy2(path, dest)
+                for suffix in ("-wal", "-shm"):
+                    side = Path(str(path) + suffix)
+                    if side.is_file():
+                        shutil.copy2(side, Path(str(dest) + suffix))
+            except OSError:
+                continue
+            try:
+                con = sqlite3.connect(f"file:{dest}?mode=ro", uri=True)
+            except sqlite3.Error:
+                continue
+            try:
+                rows = list(
+                    con.execute(
+                        """
+                        SELECT ZDACALENDARITEMUNIQUEIDENTIFIER, ZFLAGGED
+                        FROM ZREMCDREMINDER
+                        WHERE (ZCOMPLETED IS NULL OR ZCOMPLETED = 0)
+                          AND (ZMARKEDFORDELETION IS NULL OR ZMARKEDFORDELETION = 0)
+                          AND ZDACALENDARITEMUNIQUEIDENTIFIER IS NOT NULL
+                        """
+                    )
+                )
+            except sqlite3.Error:
+                continue
+            finally:
+                con.close()
+            stores_ok += 1
+            for rem_id, is_flagged in rows:
+                if not rem_id:
+                    continue
+                key = str(rem_id).upper()
+                known.add(key)
+                if is_flagged in (1, True):
+                    flagged.add(key)
+    if stores_ok == 0:
+        return None, None
+    return flagged, known
 
 raw = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 if not raw.get("ok"):
@@ -108,12 +138,22 @@ items = [
     if (r.get("title") or "").strip()
 ]
 
-flags = flagged_ids()
-if flags is None:
+flags, known = read_reminder_ids()
+if flags is None or known is None:
     print("Archivio Promemoria illeggibile: non sostituisco i contrassegnati.", file=sys.stderr)
     sys.exit(1)
+
+eventkit_ids = {(item["id"] or "").upper() for item in items if item.get("id")}
+covered = eventkit_ids & known
+if eventkit_ids and len(covered) * 2 < len(eventkit_ids):
+    print(
+        f"Archivio Promemoria incompleto ({len(covered)}/{len(eventkit_ids)} id): non pusho.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 for item in items:
-    item["flagged"] = item["id"] in flags
+    item["flagged"] = (item.get("id") or "").upper() in flags
 flagged_count = sum(1 for item in items if item["flagged"])
 
 Path(sys.argv[2]).write_text(

@@ -75,6 +75,10 @@ function guard(request: Request): Guard {
   return { ok: true };
 }
 
+function urlAllowEmptyFlags(request: Request): boolean {
+  return new URL(request.url).searchParams.get("allowEmptyFlags") === "1";
+}
+
 /**
  * Snapshot status for the phone / Mac (same token as POST).
  * Never echoes the token or reminder contents.
@@ -144,6 +148,36 @@ export async function POST(request: Request) {
       },
       { status: 400 },
     );
+  }
+
+  const incomingFlagged = normalized.items.filter((i) => i.flagged).length;
+  const allowEmptyFlags =
+    urlAllowEmptyFlags(request) ||
+    (payload &&
+      typeof payload === "object" &&
+      !Array.isArray(payload) &&
+      (payload as Record<string, unknown>).allowEmptyFlags === true);
+
+  // A Mac push that could not read the Reminders sqlite used to store every
+  // item as unflagged and wipe the A4 band. Keep the previous snapshot.
+  if (incomingFlagged === 0 && !allowEmptyFlags) {
+    const previous = await loadPushedReminders();
+    const previousFlagged =
+      previous?.items.filter((i) => i.flagged).length ?? 0;
+    if (previous && previousFlagged > 0 && isPushedSnapshotFresh(previous)) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Push con 0 contrassegnati rifiutato: resta lo snapshot precedente.",
+          kept: previous.items.length,
+          keptFlagged: previousFlagged,
+          receivedAt: previous.receivedAt,
+          deviceLabel: previous.deviceLabel,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const snapshot = await savePushedReminders(normalized.items, deviceLabel, {
